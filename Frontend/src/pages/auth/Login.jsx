@@ -1,19 +1,42 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import LoginImage from "../../assets/images/govImg.jpeg"; // <-- import the image
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [form, setForm] = useState({
+    email: "",
+    password: ""
+  });
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const validateEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const hasNumber = (str) => /\d/.test(str);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setError("");
+    if (!validateEmail(form.email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (hasNumber(form.password)) {
+      setError("Password cannot contain numbers.");
+      return;
+    }
+    // Login successful
     alert("Login successful!");
+    navigate("/dashboard");
   };
 
   return (
     <div className="flex max-w-4xl h-[85vh] bg-white rounded-lg shadow-lg overflow-hidden mx-auto my-10">
       {/* Left Image Section */}
+
       <div
         className="flex-1 bg-cover bg-center hidden md:block"
         style={{ backgroundImage: `url(${LoginImage})` }} // <-- use imported image
@@ -33,18 +56,21 @@ export default function Login() {
             type="email"
             placeholder="Email"
             className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
             required
           />
           <input
             type="password"
             placeholder="Password"
             className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
             required
           />
+          {error && (
+            <div className="text-red-500 text-sm text-center">{error}</div>
+          )}
 
           <button
             type="submit"
