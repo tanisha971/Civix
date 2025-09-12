@@ -34,3 +34,6 @@ Thumbs.db
 
 # Misc
 *.tsbuildinfo
+# .gitignore
+node_modules/
+.env
