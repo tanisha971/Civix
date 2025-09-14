@@ -1,81 +1,45 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import LoginImage from "../../assets/images/image.jpg";
+import LoginImage from "../../assets/images/govImg.jpeg"; // <-- import the image
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
-  // Use a single state object instead of multiple useState calls
-  const [formData, setFormData] = useState({
+  const [form, setForm] = useState({
     email: "",
     password: ""
   });
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  // Handle input changes
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    
-    // Clear error when user starts typing in a field
-    if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: ""
-      });
-    }
+  const validateEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
-  // Validation rules
-  const validateForm = () => {
-    const newErrors = {};
-    
-    // Email validation
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email address is invalid";
-    }
-    
-    // Password validation
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-    
-    return newErrors;
-  };
+  const hasNumber = (str) => /\d/.test(str);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // Validate form
-    const formErrors = validateForm();
-    if (Object.keys(formErrors).length > 0) {
-      setErrors(formErrors);
+    setError("");
+    if (!validateEmail(form.email)) {
+      setError("Please enter a valid email address.");
       return;
     }
-    
-    // Clear any previous errors
-    setErrors({});
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      alert("Login successful!");
-      setIsSubmitting(false);
-    }, 1000);
+    if (hasNumber(form.password)) {
+      setError("Password cannot contain numbers.");
+      return;
+    }
+    // Login successful
+    alert("Login successful!");
+    navigate("/dashboard");
   };
 
   return (
-    <div className="flex max-w-4xl h-[95vh] bg-white rounded-lg shadow-lg overflow-hidden mx-auto my-10">
+    <div className="flex max-w-4xl h-[85vh] bg-white rounded-lg shadow-lg overflow-hidden mx-auto my-10">
       {/* Left Image Section */}
+
       <div
         className="flex-1 bg-cover bg-center hidden md:block"
-        style={{ backgroundImage: `url(${LoginImage})` }}
+        style={{ backgroundImage: `url(${LoginImage})` }} // <-- use imported image
       ></div>
 
       {/* Right Form Section */}
@@ -88,38 +52,31 @@ export default function Login() {
         </div>
 
         <form className="flex flex-col space-y-4 mt-4" onSubmit={handleSubmit}>
-          <div>
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-          </div>
-          
-          <div>
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
-          </div>
+          <input
+            type="email"
+            placeholder="Email"
+            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            required
+          />
+          {error && (
+            <div className="text-red-500 text-sm text-center">{error}</div>
+          )}
 
           <button
             type="submit"
-            className="w-full py-3 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition disabled:bg-blue-400"
-            disabled={isSubmitting}
+            className="w-full py-3 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition"
           >
-            {isSubmitting ? "Signing In..." : "Sign In"}
+            Sign In
           </button>
 
           <div className="relative text-center my-3 text-gray-400 text-xs">
@@ -130,16 +87,10 @@ export default function Login() {
           </div>
 
           <div className="flex gap-3 justify-center">
-            <button 
-              type="button"
-              className="flex-1 py-2 border border-gray-300 rounded flex items-center justify-center gap-2 hover:bg-gray-100"
-            >
+            <button className="flex-1 py-2 border border-gray-300 rounded flex items-center justify-center gap-2 hover:bg-gray-100">
               <i className="fab fa-google"></i> Google
             </button>
-            <button 
-              type="button"
-              className="flex-1 py-2 border border-gray-300 rounded flex items-center justify-center gap-2 hover:bg-gray-100"
-            >
+            <button className="flex-1 py-2 border border-gray-300 rounded flex items-center justify-center gap-2 hover:bg-gray-100">
               <i className="fab fa-facebook-f"></i> Facebook
             </button>
           </div>

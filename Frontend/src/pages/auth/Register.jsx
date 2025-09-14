@@ -1,21 +1,48 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import RegisterImage from "../../assets/images/image.jpg"; // <-- import the image
+import RegisterImage from "../../assets/images/govImg.jpeg"; // <-- import the image
+import { useNavigate } from "react-router-dom";
 
 export default function Register() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [location, setLocation] = useState("");
-  const [role, setRole] = useState("citizen");
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    location: "",
+    role: "citizen"
+  });
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const validateEmail = (email) => {
+    // Simple email regex
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const hasNumber = (str) => /\d/.test(str);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setError("");
+    if (!validateEmail(form.email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (hasNumber(form.name)) {
+      setError("Name cannot contain numbers.");
+      return;
+    }
+    if (hasNumber(form.password)) {
+      setError("Password cannot contain numbers.");
+      return;
+    }
+    // Registration successful
     alert("Registration successful!");
+    navigate("/dashboard");
   };
 
   return (
-    <div className="flex max-w-4xl h-[95vh] bg-white rounded-lg shadow-lg overflow-hidden mx-auto my-10">
+    <div className="flex max-w-4xl h-[85vh] bg-white rounded-lg shadow-lg overflow-hidden mx-auto my-10">
       {/* Left Image Section */}
       <div
         className="flex-1 bg-cover bg-center hidden md:block"
@@ -25,7 +52,7 @@ export default function Register() {
       {/* Right Form Section */}
       <div className="flex-1 p-8 flex flex-col justify-center">
         <div className="text-center mb-2">
-          <h1 className="text-3xl font-extrabold text-blue-600">Create Account</h1>
+          <h1 className="text-3xl font-extrabold text-blue-600">Welcome to Civix</h1>
           <p className="text-gray-500 text-sm mt-2">
             Join our platform to make your voice heard in local governance
           </p>
@@ -36,32 +63,32 @@ export default function Register() {
             type="text"
             placeholder="Full Name"
             className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
           />
           <input
             type="email"
             placeholder="Email"
             className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
             required
           />
           <input
             type="password"
             placeholder="Password"
             className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
             required
           />
           <input
             type="text"
             placeholder="Location"
             className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            value={form.location}
+            onChange={(e) => setForm({ ...form, location: e.target.value })}
             required
           />
 
@@ -74,8 +101,8 @@ export default function Register() {
                   type="radio"
                   name="role"
                   value="citizen"
-                  checked={role === "citizen"}
-                  onChange={() => setRole("citizen")}
+                  checked={form.role === "citizen"}
+                  onChange={() => setForm({ ...form, role: "citizen" })}
                   className="accent-blue-600"
                 />
                 Citizen
@@ -85,10 +112,13 @@ export default function Register() {
                   type="radio"
                   name="role"
                   value="public-official"
-                  checked={role === "public-official"}
-                  onChange={() => setRole("public-official")}
+                  checked={form.role === "public-official"}
+                  onChange={() => setForm({ ...form, role: "public-official" })}
                   className="accent-blue-600"
                 />
+          {error && (
+            <div className="text-red-500 text-sm text-center">{error}</div>
+          )}
                 Public Official
               </label>
             </div>
