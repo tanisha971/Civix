@@ -1,9 +1,20 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
+import MailIcon from '@mui/icons-material/Mail';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import LoginImage from "../../assets/images/govImg.jpeg"; // <-- import the image
 import { useNavigate } from "react-router-dom";
 
 export default function Login() {
+  const [showPassword, setShowPassword] = useState(false);
+  const handleClickShowPassword = () => setShowPassword((show) => !show);
+  const handleMouseDownPassword = (event) => {
+    event.preventDefault();
+  };
   const [form, setForm] = useState({
     email: "",
     password: ""
@@ -34,74 +45,95 @@ export default function Login() {
   };
 
   return (
-    <div className="flex max-w-4xl h-[85vh] bg-white rounded-lg shadow-lg overflow-hidden mx-auto my-10">
-      {/* Left Image Section */}
+    // Container 1
+    <div className="min-h-screen bg-blue-200 flex justify-center items-center">
+      {/* Container 2 */}
+      <div className="flex max-w-4xl w-full h-[85vh] bg-white rounded-lg shadow-lg overflow-hidden mx-auto ">
+        
 
-      <div
-        className="flex-1 bg-cover bg-center hidden md:block"
-        style={{ backgroundImage: `url(${LoginImage})` }} // <-- use imported image
-      ></div>
+        {/* Left Form Section */}
+        <div className="flex-1 p-8 flex flex-col justify-center">
+          <div className="text-center mb-2">
+            <h1 className="text-3xl font-extrabold text-blue-600">Welcome to Civix</h1>
+            <p className="text-gray-500 text-sm mt-2">
+              Join our platform to make your voice heard in local governance
+            </p>
+          </div>
 
-      {/* Right Form Section */}
-      <div className="flex-1 p-8 flex flex-col justify-center">
-        <div className="text-center mb-2">
-          <h1 className="text-3xl font-extrabold text-blue-600">Welcome to Civix</h1>
-          <p className="text-gray-500 text-sm mt-2">
-            Join our platform to make your voice heard in local governance
-          </p>
+          <form className="flex flex-col space-y-4 mt-4" onSubmit={handleSubmit}>
+            <TextField
+              id="email"
+              label="Email"
+              variant="outlined"
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              required
+              fullWidth
+              sx={{ mb: 2 }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <MailIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              id="password"
+              label="Password"
+              variant="outlined"
+              type={showPassword ? "text" : "password"}
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+              fullWidth
+              sx={{ mb: 2 }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      onClick={handleClickShowPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            {error && (
+              <div className="text-red-500 text-sm text-center">{error}</div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full py-3 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition"
+            >
+              Sign In
+            </button>
+
+            
+
+            <p className="text-center text-gray-500 text-sm mt-2">
+              Don't have an account?{" "}
+              <Link to="/register" className="text-blue-600 font-medium hover:underline">
+                Register now
+              </Link>
+            </p>
+          </form>
         </div>
-
-        <form className="flex flex-col space-y-4 mt-4" onSubmit={handleSubmit}>
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            required
-          />
-          {error && (
-            <div className="text-red-500 text-sm text-center">{error}</div>
-          )}
-
-          <button
-            type="submit"
-            className="w-full py-3 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition"
-          >
-            Sign In
-          </button>
-
-          <div className="relative text-center my-3 text-gray-400 text-xs">
-            <span className="bg-white px-2 absolute left-1/2 -translate-x-1/2 top-1/2">
-              or sign in using
-            </span>
-            <div className="border-t border-gray-300"></div>
-          </div>
-
-          <div className="flex gap-3 justify-center">
-            <button className="flex-1 py-2 border border-gray-300 rounded flex items-center justify-center gap-2 hover:bg-gray-100">
-              <i className="fab fa-google"></i> Google
-            </button>
-            <button className="flex-1 py-2 border border-gray-300 rounded flex items-center justify-center gap-2 hover:bg-gray-100">
-              <i className="fab fa-facebook-f"></i> Facebook
-            </button>
-          </div>
-
-          <p className="text-center text-gray-500 text-sm mt-2">
-            Don't have an account?{" "}
-            <Link to="/register" className="text-blue-600 font-medium hover:underline">
-              Register now
-            </Link>
-          </p>
-        </form>
+        {/* Right Image Section */}
+        <div
+          className="flex-1 bg-cover bg-center hidden md:block"
+          style={{ 
+            backgroundImage: `url(${LoginImage})`,
+            borderTopLeftRadius: 60,
+            borderBottomLeftRadius: 60,
+          }} // <-- use imported image
+        ></div>
       </div>
     </div>
   );
