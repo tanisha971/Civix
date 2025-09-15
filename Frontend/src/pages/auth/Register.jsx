@@ -1,7 +1,20 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import RegisterImage from "../../assets/images/govImg.jpeg"; // <-- import the image
-import { useNavigate } from "react-router-dom";
+import { useState } from 'react';
+
+import {
+  Link,
+  useNavigate,
+} from 'react-router-dom';
+
+import RegisterImage
+  from '../../assets/images/govImg.jpeg'; // <-- import the image
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
+import MailIcon from '@mui/icons-material/Mail';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import PlaceIcon from '@mui/icons-material/Place';
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -9,7 +22,7 @@ export default function Register() {
     email: "",
     password: "",
     location: "",
-    role: "citizen"
+    role: ""
   });
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -18,6 +31,7 @@ export default function Register() {
     // Simple email regex
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
+      
 
   const hasNumber = (str) => /\d/.test(str);
 
@@ -65,37 +79,70 @@ export default function Register() {
           </div>
 
           <form className="flex flex-col space-y-4 mt-4" onSubmit={handleSubmit}>
-            <input
-              type="text"
-              placeholder="Full Name"
-              className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              required
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              required
-            />
-            <input
+            <TextField
+                          id="name"
+                          label="name"
+                          variant="outlined"
+                          type="text"
+                          value={form.name}
+                          onChange={(e) => setForm({ ...form, name: e.target.value })}
+                          required
+                          fullWidth
+                          
+                          InputProps={{
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <AccountCircleIcon color="action" />
+                              </InputAdornment>
+                            ),
+                          }}
+                        />
+            <TextField
+                          id="email"
+                          label="Email"
+                          variant="outlined"
+                          type="email"
+                          value={form.email}
+                          onChange={(e) => setForm({ ...form, email: e.target.value })}
+                          required
+                          fullWidth
+                          sx={{ mb: 2 }}
+                          InputProps={{
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <MailIcon color="action" />
+                              </InputAdornment>
+                            ),
+                          }}
+                        />
+            <TextField
+              id="password"
+              label="Password"
+              variant="outlined"
               type="password"
-              placeholder="Password"
-              className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
+              fullWidth
+              sx={{ mb: 2 }}
             />
-            <input
+            <TextField
+              id="location"
+              label="Location"
+              variant="outlined"
               type="text"
-              placeholder="Location"
-              className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.location}
               onChange={(e) => setForm({ ...form, location: e.target.value })}
               required
+              fullWidth
+              sx={{ mb: 2 }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <PlaceIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
             />
 
             {/* Role Selection */}
@@ -120,7 +167,7 @@ export default function Register() {
                     value="public-official"
                     checked={form.role === "public-official"}
                     onChange={() => setForm({ ...form, role: "public-official" })}
-                    className="accent-blue-600"
+                      
                   />
             {error && (
               <div className="text-red-500 text-sm text-center">{error}</div>

@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema(
   {
@@ -14,14 +14,7 @@ const userSchema = new mongoose.Schema(
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
     },
-    googleId: {
-      type: String,
-      default: null,
-    },
-    facebookId: {
-      type: String,
-      default: null,
-    },
+    
     role: {
       type: String,
       enum: ["user", "admin"],
