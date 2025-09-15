@@ -10,11 +10,6 @@ import LoginImage from "../../assets/images/govImg.jpeg"; // <-- import the imag
 import { useNavigate } from "react-router-dom";
 
 export default function Login() {
-  const [showPassword, setShowPassword] = useState(false);
-  const handleClickShowPassword = () => setShowPassword((show) => !show);
-  const handleMouseDownPassword = (event) => {
-    event.preventDefault();
-  };
   const [form, setForm] = useState({
     email: "",
     password: ""
@@ -83,26 +78,12 @@ export default function Login() {
               id="password"
               label="Password"
               variant="outlined"
-              type={showPassword ? "text" : "password"}
+              type="password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
               fullWidth
               sx={{ mb: 2 }}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                      onClick={handleClickShowPassword}
-                      onMouseDown={handleMouseDownPassword}
-                      edge="end"
-                    >
-                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
             />
             {error && (
               <div className="text-red-500 text-sm text-center">{error}</div>
@@ -111,6 +92,21 @@ export default function Login() {
             <button
               type="submit"
               className="w-full py-3 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition"
+              onClick={(e) => {
+                e.preventDefault();
+                setError("");
+                if (!validateEmail(form.email)) {
+                  setError("Please enter a valid email address.");
+                  return;
+                }
+                if (hasNumber(form.password)) {
+                  setError("Password cannot contain numbers.");
+                  return;
+                }
+                // Login successful
+                alert("Login successful!");
+                navigate("/dashboard");
+              }}
             >
               Sign In
             </button>

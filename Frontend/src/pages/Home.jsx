@@ -1,15 +1,17 @@
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import AppBar from '@mui/material/AppBar';
-import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
-import Button from '@mui/material/Button';
 import { Link } from 'react-router-dom';
-import homeBg from '../assets/images/homeBg.jpg';
+
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EditIcon from '@mui/icons-material/Edit';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import AppBar from '@mui/material/AppBar';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
+
+import homeBg from '../assets/images/homeBg.jpg';
 
 function Home() {
     return (
@@ -42,9 +44,7 @@ function Home() {
                 style={{
                     position: 'relative',
                     paddingTop: 64,
-                    minHeight: 'calc(100vh)',
-                    borderBottomLeftRadius: 100,
-                    borderBottomRightRadius: 100,
+                    minHeight: 'calc(100vh)',                   
                     overflow: 'hidden',
                 }}
 
@@ -61,9 +61,7 @@ function Home() {
                         backgroundImage: `url(${homeBg})`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
-                        zIndex: 1,
-                        borderBottomLeftRadius: 100,
-                        borderBottomRightRadius: 100,
+                        zIndex: 1,                        
                     }}
                 />
                 <div
@@ -74,9 +72,7 @@ function Home() {
                         width: '100%',
                         height: '100%',
                         background: 'rgba(17, 37, 84, 0.85)',
-                        zIndex: 2,
-                        borderBottomLeftRadius: 100,
-                        borderBottomRightRadius: 100,
+                        zIndex: 2,                       
                     }}
                 />
                 {/* Centered heading and paragraph in the background */}
