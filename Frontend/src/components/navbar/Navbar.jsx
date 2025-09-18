@@ -17,12 +17,20 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import axios from "axios";
+import MenuIcon from '@mui/icons-material/Menu';
+import Drawer from '@mui/material/Drawer';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import DashboardBar from '../dashboard/DashboardBar';
+import CloseIcon from '@mui/icons-material/Close';
 
 import Logo from "../../assets/images/Civix logo.jpg"; // Use your logo image
 
 export default function Navbar() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [user, setUser] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const isMobile = useMediaQuery('(max-width:600px)');
 
   // Fetch logged-in user profile
   useEffect(() => {
@@ -43,6 +51,17 @@ export default function Navbar() {
     setAnchorEl(event.currentTarget);
   };
 
+  const handleSearchClick = () => {
+    setSearchOpen((prev) => !prev);
+  };
+
+  const handleDrawerOpen = () => {
+    setDrawerOpen(true);
+  };
+  const handleDrawerClose = () => {
+    setDrawerOpen(false);
+  };
+
   const handleMenuClose = () => {
     setAnchorEl(null);
   };
@@ -60,106 +79,149 @@ export default function Navbar() {
 
   return (
     <AppBar position="fixed" color="primary" sx={{ zIndex: 100 }}>
-      <Toolbar sx={{ display: "flex", justifyContent: "space-between", minHeight: 64 }}>
+      <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', minHeight: 64 }}>
         {/* Left: Logo, Civix, Beta */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Avatar src={Logo} alt="Civix Logo" sx={{ width: 40, height: 40, mr: 1 }} />
-          <Typography variant="h6" sx={{ fontWeight: "bold", letterSpacing: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', letterSpacing: 1 }}>
             Civix
           </Typography>
-          <Typography
-            variant="caption"
-            sx={{ bgcolor: "yellow", color: "black", px: 1, borderRadius: 1, ml: 1 }}
-          >
-            Beta
-          </Typography>
+          {!isMobile && (
+            <Typography
+              variant="caption"
+              sx={{ bgcolor: 'yellow', color: 'black', px: 1, borderRadius: 1, ml: 1 }}
+            >
+              Beta
+            </Typography>
+          )}
         </Box>
 
-        {/* Center: Navigation Links */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
-          <IconButton color="inherit" href="/">
-            <HomeIcon />
-            <Typography variant="body1" sx={{ ml: 0.5 }}>
-              Home
-            </Typography>
-          </IconButton>
-          <IconButton color="inherit" href="/petitions">
-            <EditIcon />
-            <Typography variant="body1" sx={{ ml: 0.5 }}>
-              Petitions
-            </Typography>
-          </IconButton>
-          <IconButton color="inherit" href="/polls">
-            <HowToVoteIcon />
-            <Typography variant="body1" sx={{ ml: 0.5 }}>
-              Polls
-            </Typography>
-          </IconButton>
-          <IconButton color="inherit" href="/reports">
-            <ReportIcon />
-            <Typography variant="body1" sx={{ ml: 0.5 }}>
-              Reports
-            </Typography>
-          </IconButton>
-        </Box>
-
-        {/* Right: Search, Notification, Profile */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              bgcolor: "white",
-              borderRadius: 2,
-              px: 1,
-            }}
-          >
-            <InputBase
-              placeholder="Search…"
-              sx={{ ml: 1, flex: 1, color: "black", minWidth: 120 }}
-              inputProps={{ "aria-label": "search" }}
-            />
-            <IconButton type="submit" sx={{ p: "8px" }} aria-label="search">
-              <SearchIcon sx={{ color: "primary.main" }} />
+        {/* Center: Navigation Links (hidden on mobile) */}
+        {!isMobile && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <IconButton color="inherit" href="/">
+              <HomeIcon />
+              <Typography variant="body1" sx={{ ml: 0.5 }}>
+                Home
+              </Typography>
+            </IconButton>
+            <IconButton color="inherit" href="/petitions">
+              <EditIcon />
+              <Typography variant="body1" sx={{ ml: 0.5 }}>
+                Petitions
+              </Typography>
+            </IconButton>
+            <IconButton color="inherit" href="/polls">
+              <HowToVoteIcon />
+              <Typography variant="body1" sx={{ ml: 0.5 }}>
+                Polls
+              </Typography>
+            </IconButton>
+            <IconButton color="inherit" href="/reports">
+              <ReportIcon />
+              <Typography variant="body1" sx={{ ml: 0.5 }}>
+                Reports
+              </Typography>
             </IconButton>
           </Box>
-          <IconButton color="inherit">
-            <Badge badgeContent={3} color="error">
-              <NotificationsIcon />
-            </Badge>
-          </IconButton>
+        )}
 
-          {/* Avatar */}
-          <Avatar
-            alt={user?.name || "User"}
-            src="https://randomuser.me/api/portraits/men/75.jpg"
-            sx={{ width: 36, height: 36, ml: 1, cursor: "pointer" }}
-            onClick={handleAvatarClick}
-          />
-
-          {/* Dropdown Menu */}
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-            transformOrigin={{ vertical: "top", horizontal: "right" }}
-          >
-            <MenuItem disabled>
-              <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                {user?.name || "Guest"}
-              </Typography>
-            </MenuItem>
-            <MenuItem
-              onClick={handleLogout}
-              sx={{ display: "flex", alignItems: "center", gap: 1 }}
-            >
-              <LogoutIcon fontSize="small" />
-              <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                Logout
-              </Typography>
-            </MenuItem>
-          </Menu>
+        {/* Right: Responsive controls */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {isMobile ? (
+            <>
+              {/* Search Icon (shows search box on click) */}
+              <IconButton color="inherit" onClick={handleSearchClick}>
+                <SearchIcon />
+              </IconButton>
+              {/* Hamburger Icon (shows DashboardBar in Drawer) */}
+              <IconButton color="inherit" onClick={handleDrawerOpen}>
+                <MenuIcon />
+              </IconButton>
+              {/* Search Box (shown when searchOpen) */}
+              {searchOpen && (
+                <Box sx={{ position: 'absolute', top: 64, right: 16, bgcolor: 'white', borderRadius: 2, boxShadow: 3, p: 1, zIndex: 200 }}>
+                  <InputBase
+                    autoFocus
+                    placeholder="Search…"
+                    sx={{ ml: 1, flex: 1, color: 'black', minWidth: 120 }}
+                    inputProps={{ 'aria-label': 'search' }}
+                  />
+                </Box>
+              )}
+              {/* Drawer for DashboardBar */}
+              <Drawer anchor="right" open={drawerOpen} onClose={handleDrawerClose}>
+                <Box sx={{ width: 250, p: 2, position: 'relative', height: '100%' }}>
+                  <IconButton
+                    onClick={handleDrawerClose}
+                    sx={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
+                    aria-label="close"
+                  >
+                    <CloseIcon />
+                  </IconButton>
+                  <Box sx={{ mt: 5 }}>
+                    <DashboardBar />
+                  </Box>
+                </Box>
+              </Drawer>
+            </>
+          ) : (
+            <>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  bgcolor: 'white',
+                  borderRadius: 2,
+                  px: 1,
+                }}
+              >
+                <InputBase
+                  placeholder="Search…"
+                  sx={{ ml: 1, flex: 1, color: 'black', minWidth: 120 }}
+                  inputProps={{ 'aria-label': 'search' }}
+                />
+                <IconButton type="submit" sx={{ p: '8px' }} aria-label="search">
+                  <SearchIcon sx={{ color: 'primary.main' }} />
+                </IconButton>
+              </Box>
+              <IconButton color="inherit">
+                <Badge badgeContent={3} color="error">
+                  <NotificationsIcon />
+                </Badge>
+              </IconButton>
+              {/* Avatar */}
+              <Avatar
+                alt={user?.name || 'User'}
+                src="https://randomuser.me/api/portraits/men/75.jpg"
+                sx={{ width: 36, height: 36, ml: 1, cursor: 'pointer' }}
+                onClick={handleAvatarClick}
+              />
+              {/* Dropdown Menu */}
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleMenuClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              >
+                <MenuItem disabled>
+                  <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                    {user?.name || 'Guest'}
+                  </Typography>
+                </MenuItem>
+                <MenuItem
+                  onClick={handleLogout}
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                >
+                  <LogoutIcon fontSize="small" />
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    Logout
+                  </Typography>
+                </MenuItem>
+              </Menu>
+            </>
+          )}
         </Box>
       </Toolbar>
     </AppBar>
