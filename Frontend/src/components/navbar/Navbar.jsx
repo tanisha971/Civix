@@ -17,6 +17,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import axios from "axios";
+import { useNavigate } from 'react-router-dom';
 import MenuIcon from '@mui/icons-material/Menu';
 import Drawer from '@mui/material/Drawer';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -66,11 +67,16 @@ export default function Navbar() {
     setAnchorEl(null);
   };
 
+  const navigate = useNavigate && typeof useNavigate === 'function' ? useNavigate() : null;
   const handleLogout = async () => {
     try {
       await axios.post("http://localhost:5000/api/auth/logout", {}, { withCredentials: true });
       setUser(null); // clear user after logout
-      window.location.href = "/"; // redirect to home/login
+      if (navigate) {
+        navigate("/"); // redirect to Home.jsx route
+      } else {
+        window.location.href = "/";
+      }
     } catch (err) {
       console.error("Logout failed:", err.response?.data?.message);
     }
@@ -137,6 +143,10 @@ export default function Navbar() {
               {/* Hamburger Icon (shows DashboardBar in Drawer) */}
               <IconButton color="inherit" onClick={handleDrawerOpen}>
                 <MenuIcon />
+              </IconButton>
+              {/* Logout Icon for mobile */}
+              <IconButton color="inherit" onClick={handleLogout}>
+                <LogoutIcon />
               </IconButton>
               {/* Search Box (shown when searchOpen) */}
               {searchOpen && (
