@@ -64,7 +64,7 @@ export default function DashboardCard() {
     <button className="px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-700 shadow">Transportation</button>
     <button className="px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-700 shadow">Healthcare</button>
     <button className="px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-700 shadow">Housing</button>
-    <button className="px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-700 shadow">Clear Filters</button>
+    <button className="px-4 py-2 rounded-lg font-semibold bg-blue-800 text-white shadow">Clear Filters</button>
   </div>
   <div className="bg-white rounded-lg shadow-lg w-full" style={{ minHeight: '90vh' }}>
     <p className="text-center text-lg  opacity-70">No petitions found with the current filters</p>
