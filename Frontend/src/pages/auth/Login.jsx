@@ -1,63 +1,55 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
-import IconButton from '@mui/material/IconButton';
 import MailIcon from '@mui/icons-material/Mail';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import LoginImage from "../../assets/images/govImg.jpeg"; // <-- import the image
-import { useNavigate } from "react-router-dom";
+import LoginImage from "../../assets/images/govImg.jpeg";
 
 export default function Login() {
-  const [form, setForm] = useState({
-    email: "",
-    password: ""
-  });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const validateEmail = (email) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  const hasNumber = (str) => /\d/.test(str);
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
     if (!validateEmail(form.email)) {
       setError("Please enter a valid email address.");
       return;
     }
-    if (hasNumber(form.password)) {
-      setError("Password cannot contain numbers.");
-      return;
+
+    try {
+      const res = await axios.post(
+        "http://localhost:5000/api/auth/login",
+        form,
+        { withCredentials: true }
+      );
+      alert(res.data.message);
+      navigate("/dashboard");
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || "Login failed");
     }
-    // Login successful
-    alert("Login successful!");
-    navigate("/dashboard");
   };
 
   return (
-    // Container 1
     <div className="min-h-screen bg-blue-200 flex justify-center items-center">
-      {/* Container 2 */}
       <div className="flex max-w-4xl w-full h-[85vh] bg-white rounded-lg shadow-lg overflow-hidden mx-auto ">
         
-
-        {/* Left Form Section */}
+        {/* Form */}
         <div className="flex-1 p-8 flex flex-col justify-center">
           <div className="text-center mb-2">
             <h1 className="text-3xl font-extrabold text-blue-600">Welcome to Civix</h1>
-            <p className="text-gray-500 text-sm mt-2">
-              Join our platform to make your voice heard in local governance
-            </p>
+            <p className="text-gray-500 text-sm mt-2">Join our platform to make your voice heard in local governance</p>
           </div>
 
           <form className="flex flex-col space-y-4 mt-4" onSubmit={handleSubmit}>
             <TextField
-              id="email"
               label="Email"
               variant="outlined"
               type="email"
@@ -65,7 +57,6 @@ export default function Login() {
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               required
               fullWidth
-              sx={{ mb: 2 }}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -75,7 +66,6 @@ export default function Login() {
               }}
             />
             <TextField
-              id="password"
               label="Password"
               variant="outlined"
               type="password"
@@ -83,53 +73,25 @@ export default function Login() {
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
               fullWidth
-              sx={{ mb: 2 }}
             />
-            {error && (
-              <div className="text-red-500 text-sm text-center">{error}</div>
-            )}
 
-            <button
-              type="submit"
-              className="w-full py-3 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition"
-              onClick={(e) => {
-                e.preventDefault();
-                setError("");
-                if (!validateEmail(form.email)) {
-                  setError("Please enter a valid email address.");
-                  return;
-                }
-                if (hasNumber(form.password)) {
-                  setError("Password cannot contain numbers.");
-                  return;
-                }
-                // Login successful
-                alert("Login successful!");
-                navigate("/dashboard");
-              }}
-            >
+            {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+
+            <button type="submit" className="w-full py-3 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition">
               Sign In
             </button>
 
-            
-
             <p className="text-center text-gray-500 text-sm mt-2">
               Don't have an account?{" "}
-              <Link to="/register" className="text-blue-600 font-medium hover:underline">
-                Register now
-              </Link>
+              <Link to="/register" className="text-blue-600 font-medium hover:underline">Register now</Link>
             </p>
           </form>
         </div>
-        {/* Right Image Section */}
-        <div
-          className="flex-1 bg-cover bg-center hidden md:block"
-          style={{ 
-            backgroundImage: `url(${LoginImage})`,
-            borderTopLeftRadius: 60,
-            borderBottomLeftRadius: 60,
-          }} // <-- use imported image
-        ></div>
+
+        {/* Image */}
+        <div className="flex-1 bg-cover bg-center hidden md:block"
+             style={{ backgroundImage: `url(${LoginImage})`, borderTopLeftRadius: 60, borderBottomLeftRadius: 60 }}>
+        </div>
       </div>
     </div>
   );
