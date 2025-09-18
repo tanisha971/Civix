@@ -12,6 +12,8 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 
 import homeBg from '../assets/images/homeBg.jpg';
+import Logo from "../assets/images/Civix logo.jpg";
+import Avatar from "@mui/material/Avatar";
 
 function Home() {
     return (
@@ -21,9 +23,7 @@ function Home() {
                 <AppBar position="fixed" sx={{ height: 64, justifyContent: 'center' }}>
                     <Toolbar sx={{ minHeight: 64, justifyContent: 'space-between' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <IconButton edge="start" color="inherit" aria-label="menu" sx={{ mr: 2 }}>
-                                <AccountBalanceIcon />
-                            </IconButton>
+                            <Avatar src={Logo} alt="Civix Logo" sx={{ width: 40, height: 40, mr: 1 }} />
                             <Typography variant="h6" color="inherit" component="div">
                                 Civix
                             </Typography>
