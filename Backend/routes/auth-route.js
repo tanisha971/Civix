@@ -73,4 +73,9 @@ router.get("/profile", authMiddleware, async (req, res) => {
   }
 });
 
+router.post("/logout", (req, res) => {
+  res.clearCookie("token", { httpOnly: true, sameSite: "strict" });
+  res.json({ message: "Logged out successfully" });
+});
+
 export default router;
