@@ -32,6 +32,9 @@ export default function Dashboard() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Check if current route is dashboard index (not petitions)
+  const isDashboardIndex = location.pathname === '/dashboard' || location.pathname === '/dashboard/';
+
   if (!user) return <div>Loading...</div>; // show loading while fetching
 
   return (
@@ -44,9 +47,11 @@ export default function Dashboard() {
               <Sidebar1 user={user} />
             </div>
             {/* Welcome full row */}
+            {isDashboardIndex && (
             <div style={{ width: '100%', padding: '16px', marginTop: 8 }}>
               <Welcome user={user} />
             </div>
+            )}
             {/* Outlet full row */}
             <div style={{ width: '100%', padding: '16px', marginTop: 8 }}>
               <Outlet />
@@ -62,7 +67,9 @@ export default function Dashboard() {
             </div>
             {/* Right Content */}
             <div style={{ flex: 1, padding: '32px', display: 'flex', flexDirection: 'column' }}>
-              <Welcome user={user} />
+
+              {/* Welcome message - Only show on dashboard index */}
+            {isDashboardIndex && <Welcome user={user} />}
               <div>
                 <Outlet />
               </div>
