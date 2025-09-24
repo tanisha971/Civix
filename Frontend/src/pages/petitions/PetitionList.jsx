@@ -1,97 +1,76 @@
-import React, { useState } from 'react';
-import PetitionStats from './PetitionStats';
-import PetitionFilters from './PetitionFilters';
-import PetitionCard from './PetitionCard';
-import { useNavigate } from 'react-router-dom'; // Add this import
+import React, { useState, useEffect } from "react";
+import PetitionStats from "./PetitionStats";
+import PetitionFilters from "./PetitionFilters";
+import PetitionCard from "./PetitionCard";
+import { useNavigate } from "react-router-dom";
+import { getPetitions } from "../../services/petitionService";
+import { getCurrentUserId } from "../../utils/auth";
 
 const PetitionList = () => {
-  const [filters, setFilters] = useState({
-    type: 'All Petitions',
-    category: 'All Categories'
-  });
+  const currentUserId = getCurrentUserId();
 
-  const navigate = useNavigate(); // Add this
+  const [filters, setFilters] = useState({ type: "All Petitions", category: "All Categories", status: "All Status" });
+  const [petitions, setPetitions] = useState([]);
+  const navigate = useNavigate();
 
-  // Sample data - replace with API call
-  const petitions = [
-    {
-      id: 1,
-      title: 'Increase the Planting of More Trees nearby Top 3 Metro Cities to decrease the amount Poll...',
-      description: 'We need more trees in our metropolitan areas to combat pollution and improve air quality for residents.',
-      signatures: 65,
-      goal: 100,
-      category: 'Environment',
-      status: 'Active',
-      time: 'Less than a minute ago'
-    },
-    {
-      id: 2,
-      title: 'Creation of Separate Lane for Two and Four Wheelers in Highways',
-      description: 'Creating dedicated lanes will improve traffic flow and reduce accidents on major highways.',
-      signatures: 85,
-      goal: 100,
-      category: 'Transportation',
-      status: 'Active',
-      time: '5 hours ago'
-    },
-    {
-      id: 3,
-      title: 'Establish Free Wi-Fi Zones in Public Parks',
-      description: 'Providing free internet access in public spaces will benefit students and remote workers.',
-      signatures: 100,
-      goal: 100,
-      category: 'Infrastructure',
-      status: 'Under Review',
-      time: '3 hours ago'
+  const mapStatusToUI = (status) => {
+    switch (status) {
+      case "active": return "Active";
+      case "under_review": return "Under Review";
+      case "closed": return "Successful";
+      default: return status;
     }
-  ];
-
-  const handleFilterChange = (filterType, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterType]: value
-    }));
   };
 
-  const handleCreatePetition = () => {
-    navigate('/dashboard/petitions/create'); // Change this to navigate to new page
+  const getRelativeTime = (date) => {
+    const diff = Math.floor((Date.now() - new Date(date)) / 1000);
+    if (diff < 60) return `${diff} seconds ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+    return `${Math.floor(diff / 86400)} days ago`;
   };
 
-  const filteredPetitions = petitions.filter(petition => {
-    if (filters.category !== 'All Categories' && petition.category !== filters.category) {
-      return false;
+  const fetchPetitions = async () => {
+    try {
+      const data = await getPetitions({
+        category: filters.category !== "All Categories" ? filters.category : undefined,
+        status: filters.status !== "All Status" ? filters.status.toLowerCase().replace(" ", "_") : undefined
+      });
+
+      const normalized = data.map(p => ({
+        ...p,
+        status: mapStatusToUI(p.status),
+        signatures: p.signaturesCount || 0,
+        goal: p.signatureGoal || 100,
+        time: getRelativeTime(p.createdAt)
+      }));
+
+      setPetitions(normalized);
+    } catch (err) {
+      console.error(err);
     }
-    return true;
-  });
+  };
+
+  useEffect(() => { fetchPetitions(); }, [filters]);
+
+  const handleFilterChange = (type, value) => setFilters(prev => ({ ...prev, [type]: value }));
+  const handleCreatePetition = () => navigate("/dashboard/petitions/create");
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-        
-        {/* Header */}
-        <div className="mb-4">
-          <h1 className="text-3xl font-bold text-gray-900">Petitions</h1>
-          <p className="text-gray-600 mt-1">Browse, sign, and track petitions in your community.</p>
-        </div>
+        <h1 className="text-3xl font-bold text-gray-900">Petitions</h1>
+        <p className="text-gray-600 mt-1">Browse, sign, and track petitions in your community.</p>
 
-        {/* Stats Section */}
         <PetitionStats onCreatePetition={handleCreatePetition} />
+        <PetitionFilters activeFilter={filters} onFilterChange={handleFilterChange} userId={currentUserId} />
 
-        {/* Filters */}
-        <PetitionFilters 
-          activeFilter={filters} 
-          onFilterChange={handleFilterChange} 
-        />
-
-        {/* Petitions List */}
         <div className="space-y-3 mt-4">
-          {filteredPetitions.length > 0 ? (
-            filteredPetitions.map(petition => (
-              <PetitionCard key={petition.id} petition={petition} />
-            ))
-          ) : (
-            <div className="text-center py-8">
-              <div className="text-gray-400 text-lg">No petitions found with the current filters</div>
+          {petitions.length > 0 ? petitions.map(p => (
+            <PetitionCard key={p._id} petition={p} onSigned={fetchPetitions} />
+          )) : (
+            <div className="text-center py-8 text-gray-400 text-lg">
+              No petitions found with the current filters
             </div>
           )}
         </div>

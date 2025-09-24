@@ -1,24 +1,73 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { createPetition } from "../../services/petitionService";
 
 const CreatePetition = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    title: '',
-    category: '',
-    description: '',
-    signatureGoal: 100
+    title: "",
+    category: "",
+    description: "",
+    signatureGoal: 100,
+    location: "" ,// no default
+    lat: null,
+    lng: null
   });
+
+  const [loadingLocation, setLoadingLocation] = useState(false);
 
   const categories = [
     'Environment', 'Infrastructure', 'Education', 'Transportation',
     'Public Safety', 'Healthcare', 'Housing'
   ];
 
-  const handleSubmit = (e) => {
+  // Auto-detect location using Geolocation API
+  useEffect(() => {
+    const detectLocation = async () => {
+      if (!navigator.geolocation) return; // browser doesn't support
+      setLoadingLocation(true);
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          // Use reverse geocoding to get city/country name
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+          const data = await res.json();
+          if (data.address) {
+            const city = data.address.city || data.address.town || data.address.village || '';
+            const country = data.address.country || '';
+            setFormData(prev => ({
+              ...prev,
+              location: city && country ? `${city}, ${country}` : country || city,
+              lat: latitude,
+              lng: longitude
+            }));
+          }
+        } catch (err) {
+          console.error("Failed to detect location:", err);
+        } finally {
+          setLoadingLocation(false);
+        }
+      }, (err) => {
+        console.warn("User denied location or error:", err);
+        setLoadingLocation(false);
+      });
+    };
+    detectLocation();
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('New petition data:', formData);
-    navigate('/dashboard/petitions');
+    try {
+      if (!formData.location) {
+        alert("Please enter a location");
+        return;
+      }
+      await createPetition(formData);
+      navigate("/dashboard/petitions"); // go back to list after creation
+    } catch (error) {
+      console.error("Failed to create petition:", error);
+      alert("Error creating petition");
+    }
   };
 
   const handleChange = (e) => {
@@ -30,8 +79,7 @@ const CreatePetition = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Added more left margin to create space from sidebar */}
-      <div className="max-w-4xl ml-8 mr-4 px-4 sm:px-6 lg:px-8 pt-4"> {/* Added ml-8 for left spacing */}
+      <div className="max-w-4xl ml-8 mr-4 px-4 sm:px-6 lg:px-8 pt-4">
         
         {/* Header */}
         <div className="mb-6">
@@ -39,11 +87,11 @@ const CreatePetition = () => {
           <p className="text-gray-600 mt-1">Complete the form below to create a petition in your community.</p>
         </div>
 
-        {/* Form Container */}
+        {/* Form */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            
-            {/* Petition Title Section */}
+
+            {/* Title */}
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Petition Title</h2>
               <p className="text-gray-500 text-sm mb-3">Give your petition a clear and specific title</p>
@@ -58,14 +106,14 @@ const CreatePetition = () => {
               />
             </div>
 
-            {/* Category, Location, Goal Section */}
+            {/* Category, Location, Goal */}
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-3">Details</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
+                {/* Category */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                   <select
                     name="category"
                     value={formData.category}
@@ -74,25 +122,27 @@ const CreatePetition = () => {
                     required
                   >
                     <option value="">Select a Category</option>
-                    {categories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
+                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
 
+                {/* Location */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Location
-                  </label>
-                  <div className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600">
-                    Kolkata, India
-                  </div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    placeholder={loadingLocation ? "Detecting location..." : "Enter your city or area"}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
                 </div>
 
+                {/* Signature Goal */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Signature Goal
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Signature Goal</label>
                   <input
                     type="number"
                     name="signatureGoal"
@@ -107,7 +157,7 @@ const CreatePetition = () => {
               </div>
             </div>
 
-            {/* Description Section */}
+            {/* Description */}
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Description</h2>
               <p className="text-gray-500 text-sm mb-3">Describe the issue and the change that you would like to see</p>
@@ -122,13 +172,11 @@ const CreatePetition = () => {
               />
             </div>
 
-            {/* Important Information */}
+            {/* Important Info */}
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
               <div className="flex">
                 <div className="ml-3">
-                  <p className="text-sm font-semibold text-yellow-800">
-                    Important Information:
-                  </p>
+                  <p className="text-sm font-semibold text-yellow-800">Important Information:</p>
                   <p className="text-sm text-yellow-700 mt-1">
                     By submitting this petition, you acknowledge that the content is factual to the best of your knowledge and does not contain misleading information.
                   </p>
