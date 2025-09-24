@@ -1,6 +1,8 @@
-export const getCurrentUserId = () => localStorage.getItem("userId");
-export const getCurrentUserName = () => localStorage.getItem("userName");
-export const logoutUser = () => {
-  localStorage.removeItem("userId");
-  localStorage.removeItem("userName");
+export const getCurrentUserId = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user"));
+    return user?._id || null;
+  } catch {
+    return null;
+  }
 };

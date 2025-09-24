@@ -11,13 +11,14 @@ const PetitionList = () => {
 
   const [filters, setFilters] = useState({ type: "All Petitions", category: "All Categories", status: "All Status" });
   const [petitions, setPetitions] = useState([]);
+  const [filteredPetitions, setFilteredPetitions] = useState([]);
   const navigate = useNavigate();
 
   const mapStatusToUI = (status) => {
     switch (status) {
       case "active": return "Active";
       case "under_review": return "Under Review";
-      case "closed": return "Successful";
+      case "closed": return "Closed";
       default: return status;
     }
   };
@@ -30,30 +31,52 @@ const PetitionList = () => {
     return `${Math.floor(diff / 86400)} days ago`;
   };
 
-  const fetchPetitions = async () => {
-    try {
-      const data = await getPetitions({
-        category: filters.category !== "All Categories" ? filters.category : undefined,
-        status: filters.status !== "All Status" ? filters.status.toLowerCase().replace(" ", "_") : undefined
-      });
+  // 1️⃣ Fetch all petitions on mount
+  useEffect(() => {
+    const fetchPetitions = async () => {
+      try {
+        const data = await getPetitions(); // fetch ALL from backend
 
-      const normalized = data.map(p => ({
-        ...p,
-        status: mapStatusToUI(p.status),
-        signatures: p.signaturesCount || 0,
-        goal: p.signatureGoal || 100,
-        time: getRelativeTime(p.createdAt)
-      }));
+        const normalized = data.map((p) => ({
+          ...p,
+          status: mapStatusToUI(p.status),
+          signatures: p.signaturesCount || 0,
+          goal: p.signatureGoal || 100,
+          time: getRelativeTime(p.createdAt),
+        }));
 
-      setPetitions(normalized);
-    } catch (err) {
-      console.error(err);
+        setPetitions(normalized);
+        setFilteredPetitions(normalized); // default = all petitions
+      } catch (err) {
+        console.error("Error fetching petitions:", err);
+      }
+    };
+
+    fetchPetitions();
+  }, []);
+
+  // 2️⃣ Apply filters on frontend side
+  useEffect(() => {
+    let result = [...petitions];
+
+    if (filters.category !== "All Categories") {
+      result = result.filter((p) => p.category === filters.category);
     }
-  };
 
-  useEffect(() => { fetchPetitions(); }, [filters]);
+    if (filters.status !== "All Status") {
+      result = result.filter((p) => p.status === filters.status);
+    }
 
-  const handleFilterChange = (type, value) => setFilters(prev => ({ ...prev, [type]: value }));
+    if (filters.type === "My Petitions") {
+      result = result.filter((p) => p.creator?._id === currentUserId);
+    }
+
+    setFilteredPetitions(result);
+  }, [filters, petitions, currentUserId]);
+
+  const handleFilterChange = (type, value) =>
+    setFilters((prev) => ({ ...prev, [type]: value }));
+
   const handleCreatePetition = () => navigate("/dashboard/petitions/create");
 
   return (
@@ -66,8 +89,8 @@ const PetitionList = () => {
         <PetitionFilters activeFilter={filters} onFilterChange={handleFilterChange} userId={currentUserId} />
 
         <div className="space-y-3 mt-4">
-          {petitions.length > 0 ? petitions.map(p => (
-            <PetitionCard key={p._id} petition={p} onSigned={fetchPetitions} />
+          {filteredPetitions.length > 0 ? filteredPetitions.map(p => (
+            <PetitionCard key={p._id} petition={p} />
           )) : (
             <div className="text-center py-8 text-gray-400 text-lg">
               No petitions found with the current filters

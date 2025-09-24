@@ -1,40 +1,40 @@
 import Petition from "../models/Petition.js";
+import Signature from "../models/Signature.js";
 
-// ✅ Create Petition
-export const createPetition = async (req, res) => {
+// Get all petitions
+export const getPetitions = async (req, res) => {
   try {
-    const { title, description, category, location, signatureGoal, geo } = req.body;
-    const petition = new Petition({
-      creator: req.user._id, // logged in user
-      title,
-      description,
-      category,
-      location,
-      signatureGoal,
-      geo,
-    });
-    const saved = await petition.save();
-    await saved.populate("creator", "name email _id"); // populate for frontend
-    res.status(201).json(saved);
+    const petitions = await Petition.find().populate("creator", "_id name").populate("signatures");
+    const formatted = petitions.map(p => ({
+      _id: p._id,
+      title: p.title,
+      category: p.category,
+      description: p.description,
+      location: p.location,
+      lat: p.lat,
+      lng: p.lng,
+      signatureGoal: p.signatureGoal,
+      status: p.status,
+      creator: p.creator,
+      createdAt: p.createdAt,
+      signaturesCount: p.signatures.length
+    }));
+    res.json({ petitions: formatted });
   } catch (err) {
-    res.status(500).json({ message: "Error creating petition", error: err.message });
+    res.status(500).json({ message: "Error fetching petitions" });
   }
 };
 
-// ✅ Get Petitions (with filters)
-export const getPetitions = async (req, res) => {
+// Create petition
+export const createPetition = async (req, res) => {
   try {
-    const { category, status } = req.query;
-    let query = {};
-    if (category) query.category = category;
-    if (status) query.status = status;
-
-    const petitions = await Petition.find(query)
-      .populate("creator", "name email _id")
-      .sort({ createdAt: -1 });
-
-    res.json({ petitions });
+    const newPetition = new Petition({
+      ...req.body,
+      creator: req.body.creatorId || null
+    });
+    const saved = await newPetition.save();
+    res.status(201).json(saved);
   } catch (err) {
-    res.status(500).json({ message: "Error fetching petitions", error: err.message });
+    res.status(500).json({ message: "Error creating petition" });
   }
 };
