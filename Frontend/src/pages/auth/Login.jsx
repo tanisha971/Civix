@@ -29,6 +29,9 @@ export default function Login() {
         form,
         { withCredentials: true }
       );
+      localStorage.setItem("userId", res.data.user._id); // user ID
+      localStorage.setItem("userName", res.data.user.name); // optional
+      localStorage.setItem("token", res.data.token); // if JWT is returned
       alert(res.data.message);
       navigate("/dashboard");
     } catch (err) {

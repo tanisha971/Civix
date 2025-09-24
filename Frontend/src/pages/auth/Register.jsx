@@ -23,6 +23,7 @@ export default function Register() {
 
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const hasNumber = (str) => /\d/.test(str);
+  const hasWhitespace = (str) => /\s/.test(str);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,8 +38,8 @@ export default function Register() {
       setError("Name cannot contain numbers.");
       return;
     }
-    if (hasNumber(form.password)) {
-      setError("Password cannot contain numbers.");
+    if (hasWhitespace(form.password)) {
+      setError("Password cannot contain whitespace.");
       return;
     }
     if (!form.role) {
