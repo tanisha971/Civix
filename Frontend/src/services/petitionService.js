@@ -39,3 +39,15 @@ export const signPetition = async (petitionId) => {
     throw err;
   }
 };
+
+// 0Delete a petition (only creator can delete)
+export const deletePetition = async (petitionId) => {
+  const res = await axios.delete(`${API_URL}/${petitionId}`, { withCredentials: true });
+  return res.data;
+};
+
+// Edit a petition (only creator can edit)
+export const editPetition = async (petitionId, updatedData) => {
+  const res = await axios.put(`${API_URL}/${petitionId}`, updatedData, { withCredentials: true });
+  return res.data;
+};

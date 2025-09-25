@@ -3,12 +3,18 @@ import { signPetition } from "../../services/petitionService";
 
 const PetitionCard = ({ petition, onSigned }) => {
   const [signed, setSigned] = useState(false);
+  const [signaturesCount, setSignaturesCount] = useState(petition.signaturesCount || 0);
 
   const handleSign = async () => {
+    const confirmSign = window.confirm("Do you want to Sign this petition?");
+    if (!confirmSign) return;
+
     try {
       await signPetition(petition._id);
       setSigned(true);
-      onSigned?.();
+      setSignaturesCount(prev => prev + 1); // increment signature count locally
+      onSigned?.(); // callback to parent if needed
+      alert("You have successfully signed this petition!");
     } catch (err) {
       alert(err.response?.data?.message || "Error signing petition");
     }
@@ -18,7 +24,7 @@ const PetitionCard = ({ petition, onSigned }) => {
     switch (status) {
       case "Active": return "bg-green-100 text-green-800";
       case "Under Review": return "bg-blue-100 text-blue-800";
-      case "Successful": return "bg-purple-100 text-purple-800";
+      case "Closed": return "bg-purple-100 text-purple-800";
       default: return "bg-gray-100 text-gray-800";
     }
   };
@@ -46,13 +52,13 @@ const PetitionCard = ({ petition, onSigned }) => {
 
       <div className="mb-4">
         <div className="flex justify-between text-sm text-gray-600 mb-1">
-          <span>{petition.signatures} Signatures</span>
-          <span>Goal: {petition.goal}</span>
+          <span>{signaturesCount} Signatures</span>
+          <span>Goal: {petition.signatureGoal}</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
             className="bg-blue-600 h-2 rounded-full"
-            style={{ width: `${(petition.signatures / petition.goal) * 100}%` }}
+            style={{ width: `${(signaturesCount / petition.signatureGoal) * 100}%` }}
           ></div>
         </div>
       </div>

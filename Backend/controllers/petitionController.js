@@ -1,10 +1,14 @@
 import Petition from "../models/Petition.js";
 import Signature from "../models/Signature.js";
 
-// Get all petitions
+// Get all petitions, newest first
 export const getPetitions = async (req, res) => {
   try {
-    const petitions = await Petition.find().populate("creator", "_id name").populate("signatures");
+    const petitions = await Petition.find()
+      .populate("creator", "_id name")
+      .populate("signatures")
+      .sort({ createdAt: -1 }); // newest first
+
     const formatted = petitions.map(p => ({
       _id: p._id,
       title: p.title,
@@ -19,22 +23,83 @@ export const getPetitions = async (req, res) => {
       createdAt: p.createdAt,
       signaturesCount: p.signatures.length
     }));
+
     res.json({ petitions: formatted });
   } catch (err) {
-    res.status(500).json({ message: "Error fetching petitions" });
+    res.status(500).json({ message: "Error fetching petitions", error: err.message });
   }
 };
 
-// Create petition
+// Create a petition
 export const createPetition = async (req, res) => {
   try {
     const newPetition = new Petition({
       ...req.body,
-      creator: req.body.creatorId || null
+      creator: req.user?.id || req.body.creatorId || null
     });
+
     const saved = await newPetition.save();
     res.status(201).json(saved);
   } catch (err) {
-    res.status(500).json({ message: "Error creating petition" });
+    res.status(500).json({ message: "Error creating petition", error: err.message });
+  }
+};
+
+// Sign a petition (one time per user)
+export const signPetition = async (req, res) => {
+  try {
+    const petition = await Petition.findById(req.params.id);
+    if (!petition) return res.status(404).json({ message: "Petition not found" });
+
+    // Check if user already signed
+    if (petition.signatures.includes(req.user.id)) {
+      return res.status(400).json({ message: "You have already signed this petition" });
+    }
+
+    petition.signatures.push(req.user.id);
+    await petition.save();
+
+    // Optional: Save in Signature collection if you need separate records
+    await Signature.create({ user: req.user.id, petition: petition._id });
+
+    res.json({ message: "Signed petition successfully", petition });
+  } catch (err) {
+    res.status(500).json({ message: "Error signing petition", error: err.message });
+  }
+};
+
+// Edit petition (only creator)
+export const editPetition = async (req, res) => {
+  try {
+    const petition = await Petition.findById(req.params.id);
+    if (!petition) return res.status(404).json({ message: "Petition not found" });
+
+    if (petition.creator.toString() !== req.user.id) {
+      return res.status(403).json({ message: "You can only edit your own petition" });
+    }
+
+    Object.assign(petition, req.body); // update allowed fields
+    await petition.save();
+
+    res.json({ message: "Petition updated successfully", petition });
+  } catch (err) {
+    res.status(500).json({ message: "Error editing petition", error: err.message });
+  }
+};
+
+// Delete petition (only creator)
+export const deletePetition = async (req, res) => {
+  try {
+    const petition = await Petition.findById(req.params.id);
+    if (!petition) return res.status(404).json({ message: "Petition not found" });
+
+    if (petition.creator.toString() !== req.user.id) {
+      return res.status(403).json({ message: "You can only delete your own petition" });
+    }
+
+    await petition.remove();
+    res.json({ message: "Petition deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Error deleting petition", error: err.message });
   }
 };
