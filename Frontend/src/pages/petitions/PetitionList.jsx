@@ -95,8 +95,16 @@ const PetitionList = () => {
   };
 
   const handleSigned = (petitionId) => {
-    console.log("Signed petition with ID:", petitionId);
-    // TODO: integrate sign API later
+    if (typeof petitionId === 'string' && petitionId.startsWith('delete_')) {
+      // Handle delete action
+      const actualId = petitionId.replace('delete_', '');
+      handleDelete(actualId);
+    } else {
+      // Handle sign action - refresh the petition data
+      console.log("Signed petition with ID:", petitionId);
+      // Optionally refresh petitions or update local state
+      // fetchPetitions(); // Uncomment if you want to refresh data
+    }
   };
 
   return (
@@ -110,27 +118,11 @@ const PetitionList = () => {
 
         <div className="space-y-3 mt-4">
           {filteredPetitions.length > 0 ? filteredPetitions.map(p => (
-            <div key={p._id} className="relative">
-              <PetitionCard petition={p} onSigned={handleSigned} />
-              
-              {/* Edit/Delete buttons only for creator */}
-              {p.creator?._id === currentUserId && (
-                <div className="absolute top-2 right-2 flex gap-2">
-                  <button
-                    onClick={() => navigate(`/dashboard/petitions/edit/${p._id}`)}
-                    className="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(p._id)}
-                    className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
-                  >
-                    Delete
-                  </button>
-                </div>
-              )}
-            </div>
+            <PetitionCard 
+              key={p._id} 
+              petition={p} 
+              onSigned={handleSigned} 
+            />
           )) : (
             <div className="text-center py-8 text-gray-400 text-lg">
               No petitions found with the current filters
