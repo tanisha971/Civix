@@ -14,6 +14,9 @@ import Typography from '@mui/material/Typography';
 import homeBg from '../assets/images/homeBg.jpg';
 import Logo from "../assets/images/Civix logo.jpg";
 import Avatar from "@mui/material/Avatar";
+import Navbar from '../components/navbar/Navbar';
+import Footer from '../components/footer/Footer';
+
 
 function Home() {
     return (
@@ -132,6 +135,8 @@ function Home() {
                         </p>
                     </div>
                 </div>
+            {/* Footer */}
+            <Footer />
         </div>
     );
 }

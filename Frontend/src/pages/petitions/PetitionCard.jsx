@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { signPetition } from "../../services/petitionService";
+import { getCurrentUserId } from "../../utils/auth";
 
 const PetitionCard = ({ petition, onSigned }) => {
   const [signed, setSigned] = useState(false);
   const [signaturesCount, setSignaturesCount] = useState(petition.signaturesCount || 0);
+  const currentUserId = getCurrentUserId();
+  const isCreator = petition.creator?._id === currentUserId;
 
   const handleSign = async () => {
     const confirmSign = window.confirm("Do you want to Sign this petition?");
@@ -13,7 +16,7 @@ const PetitionCard = ({ petition, onSigned }) => {
       await signPetition(petition._id);
       setSigned(true);
       setSignaturesCount(prev => prev + 1); // increment signature count locally
-      onSigned?.(); // callback to parent if needed
+      onSigned?.(petition._id); // Pass petition ID to parent callback
       alert("You have successfully signed this petition!");
     } catch (err) {
       alert(err.response?.data?.message || "Error signing petition");
@@ -57,20 +60,55 @@ const PetitionCard = ({ petition, onSigned }) => {
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className="bg-blue-600 h-2 rounded-full"
-            style={{ width: `${(signaturesCount / petition.signatureGoal) * 100}%` }}
+            className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-in-out"
+            style={{ width: `${Math.min((signaturesCount / petition.signatureGoal) * 100, 100)}%` }}
           ></div>
+        </div>
+        <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <span>{Math.round((signaturesCount / petition.signatureGoal) * 100)}% complete</span>
+          <span>{petition.signatureGoal - signaturesCount} signatures needed</span>
         </div>
       </div>
 
       <div className="flex justify-between items-center">
-        <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">{petition.category}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">{petition.category}</span>
+          
+          {/* Edit/Delete buttons for creator - positioned on the left */}
+          {isCreator && (
+            <div className="flex gap-1">
+              <button
+                onClick={() => window.open(`/dashboard/petitions/edit/${petition._id}`, '_blank')}
+                className="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to delete this petition?")) {
+                    // Call delete function passed from parent
+                    onSigned?.(`delete_${petition._id}`);
+                  }
+                }}
+                className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
+              >
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Sign button on the right */}
         <button
           onClick={handleSign}
           disabled={signed}
-          className={`px-3 py-1 rounded-md text-white ${signed ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"}`}
+          className={`px-4 py-2 rounded-md text-white font-medium transition-all duration-200 ${
+            signed 
+              ? "bg-green-500 cursor-default" 
+              : "bg-blue-600 hover:bg-blue-700 active:scale-95"
+          }`}
         >
-          {signed ? "Signed" : "Sign Petition"}
+          {signed ? "✓ Signed" : "Sign Petition"}
         </button>
       </div>
     </div>
