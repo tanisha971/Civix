@@ -1,6 +1,6 @@
-import User from '../models/user.js';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import User from "../models/user.js";
 
 // Generate JWT Token
 const generateToken = (userId) => {
@@ -12,7 +12,7 @@ const generateToken = (userId) => {
 // Register user
 export const register = async (req, res) => {
   try {
-    const { name, email, password, location, role = 'citizen' } = req.body;
+    const { name, email, password, location, role, department, position } = req.body;
 
     // Validation
     if (!name || !email || !password || !location) {
@@ -39,7 +39,10 @@ export const register = async (req, res) => {
       location: {
         city: location // Simple location for now
       },
-      role
+      role: role || 'citizen',
+      department: role === 'public-official' ? department : undefined,
+      position: role === 'public-official' ? position : undefined,
+      verified: role === 'citizen'
     });
 
     await user.save();
@@ -66,7 +69,9 @@ export const register = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
+      message: role === 'public-official' 
+        ? "Public Official account created. Awaiting verification." 
+        : "User registered successfully",
       user: userResponse,
       token
     });
@@ -206,5 +211,40 @@ export const getCurrentUser = async (req, res) => {
       message: 'Server error',
       error: error.message
     });
+  }
+};
+
+// Create official account (admin route)
+export const createOfficial = async (req, res) => {
+  try {
+    const { name, email, password, location, department, position } = req.body;
+    
+    const hashedPassword = await bcrypt.hash(password, 12);
+    
+    const official = new User({
+      name,
+      email,
+      password: hashedPassword,
+      location,
+      role: 'public-official',
+      department,
+      position,
+      verified: true
+    });
+
+    await official.save();
+    
+    res.json({ 
+      success: true, 
+      message: "Public Official account created successfully",
+      official: {
+        name: official.name,
+        email: official.email,
+        department: official.department,
+        position: official.position
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error creating official account" });
   }
 };
