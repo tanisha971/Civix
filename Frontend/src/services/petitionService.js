@@ -1,12 +1,10 @@
-import axios from "axios";
-
-const API_URL = import.meta.env.VITE_API_URL; // e.g., http://localhost:5000/api
+import api from "./api";
 
 // Get petitions with optional filters
 export const getPetitions = async (filters = {}) => {
   try {
     const params = new URLSearchParams(filters);
-    const res = await axios.get(`${API_URL}/petitions?${params.toString()}`);
+    const res = await api.get(`/petitions?${params.toString()}`);
     return res.data.petitions || []; // expect backend to return { petitions: [...] }
   } catch (err) {
     console.error("Error fetching petitions:", err);
@@ -17,7 +15,7 @@ export const getPetitions = async (filters = {}) => {
 // Get petition by id
 export const getPetitionById = async (petitionId) => {
   try {
-    const res = await axios.get(`${API_URL}/petitions/${petitionId}`);
+    const res = await api.get(`/petitions/${petitionId}`);
     return res.data.petition || res.data;
   } catch (err) {
     console.error("Error fetching petition by id:", err);
@@ -28,9 +26,7 @@ export const getPetitionById = async (petitionId) => {
 // Create a new petition
 export const createPetition = async (petitionData) => {
   try {
-    const res = await axios.post(`${API_URL}/petitions`, petitionData, {
-      withCredentials: true
-    });
+    const res = await api.post(`/petitions`, petitionData);
     return res.data;
   } catch (err) {
     console.error("Error creating petition:", err);
@@ -41,9 +37,7 @@ export const createPetition = async (petitionData) => {
 // Sign a petition
 export const signPetition = async (petitionId) => {
   try {
-    const res = await axios.post(`${API_URL}/petitions/${petitionId}/sign`, {}, {
-      withCredentials: true
-    });
+    const res = await api.post(`/petitions/${petitionId}/sign`, {});
     return res.data;
   } catch (err) {
     console.error("Error signing petition:", err);
@@ -53,12 +47,12 @@ export const signPetition = async (petitionId) => {
 
 // Delete a petition (only creator can delete)
 export const deletePetition = async (petitionId) => {
-  const res = await axios.delete(`${API_URL}/petitions/${petitionId}`, { withCredentials: true });
+  const res = await api.delete(`/petitions/${petitionId}`);
   return res.data;
 };
 
 // Edit a petition (only creator can edit)
 export const editPetition = async (petitionId, updatedData) => {
-  const res = await axios.put(`${API_URL}/petitions/${petitionId}`, updatedData, { withCredentials: true });
+  const res = await api.put(`/petitions/${petitionId}`, updatedData);
   return res.data;
 };

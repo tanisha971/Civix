@@ -1,5 +1,5 @@
 import express from "express";
-import authMiddleware, { publicOfficialMiddleware } from "../middleware/auth.js";
+import authMiddleware, { publicOfficialMiddleware, optionalAuth } from "../middleware/auth.js";
 import { 
   getPetitions, 
   createPetition,
@@ -12,12 +12,12 @@ import {
   getOfficialAnalytics,
   getPetitionById
 } from "../controllers/petitionController.js";
-import { getPetitionById } from "../controllers/petitionController.js";
+
 const router = express.Router();
 
-// Get all petitions
-router.get("/", getPetitions);
-router.get("/:id", getPetitionById);
+// Get all petitions (optional auth to compute signedByCurrentUser)
+router.get("/", optionalAuth, getPetitions);
+router.get("/:id", optionalAuth, getPetitionById);
 
 // Create a new petition
 router.post("/", authMiddleware, createPetition);

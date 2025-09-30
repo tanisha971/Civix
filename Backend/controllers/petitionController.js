@@ -1,60 +1,40 @@
 import Petition from "../models/Petition.js";
 import Signature from "../models/Signature.js";
 import OfficialResponse from "../models/OfficialResponse.js";
+import mongoose from "mongoose";
 
 // Get all petitions
 export const getPetitions = async (req, res) => {
   try {
-    const { creator, category, search, status } = req.query;
-    
-    const filter = {};
-    
-    if (creator) filter.creator = creator;
-    if (category) filter.category = category;
-    if (status) filter.status = status;
-    if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    const petitions = await Petition.find(filter)
+    const petitions = await Petition.find()
       .populate("creator", "_id name")
       .populate("signatures")
       .sort({ createdAt: -1 }); // newest first
-    const currentUserId = req.user ? req.user.id : null;
+    const currentUserId = req.user?.id;
 
-    // Format petitions to include signatures count and whether current user has signed
     const formatted = petitions.map(p => ({
       _id: p._id,
       title: p.title,
       category: p.category,
       description: p.description,
       location: p.location,
+      lat: p.lat,
+      lng: p.lng,
       signatureGoal: p.signatureGoal,
       status: p.status,
       creator: p.creator,
       createdAt: p.createdAt,
-      signaturesCount: p.signatures.length,
-      signedByCurrentUser: currentUserId ? p.signatures.map(sig => sig.toString()).includes(currentUserId) : false,
-      verified: p.verified,
-      officialResponse: p.officialResponse,
-      userHasSigned: req.user ? p.signatures.includes(req.user.id) : false
+      signaturesCount: Array.isArray(p.signatures) ? p.signatures.length : 0,
+      signedByCurrentUser: currentUserId
+        ? (Array.isArray(p.signatures) && p.signatures
+            .map(sig => (sig && sig._id ? sig._id.toString() : sig?.toString?.()))
+            .includes(currentUserId))
+        : false
     }));
 
-    res.json({ 
-      success: true,
-      petitions: formatted,
-      count: formatted.length
-    });
+    res.json({ petitions: formatted });
   } catch (err) {
-    console.error("Error fetching petitions:", err);
-    res.status(500).json({ 
-      success: false,
-      message: "Error fetching petitions", 
-      error: err.message 
-    });
+    res.status(500).json({ message: "Error fetching petitions", error: err.message });
   }
 };
 
@@ -67,81 +47,54 @@ export const createPetition = async (req, res) => {
     });
 
     const saved = await newPetition.save();
-    res.status(201).json({
-      success: true,
-      message: "Petition created successfully",
-      petition: saved
-    });
+    res.status(201).json(saved);
   } catch (err) {
-    console.error("Error creating petition:", err);
-    res.status(500).json({ 
-      success: false,
-      message: "Error creating petition", 
-      error: err.message 
-    });
+    res.status(500).json({ message: "Error creating petition", error: err.message });
   }
 };
 
 // Sign a petition
 export const signPetition = async (req, res) => {
   try {
-    const petition = await Petition.findById(req.params.id);
-    if (!petition) {
-      return res.status(404).json({ 
-        success: false,
-        message: "Petition not found" 
-      });
+    const { id } = req.params;
+
+    // Ensure user is authenticated
+    if (!req.user?.id) {
+      return res.status(401).json({ message: "Not authenticated" });
     }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ message: "Petition not found" });
+    }
+    const petition = await Petition.findById(id);
+    if (!petition) return res.status(404).json({ message: "Petition not found" });
+
     // Prevent duplicate signatures
     if (petition.signatures.map(sig => sig.toString()).includes(req.user.id)) {
-      return res.status(400).json({ 
-        success: false,
-        message: "You have already signed this petition",
-      });
+      return res.status(400).json({ message: "You have already signed this petition" });
     }
 
     petition.signatures.push(req.user.id);
     await petition.save();
 
-    await Signature.create({ 
-      user: req.user.id, 
-      petition: petition._id 
-    });
-
-    res.status(201).json({ 
-      success: true,
-      message: "Petition signed successfully", 
-      petition: {
-        _id: petition._id,
-        signaturesCount: petition.signatures.length
-      }
-    });
+    res.json({ message: "Signed petition successfully", petition });
   } catch (err) {
+    if (err?.name === "CastError") {
+      return res.status(404).json({ message: "Petition not found" });
+    }
     console.error("Error signing petition:", err);
-    res.status(500).json({ 
-      success: false,
-      message: "Error signing petition", 
-      error: err.message 
-    });
+    res.status(500).json({ message: "Error signing petition", error: err.message });
   }
 };
+
 
 export const getPetitionById = async (req, res) => {
   try {
     const petition = await Petition.findById(req.params.id);
-    if (!petition) {
-      return res.status(404).json({ 
-        success: false,
-        message: "Petition not found" 
-      });
-    }
-
-    res.json({
-      success: true,
-      petition
-    });
+    if (!petition) return res.status(404).json({ message: "Petition not found" });
+    res.json({ petition });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching petition" });
+    res.status(500).json({ message: "Error fetching petition", error: error.message });
   }
 };
 
@@ -149,70 +102,51 @@ export const getPetitionById = async (req, res) => {
 export const editPetition = async (req, res) => {
   try {
     const petition = await Petition.findById(req.params.id);
-    if (!petition) {
-      return res.status(404).json({ 
-        success: false,
-        message: "Petition not found" 
-      });
-    }
+    if (!petition) return res.status(404).json({ message: "Petition not found" });
 
     if (petition.creator.toString() !== req.user.id) {
-      return res.status(403).json({ 
-        success: false,
-        message: "You can only edit your own petition" 
-      });
+      return res.status(403).json({ message: "You can only edit your own petition" });
     }
 
     Object.assign(petition, req.body);
     await petition.save();
 
-    res.json({ 
-      success: true,
-      message: "Petition updated successfully", 
-      petition 
-    });
+    res.json({ message: "Petition updated successfully", petition });
   } catch (err) {
-    console.error("Error editing petition:", err);
-    res.status(500).json({ 
-      success: false,
-      message: "Error editing petition", 
-      error: err.message 
-    });
+    res.status(500).json({ message: "Error editing petition", error: err.message });
   }
 };
 
 // Delete petition (only creator)
 export const deletePetition = async (req, res) => {
   try {
-    const petition = await Petition.findById(req.params.id);
-    if (!petition) {
-      return res.status(404).json({ 
-        success: false,
-        message: "Petition not found" 
-      });
+    // Ensure user is authenticated
+    if (!req.user?.id) {
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ message: "Petition not found" });
+    }
+
+    const petition = await Petition.findById(id);
+    if (!petition) return res.status(404).json({ message: "Petition not found" });
+
     if (petition.creator.toString() !== req.user.id) {
-      return res.status(403).json({ 
-        success: false,
-        message: "You can only delete your own petition" 
-      });
+      return res.status(403).json({ message: "You can only delete your own petition" });
     }
 
     await petition.deleteOne();
-    await Signature.deleteMany({ petition: req.params.id });
+    await Signature.deleteMany({ petition: id });
 
-    res.json({ 
-      success: true,
-      message: "Petition deleted successfully" 
-    });
+    res.json({ message: "Petition deleted successfully" });
   } catch (err) {
+    if (err?.name === "CastError") {
+      return res.status(404).json({ message: "Petition not found" });
+    }
     console.error("Error deleting petition:", err);
-    res.status(500).json({ 
-      success: false,
-      message: "Error deleting petition", 
-      error: err.message 
-    });
+    res.status(500).json({ message: "Error deleting petition", error: err.message });
   }
 };
 

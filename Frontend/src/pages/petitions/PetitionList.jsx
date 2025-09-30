@@ -40,9 +40,11 @@ const PetitionList = () => {
         const normalized = data.map((p) => ({
           ...p,
           status: mapStatusToUI(p.status),
-          signatures: p.signaturesCount || 0,
+          signaturesCount: typeof p.signaturesCount === 'number' ? p.signaturesCount : 0,
           goal: p.signatureGoal || 100,
           time: getRelativeTime(p.createdAt),
+          // derive stable signed flag for card
+          signedByCurrentUser: !!p.signedByCurrentUser,
         }));
         // Sort newest → oldest
         normalized.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -72,6 +74,9 @@ const PetitionList = () => {
     if (filters.type === "My Petitions") {
       result = result.filter((p) => p.creator?._id === currentUserId);
     }
+    if (filters.type === "Signed by Me") {
+      result = result.filter((p) => !!p.signedByCurrentUser);
+    }
 
     setFilteredPetitions(result);
   }, [filters, petitions, currentUserId]);
@@ -96,14 +101,20 @@ const PetitionList = () => {
 
   const handleSigned = (petitionId) => {
     if (typeof petitionId === 'string' && petitionId.startsWith('delete_')) {
-      // Handle delete action
+      // Card already performed the delete API call; just remove locally
       const actualId = petitionId.replace('delete_', '');
-      handleDelete(actualId);
+      setPetitions(prev => prev.filter(p => p._id !== actualId));
+      return;
     } else {
-      // Handle sign action - refresh the petition data
-      console.log("Signed petition with ID:", petitionId);
-      // Optionally refresh petitions or update local state
-      // fetchPetitions(); // Uncomment if you want to refresh data
+      // Update the list's item to persist signed state across re-renders
+      setPetitions(prev => prev.map(p => {
+        if (p._id === petitionId) {
+          return { ...p, signedByCurrentUser: true, signaturesCount: (p.signaturesCount || 0) + 1 };
+        }
+        return p;
+      }));
+      // Navigate user to "Signed by Me" tab to reflect the change immediately
+      setFilters(prev => ({ ...prev, type: "Signed by Me" }));
     }
   };
 

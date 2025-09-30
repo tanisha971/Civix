@@ -1,18 +1,32 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signPetition } from "../../services/petitionService";
+import { signPetition, deletePetition as deletePetitionApi, getPetitionById } from "../../services/petitionService";
 import { getCurrentUserId } from "../../utils/auth";
 
 const PetitionCard = ({ petition, onSigned }) => {
   const navigate = useNavigate();
-  const [signed, setSigned] = useState(false);
+  const [signed, setSigned] = useState(!!petition.signedByCurrentUser);
   const [signaturesCount, setSignaturesCount] = useState(petition.signaturesCount || 0);
   const currentUserId = getCurrentUserId();
   const isCreator = petition.creator?._id === currentUserId;
 
+  // Keep local `signed` state in sync with parent-provided prop
+  useEffect(() => {
+    if (petition.signedByCurrentUser && !signed) {
+      setSigned(true);
+    }
+  }, [petition.signedByCurrentUser, signed]);
+
   const handleSign = async () => {
     const confirmSign = window.confirm("Do you want to Sign this petition?");
     if (!confirmSign) return;
+
+    // Local guard: if already signed, avoid calling API and double-increment
+    if (signed || petition.signedByCurrentUser) {
+      alert("You've already signed this petition.");
+      setSigned(true);
+      return;
+    }
 
     try {
       await signPetition(petition._id);
@@ -21,9 +35,64 @@ const PetitionCard = ({ petition, onSigned }) => {
       onSigned?.(petition._id); // Pass petition ID to parent callback
       alert("You have successfully signed this petition!");
     } catch (err) {
-      alert(err.response?.data?.message || "Error signing petition");
+      const message = err?.response?.data?.message;
+      if (err?.response?.status === 400 && message?.toLowerCase().includes("already signed")) {
+        // Reflect backend state that user had already signed
+        setSigned(true);
+        // Sync signatures count from server
+        try {
+          const data = await getPetitionById(petition._id);
+          const latest = data?.petition || data;
+          const latestCount = Array.isArray(latest?.signatures)
+            ? latest.signatures.length
+            : (typeof latest?.signaturesCount === 'number' ? latest.signaturesCount : undefined);
+          if (typeof latestCount === 'number') {
+            setSignaturesCount(latestCount);
+          }
+        } catch (_) {
+          // ignore sync errors, we already marked as signed
+        }
+        alert("You've already signed this petition.");
+        return;
+      }
+      if (err?.response?.status === 404 && message?.toLowerCase().includes("petition not found")) {
+        // Remove stale card from list if it was deleted elsewhere
+        onSigned?.(`delete_${petition._id}`);
+        alert("This petition no longer exists.");
+        return;
+      }
+      // Show more specific messages by status code
+      const status = err?.response?.status;
+      if (status === 401) {
+        alert("You must be logged in to sign this petition.");
+        return;
+      }
+      if (status === 403) {
+        alert("You do not have permission to perform this action.");
+        return;
+      }
+      if (status === 429) {
+        alert("Too many requests. Please try again later.");
+        return;
+      }
+      if (status >= 500 && status < 600) {
+        alert("Server error while signing petition. Please try again.");
+        return;
+      }
+      // Final fallback with raw info in console for debugging
+      console.error("Sign petition error:", err);
+      alert(message || err?.response?.data?.error || err?.message || "Error signing petition");
     }
   };
+
+  const normalizedStatus = useMemo(() => {
+    if (!petition.status) return "Active";
+    const s = String(petition.status).toLowerCase();
+    if (s === "active") return "Active";
+    if (s === "under_review" || s === "under review") return "Under Review";
+    if (s === "closed") return "Closed";
+    return petition.status;
+  }, [petition.status]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -34,21 +103,38 @@ const PetitionCard = ({ petition, onSigned }) => {
     }
   };
 
-  const getTimeColor = (time) => {
-    if (time.includes("minute")) return "text-green-600";
-    if (time.includes("hour")) return "text-blue-600";
-    if (time.includes("day")) return "text-purple-600";
+  const getTimeSince = (createdAt) => {
+    if (!createdAt) return "";
+    const now = new Date();
+    const created = new Date(createdAt);
+    const diffMs = now - created;
+    const minutes = Math.floor(diffMs / (1000 * 60));
+    if (minutes < 1) return "Just now";
+    if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days === 1 ? "" : "s"} ago`;
+  };
+
+  const getTimeColor = (label) => {
+    if (!label) return "text-gray-600";
+    if (label.includes("minute")) return "text-green-600";
+    if (label.includes("hour")) return "text-blue-600";
+    if (label.includes("day")) return "text-purple-600";
     return "text-gray-600";
   };
+
+  const timeLabel = useMemo(() => getTimeSince(petition.createdAt || petition.time), [petition.createdAt, petition.time]);
 
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-4 hover:shadow-lg transition-shadow">
       <div className="flex justify-between items-start mb-3">
-        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(petition.status)}`}>
-          {petition.status}
+        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(normalizedStatus)}`}>
+          {normalizedStatus}
         </span>
-        <span className={`text-xs ${getTimeColor(petition.time)}`}>
-          {petition.time}
+        <span className={`text-xs ${getTimeColor(timeLabel)}`}>
+          {timeLabel}
         </span>
       </div>
 
@@ -86,10 +172,14 @@ const PetitionCard = ({ petition, onSigned }) => {
                 Edit
               </button>
               <button
-                onClick={() => {
-                  if (window.confirm("Are you sure you want to delete this petition?")) {
-                    // Call delete function passed from parent
+                onClick={async () => {
+                  const confirmed = window.confirm("Are you sure you want to delete this petition?");
+                  if (!confirmed) return;
+                  try {
+                    await deletePetitionApi(petition._id);
                     onSigned?.(`delete_${petition._id}`);
+                  } catch (error) {
+                    alert(error.response?.data?.message || "Error deleting petition");
                   }
                 }}
                 className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
