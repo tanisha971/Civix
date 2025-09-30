@@ -8,7 +8,7 @@ export const getPetitions = async (req, res) => {
       .populate("creator", "_id name")
       .populate("signatures")
       .sort({ createdAt: -1 }); // newest first
-
+    const currentUserId = req.user?.id;
     const formatted = petitions.map(p => ({
       _id: p._id,
       title: p.title,
@@ -21,7 +21,10 @@ export const getPetitions = async (req, res) => {
       status: p.status,
       creator: p.creator,
       createdAt: p.createdAt,
-      signaturesCount: p.signatures.length
+      signaturesCount: p.signatures.length,
+      signedByCurrentUser: currentUserId
+        ? p.signatures.map(sig => sig.toString()).includes(currentUserId)
+        : false
     }));
 
     res.json({ petitions: formatted });
@@ -51,16 +54,13 @@ export const signPetition = async (req, res) => {
     const petition = await Petition.findById(req.params.id);
     if (!petition) return res.status(404).json({ message: "Petition not found" });
 
-    // Check if user already signed
-    if (petition.signatures.includes(req.user.id)) {
+    // Prevent duplicate signatures
+    if (petition.signatures.map(sig => sig.toString()).includes(req.user.id)) {
       return res.status(400).json({ message: "You have already signed this petition" });
     }
 
     petition.signatures.push(req.user.id);
     await petition.save();
-
-    // Optional: Save in Signature collection if you need separate records
-    await Signature.create({ user: req.user.id, petition: petition._id });
 
     res.json({ message: "Signed petition successfully", petition });
   } catch (err) {
@@ -68,6 +68,15 @@ export const signPetition = async (req, res) => {
   }
 };
 
+export const getPetitionById = async (req, res) => {
+  try {
+    const petition = await Petition.findById(req.params.id);
+    if (!petition) return res.status(404).json({ message: "Petition not found" });
+    res.json({ petition });
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching petition", error: err.message });
+  }
+};
 // Edit petition (only creator)
 export const editPetition = async (req, res) => {
   try {
@@ -97,7 +106,7 @@ export const deletePetition = async (req, res) => {
       return res.status(403).json({ message: "You can only delete your own petition" });
     }
 
-    await petition.remove();
+    await petition.deleteOne();
     res.json({ message: "Petition deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Error deleting petition", error: err.message });

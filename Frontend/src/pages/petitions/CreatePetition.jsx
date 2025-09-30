@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { createPetition } from "../../services/petitionService";
+import { useNavigate, useParams } from 'react-router-dom';
+import { createPetition, editPetition, getPetitionById } from "../../services/petitionService";
 
 const CreatePetition = () => {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const isEditMode = Boolean(id);
   const [formData, setFormData] = useState({
     title: "",
     category: "",
@@ -21,15 +23,34 @@ const CreatePetition = () => {
     'Public Safety', 'Healthcare', 'Housing'
   ];
 
-  // Auto-detect location using Geolocation API
+  // Load petition when editing; otherwise, auto-detect location
   useEffect(() => {
-    const detectLocation = async () => {
-      if (!navigator.geolocation) return; // browser doesn't support
+    const init = async () => {
+      if (isEditMode) {
+        try {
+          const petition = await getPetitionById(id);
+          setFormData({
+            title: petition.title || "",
+            category: petition.category || "",
+            description: petition.description || "",
+            signatureGoal: petition.signatureGoal ?? 100,
+            location: petition.location || "",
+            lat: petition.lat ?? null,
+            lng: petition.lng ?? null
+          });
+        } catch (error) {
+          console.error("Failed to load petition:", error);
+          alert("Failed to load petition for editing");
+          navigate('/dashboard/petitions');
+        }
+        return;
+      }
+
+      if (!navigator.geolocation) return;
       setLoadingLocation(true);
       navigator.geolocation.getCurrentPosition(async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          // Use reverse geocoding to get city/country name
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
           const data = await res.json();
           if (data.address) {
@@ -52,8 +73,8 @@ const CreatePetition = () => {
         setLoadingLocation(false);
       });
     };
-    detectLocation();
-  }, []);
+    init();
+  }, [isEditMode, id, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,11 +83,15 @@ const CreatePetition = () => {
         alert("Please enter a location");
         return;
       }
-      await createPetition(formData);
+      if (isEditMode) {
+        await editPetition(id, formData);
+      } else {
+        await createPetition(formData);
+      }
       navigate("/dashboard/petitions"); // go back to list after creation
     } catch (error) {
-      console.error("Failed to create petition:", error);
-      alert("Error creating petition");
+      console.error("Failed to submit petition:", error);
+      alert(isEditMode ? "Error updating petition" : "Error creating petition");
     }
   };
 
@@ -83,8 +108,8 @@ const CreatePetition = () => {
         
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Create a New Petition</h1>
-          <p className="text-gray-600 mt-1">Complete the form below to create a petition in your community.</p>
+          <h1 className="text-2xl font-bold text-gray-900">{isEditMode ? 'Edit Petition' : 'Create a New Petition'}</h1>
+          <p className="text-gray-600 mt-1">{isEditMode ? 'Update your petition details below.' : 'Complete the form below to create a petition in your community.'}</p>
         </div>
 
         {/* Form */}
@@ -197,7 +222,7 @@ const CreatePetition = () => {
                 type="submit"
                 className="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
               >
-                Create Petition
+                {isEditMode ? 'Update Petition' : 'Create Petition'}
               </button>
             </div>
           </form>

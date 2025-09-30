@@ -1,9 +1,10 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { signPetition } from "../../services/petitionService";
 import { getCurrentUserId } from "../../utils/auth";
-
 const PetitionCard = ({ petition, onSigned }) => {
-  const [signed, setSigned] = useState(false);
+  const navigate = useNavigate();
+  const [signed, setSigned] = useState(!!petition.signedByCurrentUser);
   const [signaturesCount, setSignaturesCount] = useState(petition.signaturesCount || 0);
   const currentUserId = getCurrentUserId();
   const isCreator = petition.creator?._id === currentUserId;
@@ -78,11 +79,11 @@ const PetitionCard = ({ petition, onSigned }) => {
           {isCreator && (
             <div className="flex gap-1">
               <button
-                onClick={() => window.open(`/dashboard/petitions/edit/${petition._id}`, '_blank')}
-                className="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs"
-              >
-                Edit
-              </button>
+              onClick={() => navigate(`/dashboard/petitions/edit/${petition._id}`)}
+              className="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs"
+            >
+            Edit
+    </button>
               <button
                 onClick={() => {
                   if (window.confirm("Are you sure you want to delete this petition?")) {
