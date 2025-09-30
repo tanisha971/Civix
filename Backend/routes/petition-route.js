@@ -9,19 +9,26 @@ import {
   updatePetitionStatus,
   verifyPetition,
   addOfficialResponse,
-  getOfficialAnalytics
+  getOfficialAnalytics,
+  getPetitionById
 } from "../controllers/petitionController.js";
 import { getPetitionById } from "../controllers/petitionController.js";
 const router = express.Router();
 
-// Public routes
+// Get all petitions
 router.get("/", getPetitions);
 router.get("/:id", getPetitionById);
 
-// Authenticated user routes
+// Create a new petition
 router.post("/", authMiddleware, createPetition);
+
+// Sign a petition
 router.post("/:id/sign", authMiddleware, signPetition);
+
+// Edit a petition
 router.put("/:id", authMiddleware, editPetition);
+
+// Delete a petition
 router.delete("/:id", authMiddleware, deletePetition);
 
 // Public Official only routes
