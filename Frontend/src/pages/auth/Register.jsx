@@ -1,63 +1,101 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
+import authService from "../../services/authService";
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import MailIcon from '@mui/icons-material/Mail';
 import PlaceIcon from '@mui/icons-material/Place';
+import WorkIcon from '@mui/icons-material/Work';
+import BusinessIcon from '@mui/icons-material/Business';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
 import RegisterImage from '../../assets/images/govImg.jpeg';
 
 export default function Register() {
-  const [form, setForm] = useState({
+  const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     location: "",
-    role: ""
+    role: "citizen",
+    department: "",
+    position: ""
   });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const hasNumber = (str) => /\d/.test(str);
   const hasWhitespace = (str) => /\s/.test(str);
 
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleClickShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     setError("");
 
     // Validation
-    if (!validateEmail(form.email)) {
+    if (!validateEmail(formData.email)) {
       setError("Please enter a valid email address.");
+      setLoading(false);
       return;
     }
-    if (hasNumber(form.name)) {
+    if (hasNumber(formData.name)) {
       setError("Name cannot contain numbers.");
+      setLoading(false);
       return;
     }
-    if (hasWhitespace(form.password)) {
+    if (hasWhitespace(formData.password)) {
       setError("Password cannot contain whitespace.");
+      setLoading(false);
       return;
     }
-    if (!form.role) {
+    if (!formData.role) {
       setError("Please select a role.");
+      setLoading(false);
       return;
     }
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/auth/register",
-        form,
-        { withCredentials: true }
+      const result = await authService.register(
+        formData.name,
+        formData.email,
+        formData.password,
+        formData.location,
+        formData.role,
+        formData.department,
+        formData.position
       );
-      alert(res.data.message);
-      navigate("/dashboard");
+      
+      if (result.success) {
+        if (formData.role === 'public-official') {
+          alert("Public Official account created successfully! Please wait for verification.");
+        }
+        navigate("/login");
+      } else {
+        setError(result.message || "Registration failed");
+      }
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Registration failed");
+      console.error("Registration error:", err);
+      setError("An error occurred during registration");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -78,11 +116,18 @@ export default function Register() {
           </div>
 
           <form className="flex flex-col space-y-4 mt-4" onSubmit={handleSubmit}>
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                {error}
+              </div>
+            )}
+            
             <TextField
               label="Name"
+              name="name"
               variant="outlined"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              value={formData.name}
+              onChange={handleChange}
               required
               fullWidth
               InputProps={{
@@ -93,12 +138,14 @@ export default function Register() {
                 ),
               }}
             />
+
             <TextField
               label="Email"
+              name="email"
               variant="outlined"
               type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              value={formData.email}
+              onChange={handleChange}
               required
               fullWidth
               InputProps={{
@@ -109,21 +156,38 @@ export default function Register() {
                 ),
               }}
             />
+
             <TextField
               label="Password"
+              name="password"
               variant="outlined"
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={handleChange}
               required
               fullWidth
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleClickShowPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
+
             <TextField
               label="Location"
+              name="location"
               variant="outlined"
               type="text"
-              value={form.location}
-              onChange={(e) => setForm({ ...form, location: e.target.value })}
+              value={formData.location}
+              onChange={handleChange}
               required
               fullWidth
               InputProps={{
@@ -135,31 +199,86 @@ export default function Register() {
               }}
             />
 
-            {/* Role */}
+            {/* Role Selection */}
             <div className="flex flex-col space-y-2">
               <label className="font-medium text-gray-700">I am registering as:</label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2">
-                  <input type="radio" name="role" value="citizen"
-                         checked={form.role === "citizen"}
-                         onChange={() => setForm({ ...form, role: "citizen" })}
-                         className="accent-blue-600" /> Citizen
+                  <input 
+                    type="radio" 
+                    name="role" 
+                    value="citizen"
+                    checked={formData.role === "citizen"}
+                    onChange={() => setFormData({ ...formData, role: "citizen" })}
+                    className="accent-blue-600" 
+                  /> 
+                  Citizen
                 </label>
                 <label className="flex items-center gap-2">
-                  <input type="radio" name="role" value="public-official"
-                         checked={form.role === "public-official"}
-                         onChange={() => setForm({ ...form, role: "public-official" })}
-                         className="accent-blue-600" /> Public Official
+                  <input 
+                    type="radio" 
+                    name="role" 
+                    value="public-official"
+                    checked={formData.role === "public-official"}
+                    onChange={() => setFormData({ ...formData, role: "public-official" })}
+                    className="accent-blue-600" 
+                  /> 
+                  Public Official
                 </label>
               </div>
             </div>
 
-            {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+            {/* Public Official specific fields */}
+            {formData.role === 'public-official' && (
+              <>
+                <TextField
+                  label="Department"
+                  name="department"
+                  variant="outlined"
+                  type="text"
+                  value={formData.department}
+                  onChange={handleChange}
+                  required={formData.role === 'public-official'}
+                  fullWidth
+                  placeholder="e.g., Public Works, Education"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <BusinessIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
 
-            <button type="submit" className="w-full py-3 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition">
-              Sign Up
+                <TextField
+                  label="Position"
+                  name="position"
+                  variant="outlined"
+                  type="text"
+                  value={formData.position}
+                  onChange={handleChange}
+                  required={formData.role === 'public-official'}
+                  fullWidth
+                  placeholder="e.g., Deputy Commissioner, Director"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <WorkIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </>
+            )}
+            
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full py-3 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition disabled:bg-gray-400"
+            >
+              {loading ? "Creating Account..." : "Sign Up"}
             </button>
-
+  
             <p className="text-center text-gray-500 text-sm mt-2">
               Already have an account?{" "}
               <Link to="/login" className="text-blue-600 font-medium hover:underline">Sign In</Link>

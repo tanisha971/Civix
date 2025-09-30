@@ -25,10 +25,17 @@ export const login = async (email, password) => {
 };
 
 // Register function
-export const register = async (name, email, password) => {
+export const register = async (name, email, password, location, role, department, position) => {
   try {
-    console.log("Registering:", email);
-    const response = await api.post("/auth/register", { name, email, password });
+    console.log("Registering:", email, "as", role);
+    const requestBody = { name, email, password, location, role };
+    
+    if (role === 'public-official') {
+      requestBody.department = department;
+      requestBody.position = position;
+    }
+    
+    const response = await api.post("/auth/register", requestBody);
     
     if (response.data.success) {
       return { success: true, message: response.data.message };
@@ -63,12 +70,31 @@ export const logout = () => {
   window.location.href = "/login";
 };
 
+// Get current user from localStorage
+export const getCurrentUser = () => {
+  try {
+    const user = localStorage.getItem("user");
+    return user ? JSON.parse(user) : null;
+  } catch (error) {
+    console.error("Error getting current user:", error);
+    return null;
+  }
+};
+
+// Check if user is public official
+export const isPublicOfficial = () => {
+  const user = getCurrentUser();
+  return user?.role === 'public-official';
+};
+
 // Create a default export object with all functions
 const authService = {
   login,
   register,
   getUserProfile,
-  logout
+  logout,
+  getCurrentUser,
+  isPublicOfficial
 };
 
 export default authService;

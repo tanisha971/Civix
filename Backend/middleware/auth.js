@@ -14,6 +14,16 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
+// Middleware for public officials only
+export const publicOfficialMiddleware = (req, res, next) => {
+  if (req.user.role !== 'public-official') {
+    return res.status(403).json({ 
+      message: "Access denied. Public officials only." 
+    });
+  }
+  next();
+};
+
 // Export as default
 export default authMiddleware;
 
