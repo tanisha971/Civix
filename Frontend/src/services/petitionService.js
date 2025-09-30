@@ -14,6 +14,17 @@ export const getPetitions = async (filters = {}) => {
   }
 };
 
+// Get petition by id
+export const getPetitionById = async (petitionId) => {
+  try {
+    const res = await axios.get(`${API_URL}/petitions/${petitionId}`);
+    return res.data.petition || res.data;
+  } catch (err) {
+    console.error("Error fetching petition by id:", err);
+    throw err;
+  }
+};
+
 // Create a new petition
 export const createPetition = async (petitionData) => {
   try {
@@ -40,14 +51,14 @@ export const signPetition = async (petitionId) => {
   }
 };
 
-// 0Delete a petition (only creator can delete)
+// Delete a petition (only creator can delete)
 export const deletePetition = async (petitionId) => {
-  const res = await axios.delete(`${API_URL}/${petitionId}`, { withCredentials: true });
+  const res = await axios.delete(`${API_URL}/petitions/${petitionId}`, { withCredentials: true });
   return res.data;
 };
 
 // Edit a petition (only creator can edit)
 export const editPetition = async (petitionId, updatedData) => {
-  const res = await axios.put(`${API_URL}/${petitionId}`, updatedData, { withCredentials: true });
+  const res = await axios.put(`${API_URL}/petitions/${petitionId}`, updatedData, { withCredentials: true });
   return res.data;
 };

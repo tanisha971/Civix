@@ -12,7 +12,7 @@ import {
   getOfficialAnalytics,
   getPetitionById
 } from "../controllers/petitionController.js";
-
+import { getPetitionById } from "../controllers/petitionController.js";
 const router = express.Router();
 
 // Get all petitions

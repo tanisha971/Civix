@@ -31,6 +31,7 @@ export default function AppRouter() {
           {/* Petitions routes */}
           <Route path="petitions" element={<PetitionList />} />
           <Route path="petitions/create" element={<CreatePetition />} />
+          <Route path="petitions/edit/:id" element={<CreatePetition />} />
 
           {/* Polls routes */}
           <Route path="polls" element={<PollList />} />
