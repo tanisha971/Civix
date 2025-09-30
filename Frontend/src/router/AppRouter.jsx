@@ -14,6 +14,7 @@ import PetitionList from '../pages/petitions/PetitionList';
 import CreatePetition from '../pages/petitions/CreatePetition';
 import PollList from '../pages/polls/PollList';
 import CreatePoll from '../pages/polls/CreatePoll';
+import OfficialDashboard from '../components/official/OfficialDashboard';
 
 export default function AppRouter() {
   return (
@@ -35,8 +36,12 @@ export default function AppRouter() {
           <Route path="polls" element={<PollList />} />
           <Route path="polls/create" element={<CreatePoll />} />
 
+          {/* Official routes - only accessible to public officials */}
+          <Route path="official" element={<OfficialDashboard />} />
+          <Route path="official/analytics" element={<OfficialDashboard />} />
+          <Route path="official/review" element={<PetitionList />} />
+
           {/* Other routes */}          
-          <Route path="officials" element={<div>Officials Page - Coming Soon</div>} />
           <Route path="reports" element={<div>Reports Page - Coming Soon</div>} />
           <Route path="settings" element={<div>Settings Page - Coming Soon</div>} />
           <Route path="help" element={<div>Help & Support Page - Coming Soon</div>} />
