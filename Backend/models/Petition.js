@@ -10,7 +10,7 @@ const PetitionSchema = new mongoose.Schema({
   signatureGoal: { type: Number, default: 100 },
   creator: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   status: { type: String, enum: ["active", "under_review", "closed"], default: "active" },
-  signatures: [{ type: mongoose.Schema.Types.ObjectId, ref: "Signature" }],
+  signatures: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 // Official review fields
   reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   reviewedAt: { type: Date },

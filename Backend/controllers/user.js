@@ -1,10 +1,10 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 
 // Generate JWT Token
 const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+  return jwt.sign({ id: userId }, process.env.JWT_SECRET || 'fallback-secret', {
     expiresIn: '7d'
   });
 };
@@ -14,7 +14,6 @@ export const register = async (req, res) => {
   try {
     const { name, email, password, location, role, department, position } = req.body;
 
-    // Validation
     if (!name || !email || !password || !location) {
       return res.status(400).json({
         success: false,
@@ -22,7 +21,6 @@ export const register = async (req, res) => {
       });
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -31,47 +29,46 @@ export const register = async (req, res) => {
       });
     }
 
-    // Create user
-    const user = new User({
+    const userData = {
       name,
       email,
-      password, // Will be hashed by pre-save middleware
-      location: {
-        city: location // Simple location for now
-      },
-      role: role || 'citizen',
-      department: role === 'public-official' ? department : undefined,
-      position: role === 'public-official' ? position : undefined,
-      verified: role === 'citizen'
-    });
+      password,
+      location,
+      role: role || 'citizen'
+    };
 
+    if (role === 'public-official') {
+      userData.department = department;
+      userData.position = position;
+      userData.verified = true; // AUTO-VERIFY PUBLIC OFFICIALS
+    }
+
+    const user = new User(userData);
     await user.save();
 
-    // Generate token
     const token = generateToken(user._id);
 
-    // Set cookie
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    // Return user data (without password)
     const userResponse = {
       id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
-      location: user.location
+      location: user.location,
+      department: user.department,
+      position: user.position,
+      verified: user.verified
     };
 
     res.status(201).json({
       success: true,
-      message: role === 'public-official' 
-        ? "Public Official account created. Awaiting verification." 
-        : "User registered successfully",
+      message: "User registered successfully",
       user: userResponse,
       token
     });
@@ -86,12 +83,11 @@ export const register = async (req, res) => {
   }
 };
 
-// Login user
+// Login user - REMOVE VERIFICATION CHECK
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validation
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -99,8 +95,7 @@ export const login = async (req, res) => {
       });
     }
 
-    // Find user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(400).json({
         success: false,
@@ -108,8 +103,7 @@ export const login = async (req, res) => {
       });
     }
 
-    // Check password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       return res.status(400).json({
         success: false,
@@ -117,29 +111,32 @@ export const login = async (req, res) => {
       });
     }
 
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
+    // REMOVED VERIFICATION CHECK - ALL USERS CAN LOGIN
+    // if (user.role === 'public-official' && !user.verified) {
+    //   return res.status(403).json({ 
+    //     success: false,
+    //     message: 'Your account is pending verification.' 
+    //   });
+    // }
 
-    // Generate token
     const token = generateToken(user._id);
 
-    // Set cookie
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    // Return user data (without password)
     const userResponse = {
       id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
       location: user.location,
-      statistics: user.statistics
+      department: user.department,
+      position: user.position,
+      verified: user.verified
     };
 
     res.json({
@@ -200,8 +197,9 @@ export const getCurrentUser = async (req, res) => {
         email: user.email,
         role: user.role,
         location: user.location,
-        statistics: user.statistics,
-        profile: user.profile
+        department: user.department,
+        position: user.position,
+        verified: user.verified
       }
     });
   } catch (error) {
@@ -214,17 +212,54 @@ export const getCurrentUser = async (req, res) => {
   }
 };
 
-// Create official account (admin route)
+// Update profile
+export const updateProfile = async (req, res) => {
+  try {
+    const { name, location } = req.body;
+    
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    if (name) user.name = name;
+    if (location) user.location = location;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        location: user.location,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update profile', 
+      error: error.message 
+    });
+  }
+};
+
+// Create official
 export const createOfficial = async (req, res) => {
   try {
     const { name, email, password, location, department, position } = req.body;
     
-    const hashedPassword = await bcrypt.hash(password, 12);
-    
     const official = new User({
       name,
       email,
-      password: hashedPassword,
+      password,
       location,
       role: 'public-official',
       department,
@@ -236,15 +271,14 @@ export const createOfficial = async (req, res) => {
     
     res.json({ 
       success: true, 
-      message: "Public Official account created successfully",
-      official: {
-        name: official.name,
-        email: official.email,
-        department: official.department,
-        position: official.position
-      }
+      message: "Public Official account created successfully"
     });
   } catch (error) {
-    res.status(500).json({ message: "Error creating official account" });
+    console.error('Create official error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error creating official account",
+      error: error.message
+    });
   }
 };

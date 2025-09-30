@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { signPetition } from "../../services/petitionService";
 import { getCurrentUserId } from "../../utils/auth";
 
 const PetitionCard = ({ petition, onSigned }) => {
+  const navigate = useNavigate();
   const [signed, setSigned] = useState(false);
   const [signaturesCount, setSignaturesCount] = useState(petition.signaturesCount || 0);
   const currentUserId = getCurrentUserId();
