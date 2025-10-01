@@ -16,15 +16,15 @@ import ReportIcon from "@mui/icons-material/Report";
 import LogoutIcon from "@mui/icons-material/Logout";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import axios from "axios";
 import { useNavigate } from 'react-router-dom';
 import MenuIcon from '@mui/icons-material/Menu';
 import Drawer from '@mui/material/Drawer';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import DashboardBar from '../dashboard/DashboardBar';
 import CloseIcon from '@mui/icons-material/Close';
+import { getProfile } from "../../services/api";
 
-import Logo from "../../assets/images/Civix logo.jpg"; // Use your logo image
+import Logo from "../../assets/images/Civix logo.jpg";
 
 export default function Navbar() {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -32,19 +32,20 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isMobile = useMediaQuery('(max-width:600px)');
+  const navigate = useNavigate(); // SINGLE DECLARATION HERE
 
-  // Fetch logged-in user profile
+  // Fetch logged-in user profile using the correct API
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/users/profile", {
-          withCredentials: true,
-        });
-        setUser(res.data.user); // store user data
+        const response = await getProfile();
+        setUser(response.user);
       } catch (err) {
-        console.error("Error fetching profile:", err.response?.data?.message);
+        console.error("Error fetching profile:", err);
+        // User might not be logged in, that's okay for navbar
       }
     };
+    
     fetchUser();
   }, []);
 
@@ -59,6 +60,7 @@ export default function Navbar() {
   const handleDrawerOpen = () => {
     setDrawerOpen(true);
   };
+  
   const handleDrawerClose = () => {
     setDrawerOpen(false);
   };
@@ -67,18 +69,15 @@ export default function Navbar() {
     setAnchorEl(null);
   };
 
-  const navigate = useNavigate && typeof useNavigate === 'function' ? useNavigate() : null;
   const handleLogout = async () => {
     try {
-      await axios.post("http://localhost:5000/api/auth/logout", {}, { withCredentials: true });
-      setUser(null); // clear user after logout
-      if (navigate) {
-        navigate("/"); // redirect to Home.jsx route
-      } else {
-        window.location.href = "/";
-      }
+      // Clear localStorage
+      localStorage.removeItem("user");
+      setUser(null);
+      // Redirect to home
+      navigate("/");
     } catch (err) {
-      console.error("Logout failed:", err.response?.data?.message);
+      console.error("Logout failed:", err);
     }
     setAnchorEl(null);
   };
@@ -105,25 +104,25 @@ export default function Navbar() {
         {/* Center: Navigation Links (hidden on mobile) */}
         {!isMobile && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <IconButton color="inherit" href="/">
+            <IconButton color="inherit" onClick={() => navigate('/')}>
               <HomeIcon />
               <Typography variant="body1" sx={{ ml: 0.5 }}>
                 Home
               </Typography>
             </IconButton>
-            <IconButton color="inherit" href="/petitions">
+            <IconButton color="inherit" onClick={() => navigate('/dashboard/petitions')}>
               <EditIcon />
               <Typography variant="body1" sx={{ ml: 0.5 }}>
                 Petitions
               </Typography>
             </IconButton>
-            <IconButton color="inherit" href="/polls">
+            <IconButton color="inherit" onClick={() => navigate('/dashboard/polls')}>
               <HowToVoteIcon />
               <Typography variant="body1" sx={{ ml: 0.5 }}>
                 Polls
               </Typography>
             </IconButton>
-            <IconButton color="inherit" href="/reports">
+            <IconButton color="inherit" onClick={() => navigate('/dashboard/reports')}>
               <ReportIcon />
               <Typography variant="body1" sx={{ ml: 0.5 }}>
                 Reports
