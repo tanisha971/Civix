@@ -1,39 +1,45 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
-
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import authService from '../../services/authService';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 import MailIcon from '@mui/icons-material/Mail';
 import LoginImage from "../../assets/images/govImg.jpeg";
 
-export default function Login() {
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
+const Login = () => {
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError(''); // Clear error when user types
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-
-    if (!validateEmail(form.email)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
+    setLoading(true);
+    setError('');
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/auth/login",
-        form,
-        { withCredentials: true }
-      );
-      alert(res.data.message);
-      navigate("/dashboard");
+      console.log('Login submission:', formData.email);
+      
+      const result = await authService.login(formData.email, formData.password);
+      
+      console.log('Login successful:', result.message);
+      
+      // Verify token is stored
+      const storedToken = localStorage.getItem('token');
+      console.log('Token stored after login:', storedToken ? 'Yes' : 'No');
+      
+      // Redirect to dashboard
+      navigate('/dashboard');
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Login failed");
+      console.error('Login failed:', err);
+      setError(err.response?.data?.message || err.message || 'Login failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -49,14 +55,22 @@ export default function Login() {
           </div>
 
           <form className="flex flex-col space-y-4 mt-4" onSubmit={handleSubmit}>
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                {error}
+              </div>
+            )}
+            
             <TextField
               label="Email"
               variant="outlined"
               type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              name="email"
               required
+              value={formData.email}
+              onChange={handleChange}
               fullWidth
+              disabled={loading}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -69,16 +83,24 @@ export default function Login() {
               label="Password"
               variant="outlined"
               type="password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              name="password"
               required
+              value={formData.password}
+              onChange={handleChange}
               fullWidth
+              disabled={loading}
             />
 
-            {error && <div className="text-red-500 text-sm text-center">{error}</div>}
-
-            <button type="submit" className="w-full py-3 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition">
-              Sign In
+            <button 
+              type="submit" 
+              disabled={loading}
+              className={`w-full py-3 font-semibold rounded transition ${
+                loading 
+                  ? "bg-gray-400 text-gray-200 cursor-not-allowed" 
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
+            >
+              {loading ? "Signing In..." : "Sign In"}
             </button>
 
             <p className="text-center text-gray-500 text-sm mt-2">
@@ -95,4 +117,6 @@ export default function Login() {
       </div>
     </div>
   );
-}
+};
+
+export default Login;
