@@ -3,22 +3,47 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer 
 } from 'recharts';
-import api from '../../services/api';
+import officialService from '../../services/officialService';
 
 const OfficialDashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [petitionsToReview, setPetitionsToReview] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // DYNAMIC COUNTS STATE - Like PetitionStats
+  const [totalPetitionsCount, setTotalPetitionsCount] = useState(0);
+  const [activePetitionsCount, setActivePetitionsCount] = useState(0);
+  const [reviewedPetitionsCount, setReviewedPetitionsCount] = useState(0);
+  const [closedPetitionsCount, setClosedPetitionsCount] = useState(0);
 
   useEffect(() => {
     fetchAnalytics();
     fetchPetitionsToReview();
+    // Set up auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      fetchAnalytics();
+      fetchPetitionsToReview();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchAnalytics = async () => {
     try {
-      const response = await api.get('/petitions/analytics');
-      setAnalytics(response.data.analytics);
+      const response = await officialService.getAnalytics();
+      
+      if (response.analytics) {
+        setAnalytics(response.analytics);
+        
+        // UPDATE DYNAMIC COUNTS - Like PetitionStats approach
+        const overview = response.analytics.overview;
+        setTotalPetitionsCount(overview.totalPetitions || 0);
+        setActivePetitionsCount(overview.activePetitions || 0);
+        setReviewedPetitionsCount(overview.reviewedPetitions || 0);
+        setClosedPetitionsCount(overview.closedPetitions || 0);
+        
+        console.log('Analytics updated:', overview);
+      }
     } catch (error) {
       console.error('Error fetching analytics:', error);
     }
@@ -26,8 +51,8 @@ const OfficialDashboard = () => {
 
   const fetchPetitionsToReview = async () => {
     try {
-      const response = await api.get('/petitions?status=active');
-      setPetitionsToReview(response.data.petitions || []);
+      const response = await officialService.getPetitionsForReview({ status: 'active' });
+      setPetitionsToReview(response.petitions || []);
     } catch (error) {
       console.error('Error fetching petitions to review:', error);
     } finally {
@@ -37,25 +62,37 @@ const OfficialDashboard = () => {
 
   const updatePetitionStatus = async (petitionId, status, response) => {
     try {
-      await api.put(`/petitions/${petitionId}/status`, {
+      await officialService.updatePetitionStatus(petitionId, {
         status,
         officialResponse: response
       });
-      fetchPetitionsToReview();
+      
+      // REFRESH COUNTS AFTER UPDATE - Dynamic update
+      await fetchAnalytics();
+      await fetchPetitionsToReview();
+      
+      alert('Petition status updated successfully!');
     } catch (error) {
       console.error('Error updating petition status:', error);
+      alert('Error updating petition status');
     }
   };
 
   const verifyPetition = async (petitionId, verified, note) => {
     try {
-      await api.put(`/petitions/${petitionId}/verify`, {
+      await officialService.verifyPetition(petitionId, {
         verified,
         verificationNote: note
       });
-      fetchPetitionsToReview();
+      
+      // REFRESH COUNTS AFTER VERIFICATION - Dynamic update
+      await fetchAnalytics();
+      await fetchPetitionsToReview();
+      
+      alert(`Petition ${verified ? 'verified' : 'marked as invalid'} successfully!`);
     } catch (error) {
       console.error('Error verifying petition:', error);
+      alert('Error verifying petition');
     }
   };
 
@@ -74,33 +111,52 @@ const OfficialDashboard = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <h1 className="text-3xl font-bold text-gray-900">Public Official Dashboard</h1>
           <p className="text-gray-600 mt-2">Review petitions, manage responses, and view analytics</p>
+          {/* Last Updated Indicator */}
+          <p className="text-xs text-gray-500 mt-2">
+            Last updated: {new Date().toLocaleTimeString()} • Auto-refreshes every 30 seconds
+          </p>
         </div>
 
-        {/* Overview Cards */}
+        {/* UPDATED Overview Cards - Using Dynamic Counts */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-blue-500 text-white p-6 rounded-lg shadow">
+          <div className="bg-blue-500 text-white p-6 rounded-lg shadow transform transition-transform hover:scale-105">
             <h3 className="text-lg font-semibold">Total Petitions</h3>
-            <p className="text-3xl font-bold mt-2">
-              {analytics?.overview.totalPetitions || 0}
+            <p className="text-3xl font-bold mt-2 transition-all duration-500">
+              {totalPetitionsCount}
             </p>
+            <div className="text-blue-100 text-sm mt-1">
+              System-wide petitions
+            </div>
           </div>
-          <div className="bg-yellow-500 text-white p-6 rounded-lg shadow">
+          
+          <div className="bg-yellow-500 text-white p-6 rounded-lg shadow transform transition-transform hover:scale-105">
             <h3 className="text-lg font-semibold">Under Review</h3>
-            <p className="text-3xl font-bold mt-2">
-              {analytics?.overview.reviewedPetitions || 0}
+            <p className="text-3xl font-bold mt-2 transition-all duration-500">
+              {reviewedPetitionsCount}
             </p>
+            <div className="text-yellow-100 text-sm mt-1">
+              Awaiting official response
+            </div>
           </div>
-          <div className="bg-green-500 text-white p-6 rounded-lg shadow">
+          
+          <div className="bg-green-500 text-white p-6 rounded-lg shadow transform transition-transform hover:scale-105">
             <h3 className="text-lg font-semibold">Active</h3>
-            <p className="text-3xl font-bold mt-2">
-              {analytics?.overview.activePetitions || 0}
+            <p className="text-3xl font-bold mt-2 transition-all duration-500">
+              {activePetitionsCount}
             </p>
+            <div className="text-green-100 text-sm mt-1">
+              Currently collecting signatures
+            </div>
           </div>
-          <div className="bg-red-500 text-white p-6 rounded-lg shadow">
+          
+          <div className="bg-red-500 text-white p-6 rounded-lg shadow transform transition-transform hover:scale-105">
             <h3 className="text-lg font-semibold">Closed</h3>
-            <p className="text-3xl font-bold mt-2">
-              {analytics?.overview.closedPetitions || 0}
+            <p className="text-3xl font-bold mt-2 transition-all duration-500">
+              {closedPetitionsCount}
             </p>
+            <div className="text-red-100 text-sm mt-1">
+              Completed or rejected
+            </div>
           </div>
         </div>
 
@@ -137,7 +193,24 @@ const OfficialDashboard = () => {
 
         {/* Petitions Requiring Review */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-xl font-semibold mb-6">Petitions Requiring Review</h3>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-semibold">Petitions Requiring Review</h3>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-500">
+                {petitionsToReview.length} petition(s) pending
+              </span>
+              <button
+                onClick={() => {
+                  fetchAnalytics();
+                  fetchPetitionsToReview();
+                }}
+                className="px-3 py-1 bg-blue-100 text-blue-600 rounded-md text-sm hover:bg-blue-200 transition-colors"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+          
           <div className="space-y-4">
             {petitionsToReview.length > 0 ? (
               petitionsToReview.map(petition => (
@@ -149,7 +222,11 @@ const OfficialDashboard = () => {
                 />
               ))
             ) : (
-              <p className="text-gray-500 text-center py-8">No petitions requiring review at this time.</p>
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-6xl mb-4">✅</div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">All caught up!</h4>
+                <p className="text-gray-500">No petitions requiring review at this time.</p>
+              </div>
             )}
           </div>
         </div>
@@ -158,28 +235,39 @@ const OfficialDashboard = () => {
   );
 };
 
-// Petition Review Card Component
+// Enhanced Petition Review Card Component with Status Indicators
 const PetitionReviewCard = ({ petition, onStatusUpdate, onVerify }) => {
   const [status, setStatus] = useState('under_review');
   const [response, setResponse] = useState('');
   const [showResponseForm, setShowResponseForm] = useState(false);
   const [showVerifyForm, setShowVerifyForm] = useState(false);
   const [verificationNote, setVerificationNote] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmitReview = () => {
-    onStatusUpdate(petition._id, status, response);
-    setShowResponseForm(false);
-    setResponse('');
+  const handleSubmitReview = async () => {
+    setIsSubmitting(true);
+    try {
+      await onStatusUpdate(petition._id, status, response);
+      setShowResponseForm(false);
+      setResponse('');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleVerify = (verified) => {
-    onVerify(petition._id, verified, verificationNote);
-    setShowVerifyForm(false);
-    setVerificationNote('');
+  const handleVerify = async (verified) => {
+    setIsSubmitting(true);
+    try {
+      await onVerify(petition._id, verified, verificationNote);
+      setShowVerifyForm(false);
+      setVerificationNote('');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg p-6">
+    <div className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
@@ -187,6 +275,12 @@ const PetitionReviewCard = ({ petition, onStatusUpdate, onVerify }) => {
             {petition.verified && (
               <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
                 ✓ Verified
+              </span>
+            )}
+            {/* Priority Indicator */}
+            {petition.priority === 'high' && (
+              <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                🔥 High Priority
               </span>
             )}
           </div>
@@ -202,6 +296,10 @@ const PetitionReviewCard = ({ petition, onStatusUpdate, onVerify }) => {
             <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
               👥 {petition.signaturesCount} signatures
             </span>
+            {/* Time indicator */}
+            <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
+              ⏰ {new Date(petition.createdAt).toLocaleDateString()}
+            </span>
           </div>
         </div>
       </div>
@@ -209,13 +307,15 @@ const PetitionReviewCard = ({ petition, onStatusUpdate, onVerify }) => {
       <div className="flex flex-wrap gap-3">
         <button
           onClick={() => setShowResponseForm(!showResponseForm)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          disabled={isSubmitting}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
         >
           📝 Review Petition
         </button>
         <button
           onClick={() => setShowVerifyForm(!showVerifyForm)}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          disabled={isSubmitting}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
         >
           {petition.verified ? '✓ Verified' : '✅ Verify'}
         </button>
@@ -232,6 +332,7 @@ const PetitionReviewCard = ({ petition, onStatusUpdate, onVerify }) => {
                 value={status} 
                 onChange={(e) => setStatus(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isSubmitting}
               >
                 <option value="under_review">Under Review</option>
                 <option value="in_progress">In Progress</option>
@@ -246,17 +347,20 @@ const PetitionReviewCard = ({ petition, onStatusUpdate, onVerify }) => {
                 onChange={(e) => setResponse(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-32"
                 placeholder="Provide an official response to this petition..."
+                disabled={isSubmitting}
               />
             </div>
             <div className="flex gap-2">
               <button
                 onClick={handleSubmitReview}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                Submit Review
+                {isSubmitting ? 'Submitting...' : 'Submit Review'}
               </button>
               <button
                 onClick={() => setShowResponseForm(false)}
+                disabled={isSubmitting}
                 className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
               >
                 Cancel
@@ -278,23 +382,27 @@ const PetitionReviewCard = ({ petition, onStatusUpdate, onVerify }) => {
                 onChange={(e) => setVerificationNote(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-24"
                 placeholder="Add a note about the verification..."
+                disabled={isSubmitting}
               />
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => handleVerify(true)}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
               >
-                ✅ Verify as Legitimate
+                {isSubmitting ? 'Processing...' : '✅ Verify as Legitimate'}
               </button>
               <button
                 onClick={() => handleVerify(false)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
               >
-                ❌ Mark as Invalid
+                {isSubmitting ? 'Processing...' : '❌ Mark as Invalid'}
               </button>
               <button
                 onClick={() => setShowVerifyForm(false)}
+                disabled={isSubmitting}
                 className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
               >
                 Cancel

@@ -1,40 +1,46 @@
 import express from "express";
-import authMiddleware, { publicOfficialMiddleware } from "../middleware/auth.js";
-import { 
-  getPetitions, 
+import {
   createPetition,
-  signPetition,
-  editPetition,
+  getAllPetitions,
+  getPetitions,
+  getPetitionById,
+  updatePetition,
   deletePetition,
+  signPetition,
+  getPetitionSignatures,
+  getOfficialAnalytics,
   updatePetitionStatus,
   verifyPetition,
   addOfficialResponse,
-  getOfficialAnalytics,
-  getPetitionById
+  getPetitionsForReview,
+  getOfficialResponses
 } from "../controllers/petitionController.js";
+import { auth, requireAuth } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Get all petitions
-router.get("/", getPetitions);
-router.get("/:id", getPetitionById);
+// IMPORTANT: Specific routes MUST come BEFORE parameterized routes
+// Official routes (must be first)
+router.get("/analytics", auth, getOfficialAnalytics);
+router.get("/review/list", auth, requireAuth, getPetitionsForReview);
 
-// Create a new petition
-router.post("/", authMiddleware, createPetition);
+// Public routes (with optional auth)
+router.get("/", auth, getAllPetitions);
 
-// Sign a petition
-router.post("/:id/sign", authMiddleware, signPetition);
+// Protected routes (require auth) - FIXED: Added auth middleware before requireAuth
+router.post("/", auth, requireAuth, createPetition);
+router.post("/:id/sign", auth, requireAuth, signPetition); // FIXED: Added auth middleware
 
-// Edit a petition
-router.put("/:id", authMiddleware, editPetition);
+// Individual petition routes (must come after /analytics and other specific routes)
+router.get("/:id", auth, getPetitionById);
+router.get("/:id/signatures", auth, getPetitionSignatures);
+router.put("/:id", auth, requireAuth, updatePetition);
+router.delete("/:id", auth, requireAuth, deletePetition);
 
-// Delete a petition
-router.delete("/:id", authMiddleware, deletePetition);
-
-// Public Official only routes
-router.put("/:id/status", authMiddleware, publicOfficialMiddleware, updatePetitionStatus);
-router.put("/:id/verify", authMiddleware, publicOfficialMiddleware, verifyPetition);
-router.post("/:petitionId/response", authMiddleware, publicOfficialMiddleware, addOfficialResponse);
-router.get("/analytics", authMiddleware, publicOfficialMiddleware, getOfficialAnalytics);
+// Official routes (require auth and official role)
+router.get("/:petitionId/responses", auth, getOfficialResponses);
+router.put("/:id/status", auth, requireAuth, updatePetitionStatus);
+router.put("/:id/verify", auth, requireAuth, verifyPetition);
+router.post("/:petitionId/response", auth, requireAuth, addOfficialResponse);
 
 export default router;

@@ -3,7 +3,7 @@ import PetitionStats from "./PetitionStats";
 import PetitionFilters from "./PetitionFilters";
 import PetitionCard from "./PetitionCard";
 import { useNavigate } from "react-router-dom";
-import { getPetitions, deletePetition } from "../../services/petitionService";
+import petitionService from "../../services/petitionService"; // Import default export
 import { getCurrentUserId } from "../../utils/auth";
 
 const PetitionList = () => {
@@ -35,9 +35,10 @@ const PetitionList = () => {
   useEffect(() => {
     const fetchPetitions = async () => {
       try {
-        const data = await getPetitions(); // fetch ALL from backend
+        const data = await petitionService.getAllPetitions(); // Use correct method
+        const petitions = data.petitions || data; // Handle different response formats
 
-        const normalized = data.map((p) => ({
+        const normalized = petitions.map((p) => ({
           ...p,
           status: mapStatusToUI(p.status),
           signatures: p.signaturesCount || 0,
@@ -86,7 +87,7 @@ const PetitionList = () => {
     if (!confirmDelete) return;
 
     try {
-      await deletePetition(petitionId);
+      await petitionService.deletePetition(petitionId); // Use correct method
       setPetitions(prev => prev.filter(p => p._id !== petitionId));
       alert("Petition deleted successfully!");
     } catch (err) {

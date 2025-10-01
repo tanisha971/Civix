@@ -14,25 +14,50 @@ const officialResponseSchema = new mongoose.Schema({
   },
   message: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
   type: {
     type: String,
-    enum: ['update', 'response', 'timeline', 'closure'],
-    default: 'response'
+    enum: [
+      'general_response',
+      'status_update', 
+      'verification_approved',
+      'verification_rejected',
+      'information_request',
+      'progress_update',
+      'final_decision'
+    ],
+    default: 'general_response'
+  },
+  isPublic: {
+    type: Boolean,
+    default: true
   },
   attachments: [{
     filename: String,
     url: String,
-    uploadedAt: { type: Date, default: Date.now }
+    type: String
   }],
-  isPublic: {
-    type: Boolean,
-    default: true
+  metadata: {
+    department: String,
+    priority: {
+      type: String,
+      enum: ['low', 'medium', 'high', 'urgent'],
+      default: 'medium'
+    },
+    tags: [String],
+    referenceId: String
   }
-}, {
-  timestamps: true
+}, { 
+  timestamps: true 
 });
+
+// Index for efficient queries
+officialResponseSchema.index({ petition: 1, createdAt: -1 });
+officialResponseSchema.index({ official: 1, createdAt: -1 });
+officialResponseSchema.index({ type: 1 });
+officialResponseSchema.index({ isPublic: 1 });
 
 export default mongoose.model('OfficialResponse', officialResponseSchema);
 
