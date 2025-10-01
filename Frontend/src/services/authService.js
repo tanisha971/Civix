@@ -1,100 +1,131 @@
 // authService.js
 import api from "./api";
 
-// Login function
-export const login = async (email, password) => {
-  try {
-    console.log("Logging in:", email);
-    const response = await api.post("/auth/login", { email, password });
-    
-    if (response.data.success && response.data.user) {
-      // Store user data in localStorage
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      console.log("Storing user data:", response.data.user);
-      return { success: true, user: response.data.user };
+export const authService = {
+  login: async (email, password) => {
+    try {
+      console.log("Logging in:", email);
+      const response = await api.post("/auth/login", { email, password });
+      
+      if (response.data.success) {
+        const userData = response.data;
+        
+        // Store user data AND token in localStorage
+        localStorage.setItem("user", JSON.stringify(userData));
+        
+        // Also store token separately for easier access
+        if (userData.token) {
+          localStorage.setItem("token", userData.token);
+        }
+        
+        console.log("Storing user data:", userData);
+        console.log("Token stored:", userData.token ? "Yes" : "No");
+        
+        return userData;
+      }
+      
+      throw new Error(response.data.message || "Login failed");
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
     }
-    
-    return { success: false, message: response.data.message };
-  } catch (error) {
-    console.error("Login error:", error);
-    return { 
-      success: false, 
-      message: error.response?.data?.message || "Login failed" 
-    };
-  }
-};
+  },
 
-// Register function
-export const register = async (name, email, password, location, role, department, position) => {
-  try {
-    console.log("Registering:", email, "as", role);
-    const requestBody = { name, email, password, location, role };
-    
-    if (role === 'public-official') {
-      requestBody.department = department;
-      requestBody.position = position;
+  register: async (userData) => {
+    try {
+      const response = await api.post("/auth/register", userData);
+      
+      if (response.data.success) {
+        const data = response.data;
+        
+        // Store user data AND token in localStorage
+        localStorage.setItem("user", JSON.stringify(data));
+        
+        // Also store token separately
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
+        
+        return data;
+      }
+      
+      throw new Error(response.data.message || "Registration failed");
+    } catch (error) {
+      console.error("Registration error:", error);
+      throw error;
     }
-    
-    const response = await api.post("/auth/register", requestBody);
-    
-    if (response.data.success) {
-      return { success: true, message: response.data.message };
+  },
+
+  logout: async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Always clear local storage
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
     }
-    
-    return { success: false, message: response.data.message };
-  } catch (error) {
-    console.error("Registration error:", error);
-    return { 
-      success: false, 
-      message: error.response?.data?.message || "Registration failed" 
-    };
-  }
-};
+  },
 
-// Get user profile
-export const getUserProfile = async () => {
-  try {
-    console.log("Fetching user profile...");
-    const response = await api.get("/auth/profile");
-    console.log("Profile data received:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("Profile fetch error:", error);
-    throw error;
-  }
-};
+  getCurrentUser: () => {
+    try {
+      const user = localStorage.getItem("user");
+      return user ? JSON.parse(user) : null;
+    } catch (error) {
+      console.error("Error getting current user:", error);
+      return null;
+    }
+  },
 
-// Logout function
-export const logout = () => {
-  localStorage.removeItem("user");
-  window.location.href = "/login";
-};
-
-// Get current user from localStorage
-export const getCurrentUser = () => {
-  try {
+  isAuthenticated: () => {
     const user = localStorage.getItem("user");
-    return user ? JSON.parse(user) : null;
-  } catch (error) {
-    console.error("Error getting current user:", error);
-    return null;
+    const token = localStorage.getItem("token");
+    return !!(user && token);
+  },
+
+  // ADD MISSING FUNCTION - Check if user is public official
+  isPublicOfficial: () => {
+    try {
+      const userData = localStorage.getItem("user");
+      if (!userData) return false;
+      
+      const parsedUser = JSON.parse(userData);
+      const user = parsedUser?.user || parsedUser;
+      
+      return user?.role === 'public-official';
+    } catch (error) {
+      console.error("Error checking public official status:", error);
+      return false;
+    }
+  },
+
+  // Additional helper function - Get user role
+  getUserRole: () => {
+    try {
+      const userData = localStorage.getItem("user");
+      if (!userData) return null;
+      
+      const parsedUser = JSON.parse(userData);
+      const user = parsedUser?.user || parsedUser;
+      
+      return user?.role || 'citizen';
+    } catch (error) {
+      console.error("Error getting user role:", error);
+      return 'citizen';
+    }
   }
 };
 
-// Check if user is public official
-export const isPublicOfficial = () => {
-  const user = getCurrentUser();
-  return user?.role === 'public-official';
-};
-
-// Create a default export object with all functions
-const authService = {
-  login,
-  register,
-  getUserProfile,
-  logout,
-  getCurrentUser,
-  isPublicOfficial
-};
+// Export individual functions for named imports
+export const { 
+  login, 
+  register, 
+  logout, 
+  getCurrentUser, 
+  isAuthenticated, 
+  isPublicOfficial,
+  getUserRole 
+} = authService;
 
 export default authService;

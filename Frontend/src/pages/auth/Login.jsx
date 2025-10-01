@@ -1,47 +1,43 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import authService from '../../services/authService';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 import MailIcon from '@mui/icons-material/Mail';
 import LoginImage from "../../assets/images/govImg.jpeg";
-import authService, { login } from "../../services/authService";
 
 const Login = () => {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: ""
-  });
-  const [error, setError] = useState("");
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError(''); // Clear error when user types
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
-
-    console.log("Login submission:", formData.email);
+    setError('');
 
     try {
-      // Use either authService.login or login directly
+      console.log('Login submission:', formData.email);
+      
       const result = await authService.login(formData.email, formData.password);
       
-      if (result.success) {
-        console.log("Login successful:", result.message || "Login successful");
-        navigate("/dashboard");
-      } else {
-        setError(result.message || "Login failed");
-      }
+      console.log('Login successful:', result.message);
+      
+      // Verify token is stored
+      const storedToken = localStorage.getItem('token');
+      console.log('Token stored after login:', storedToken ? 'Yes' : 'No');
+      
+      // Redirect to dashboard
+      navigate('/dashboard');
     } catch (err) {
-      console.error("Login error:", err);
-      setError("An error occurred during login");
+      console.error('Login failed:', err);
+      setError(err.response?.data?.message || err.message || 'Login failed');
     } finally {
       setLoading(false);
     }

@@ -1,58 +1,113 @@
-import api from "./api";
+import api from './api';
 
-// Get petitions with optional filters
-export const getPetitions = async (filters = {}) => {
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// Get user from localStorage
+const getUserFromStorage = () => {
   try {
-    const params = new URLSearchParams(filters);
-    const res = await api.get(`/petitions?${params.toString()}`);
-    return res.data.petitions || []; // expect backend to return { petitions: [...] }
-  } catch (err) {
-    console.error("Error fetching petitions:", err);
-    return [];
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
+  } catch (error) {
+    console.error('Error parsing user from localStorage:', error);
+    return null;
   }
 };
 
-// Get petition by id
-export const getPetitionById = async (petitionId) => {
-  try {
-    const res = await api.get(`/petitions/${petitionId}`);
-    return res.data.petition || res.data;
-  } catch (err) {
-    console.error("Error fetching petition by id:", err);
-    throw err;
+export const petitionService = {
+  // Get all petitions with signature counts
+  getAllPetitions: async (params = {}) => {
+    try {
+      const response = await api.get('/petitions', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching petitions:', error);
+      throw error;
+    }
+  },
+
+  // Get petition by ID
+  getPetitionById: async (id) => {
+    try {
+      const response = await api.get(`/petitions/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching petition:', error);
+      throw error;
+    }
+  },
+
+  // Create petition
+  createPetition: async (petitionData) => {
+    try {
+      const user = getUserFromStorage();
+      const response = await api.post('/petitions', {
+        ...petitionData,
+        userId: user?.user?.id || user?.id // Include user ID from localStorage
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error creating petition:', error);
+      throw error;
+    }
+  },
+
+  // Sign petition - FIXED TO USE CORRECT ENDPOINT
+  signPetition: async (petitionId) => {
+    try {
+      const user = getUserFromStorage();
+      
+      if (!user || (!user.user?.id && !user.id)) {
+        throw new Error('User not authenticated. Please login first.');
+      }
+
+      const userId = user.user?.id || user.id;
+      
+      console.log('Signing petition:', petitionId, 'with user:', userId);
+      
+      // Use the correct endpoint format: /petitions/:id/sign
+      const response = await api.post(`/petitions/${petitionId}/sign`, {
+        userId: userId
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error signing petition:', error);
+      throw error;
+    }
+  },
+
+  // Update petition
+  updatePetition: async (id, petitionData) => {
+    try {
+      const response = await api.put(`/petitions/${id}`, petitionData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating petition:', error);
+      throw error;
+    }
+  },
+
+  // Delete petition
+  deletePetition: async (id) => {
+    try {
+      const response = await api.delete(`/petitions/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting petition:', error);
+      throw error;
+    }
+  },
+
+  // Get petition signatures
+  getPetitionSignatures: async (petitionId) => {
+    try {
+      const response = await api.get(`/petitions/${petitionId}/signatures`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching signatures:', error);
+      throw error;
+    }
   }
 };
 
-// Create a new petition
-export const createPetition = async (petitionData) => {
-  try {
-    const res = await api.post(`/petitions`, petitionData);
-    return res.data;
-  } catch (err) {
-    console.error("Error creating petition:", err);
-    throw err;
-  }
-};
-
-// Sign a petition
-export const signPetition = async (petitionId) => {
-  try {
-    const res = await api.post(`/petitions/${petitionId}/sign`, {});
-    return res.data;
-  } catch (err) {
-    console.error("Error signing petition:", err);
-    throw err;
-  }
-};
-
-// Delete a petition (only creator can delete)
-export const deletePetition = async (petitionId) => {
-  const res = await api.delete(`/petitions/${petitionId}`);
-  return res.data;
-};
-
-// Edit a petition (only creator can edit)
-export const editPetition = async (petitionId, updatedData) => {
-  const res = await api.put(`/petitions/${petitionId}`, updatedData);
-  return res.data;
-};
+export default petitionService;

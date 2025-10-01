@@ -3,25 +3,50 @@ import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-// Create axios instance with proper configuration
+// Create axios instance
 const api = axios.create({
   baseURL: API_URL,
-  withCredentials: true, // This is essential for cookies to be sent
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // Include cookies
 });
 
-// Request interceptor to add auth token
+// Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
-    const user = localStorage.getItem("user");
-    if (user) {
-      const token = JSON.parse(user).token;
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+    // Get token from localStorage - FIXED LOGIC
+    let token = localStorage.getItem("token");
+
+    // Fallback: try to get token from user object
+    if (!token) {
+      try {
+        const user = localStorage.getItem("user");
+        if (user) {
+          const userData = JSON.parse(user);
+          token = userData.token || userData.user?.token;
+        }
+      } catch (error) {
+        console.error("Error parsing user data:", error);
       }
     }
+
+    // Set Authorization header if token exists
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    console.log("API Request:", config.method?.toUpperCase(), config.url);
+    console.log(
+      "Auth header:",
+      config.headers.Authorization ? "Present" : "Missing"
+    );
+
+    // Log token for debugging (remove in production)
+    if (token) {
+      console.log("Token present:", token.substring(0, 20) + "...");
+    }
+
     return config;
   },
   (error) => {
@@ -29,17 +54,26 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor for error handling
+// Add response interceptor for better error handling
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   (error) => {
-    console.error("API error:", error.response?.data || error.message);
+    console.error("API error:", error.response?.data || error);
 
-    // Handle 401 Unauthorized errors
+    // Handle auth errors
     if (error.response?.status === 401) {
-      console.log("Unauthorized - user not logged in or token expired");
+      console.log("Authentication failed - clearing storage");
+
+      // Clear invalid auth data
       localStorage.removeItem("user");
-      window.location.href = "/login";
+      localStorage.removeItem("token");
+
+      // Only redirect if not already on login page
+      if (!window.location.pathname.includes("/login")) {
+        window.location.href = "/login";
+      }
     }
 
     return Promise.reject(error);
@@ -48,7 +82,7 @@ api.interceptors.response.use(
 
 export const getProfile = async () => {
   try {
-    const res = await api.get("/users/profile");
+    const res = await api.get("/auth/profile");
     return res.data; // expects { user: {...} }
   } catch (err) {
     console.error("Error fetching profile:", err.response?.data?.message);

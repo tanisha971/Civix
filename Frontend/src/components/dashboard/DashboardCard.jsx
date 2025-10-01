@@ -1,25 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PollIcon from '@mui/icons-material/Poll';
-import { getPetitions } from '../../services/petitionService';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import HowToVoteIcon from '@mui/icons-material/HowToVote';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import petitionService from '../../services/petitionService';
 import { getCurrentUserId } from '../../utils/auth';
 
 export default function DashboardCard() {
-    const [activeCategory, setActiveCategory] = useState('All Categories');
-    const [petitions, setPetitions] = useState([]);
-    const [filteredPetitions, setFilteredPetitions] = useState([]);
-    const [locationFilter, setLocationFilter] = useState('Delhi');
-
-    const categories = [
-        'Environment',
-        'Infrastructure',
-        'Education',
-        'Public Safety',
-        'Transportation',
-        'Healthcare',
-        'Housing',
-    ];
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(true);
 
     const userId = getCurrentUserId();
 
@@ -35,160 +28,240 @@ export default function DashboardCard() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Fetch petitions from backend
+    // Compute stats from ALL petitions
+    const [allPetitions, setAllPetitions] = useState([]);
     useEffect(() => {
-        const fetchPetitions = async () => {
+        const fetchAllForStats = async () => {
             try {
-                const data = await getPetitions();
-                setPetitions(data);
+                setLoading(true);
+                const data = await petitionService.getAllPetitions();
+                setAllPetitions(data.petitions || data);
             } catch (err) {
-                console.error("Error fetching petitions:", err);
+                console.error("Error fetching all petitions for stats:", err);
+            } finally {
+                setLoading(false);
             }
         };
-        fetchPetitions();
+        fetchAllForStats();
     }, []);
 
-    // Filter petitions by category and location
-    useEffect(() => {
-        let filtered = [...petitions];
+    const myPetitionsCount = allPetitions.filter(p => p.creator?._id === userId).length;
+    const successfulPetitionsCount = allPetitions.filter(p => 
+        p.status === 'closed' || p.status === 'successful' || p.status === 'under_review'
+    ).length;
+    const activePetitionsCount = allPetitions.filter(p => p.status === 'active').length;
 
-        if (activeCategory !== 'All Categories') {
-            filtered = filtered.filter(p => p.category === activeCategory);
-        }
+    // Polls counts - set to 0 for now (will be dynamic later)
+    const myPollsCount = 0;
+    const activePollsCount = 0;
+    const successfulPollsCount = 0;
 
-        if (locationFilter) {
-            filtered = filtered.filter(p => p.location.toLowerCase().includes(locationFilter.toLowerCase()));
-        }
+    // Navigation handlers
+    const handleViewAllPetitions = () => {
+        navigate('/dashboard/petitions');
+    };
 
-        setFilteredPetitions(filtered);
-    }, [activeCategory, petitions, locationFilter]);
+    const handleCreatePetition = () => {
+        navigate('/dashboard/petitions/create');
+    };
 
-    // Compute stats
-    const myPetitionsCount = petitions.filter(p => p.creator?._id === userId).length;
-    const successfulPetitionsCount = petitions.filter(p => p.status === 'closed').length;
-    const pollsCount = 0;
+    const handleViewMyPolls = () => {
+        navigate('/dashboard/polls/my');
+    };
+
+    const handleViewActivePolls = () => {
+        navigate('/dashboard/polls');
+    };
+
+    const handleViewSuccessfulPolls = () => {
+        navigate('/dashboard/polls/successful');
+    };
+
+    const handleCreatePoll = () => {
+        navigate('/dashboard/polls/create');
+    };
 
     return (
       <>
-        {/* Cards row: stack on mobile */}
-        <div className={isMobile ? "flex flex-col gap-4 mb-8" : "flex flex-row gap-8 mb-8"}>
-          {/* My Petitions */}
-          <div className="flex flex-col justify-center rounded-2xl shadow-lg flex-1 p-6 text-left" style={{ background: '#e3f2fd', color: '#111' }}>
-            <div className="flex flex-row items-center justify-between w-full mb-2">
-              <span className="text-lg font-semibold">My Petitions</span>
-              <span>
-                <EditIcon style={{ fontSize: 32 }} />
-              </span>
+        {/* Petitions Stats Cards */}
+        <div className="mb-6">
+          <h3 className="text-lg font-bold text-gray-800 mb-4">📋 Petitions Overview</h3>
+          <div className={isMobile ? "flex flex-col gap-4" : "flex flex-row gap-8"}>
+            {/* My Petitions */}
+            <div 
+              className="flex flex-col justify-center rounded-2xl shadow-lg flex-1 p-6 text-left cursor-pointer hover:shadow-xl transition-shadow" 
+              style={{ background: '#e3f2fd', color: '#111' }}
+              onClick={() => navigate('/dashboard/petitions')}
+            >
+              <div className="flex flex-row items-center justify-between w-full mb-2">
+                <span className="text-lg font-semibold">My Petitions</span>
+                <span>
+                  <EditIcon style={{ fontSize: 32 }} />
+                </span>
+              </div>
+              <span className="text-3xl font-bold mb-1">{loading ? '...' : myPetitionsCount}</span>
+              <span className="text-sm opacity-60">created by you</span>
             </div>
-            <span className="text-3xl font-bold mb-1">{myPetitionsCount}</span>
-            <span className="text-sm opacity-60">petitions</span>
-          </div>
-          {/* Successful Petitions */}
-          <div className="flex flex-col justify-center rounded-2xl shadow-lg flex-1 p-6 text-left" style={{ background: '#e3f2fd', color: '#111' }}>
-            <div className="flex flex-row items-center justify-between w-full mb-2">
-              <span className="text-lg font-semibold">Successful Petitions</span>
-              <span>
-                <CheckCircleIcon style={{ fontSize: 32 }} />
-              </span>
+
+            {/* Active Petitions */}
+            <div 
+              className="flex flex-col justify-center rounded-2xl shadow-lg flex-1 p-6 text-left cursor-pointer hover:shadow-xl transition-shadow" 
+              style={{ background: '#e8f5e8', color: '#111' }}
+              onClick={handleViewAllPetitions}
+            >
+              <div className="flex flex-row items-center justify-between w-full mb-2">
+                <span className="text-lg font-semibold">Active Petitions</span>
+                <span>
+                  <TrendingUpIcon style={{ fontSize: 32 }} />
+                </span>
+              </div>
+              <span className="text-3xl font-bold mb-1">{loading ? '...' : activePetitionsCount}</span>
+              <span className="text-sm opacity-60">collecting signatures</span>
             </div>
-            <span className="text-3xl font-bold mb-1">{successfulPetitionsCount}</span>
-            <span className="text-sm opacity-60">or under review</span>
-          </div>
-          {/* Polls Created */}
-          <div className="flex flex-col justify-center rounded-2xl shadow-lg flex-1 p-6 text-left" style={{ background: '#e3f2fd', color: '#111' }}>
-            <div className="flex flex-row items-center justify-between w-full mb-2">
-              <span className="text-lg font-semibold">Polls Created</span>
-              <span>
-                <PollIcon style={{ fontSize: 32 }} />
-              </span>
+
+            {/* Successful Petitions */}
+            <div 
+              className="flex flex-col justify-center rounded-2xl shadow-lg flex-1 p-6 text-left cursor-pointer hover:shadow-xl transition-shadow" 
+              style={{ background: '#fff3e0', color: '#111' }}
+            >
+              <div className="flex flex-row items-center justify-between w-full mb-2">
+                <span className="text-lg font-semibold">Successful</span>
+                <span>
+                  <CheckCircleIcon style={{ fontSize: 32 }} />
+                </span>
+              </div>
+              <span className="text-3xl font-bold mb-1">{loading ? '...' : successfulPetitionsCount}</span>
+              <span className="text-sm opacity-60">completed or under review</span>
             </div>
-            <span className="text-3xl font-bold mb-1">{pollsCount}</span>
-            <span className="text-sm opacity-60">polls</span>
           </div>
         </div>
-        {/* Active Petitions Near You row: full row on mobile */}
-        <div className={isMobile ? "flex flex-col items-start w-full mb-6 mt-2" : "flex flex-row items-center justify-between w-full mb-6 mt-2"}>
-          <span className="text-xl font-bold mb-2" style={{ color: '#111' }}>Active Petitions Near You</span>
-          <div className={isMobile ? "flex flex-row items-center gap-2 mb-2" : "flex flex-row items-center gap-2"}>
-            <span className="text-base font-medium" style={{ color: '#111' }}>Showing for:</span>
-            <select
-                        value={locationFilter}
-                        onChange={e => setLocationFilter(e.target.value)}
-                        className="border border-gray-300 rounded-lg px-3 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                    >
-                        <option value="Delhi">Delhi</option>
-                        <option value="Mumbai">Mumbai</option>
-                        <option value="Bangalore">Bangalore</option>
-                        <option value="Kolkata">Kolkata</option>
-                    </select>
+
+        {/* Polls Stats Cards */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-800">🗳️ Polls Overview</h3>
+            
+          </div>
+          
+          <div className={isMobile ? "flex flex-col gap-4" : "flex flex-row gap-8"}>
+            {/* My Polls */}
+            <div 
+              className="flex flex-col justify-center rounded-2xl shadow-lg flex-1 p-6 text-left cursor-pointer hover:shadow-xl transition-shadow" 
+              style={{ background: '#e8f5e8', color: '#111' }}
+              onClick={handleViewMyPolls}
+            >
+              <div className="flex flex-row items-center justify-between w-full mb-2">
+                <span className="text-lg font-semibold">My Polls</span>
+                <span>
+                  <PollIcon style={{ fontSize: 32 }} />
+                </span>
+              </div>
+              <span className="text-3xl font-bold mb-1">{myPollsCount}</span>
+              <span className="text-sm opacity-60">created by you</span>
+            </div>
+
+            {/* Active Polls */}
+            <div 
+              className="flex flex-col justify-center rounded-2xl shadow-lg flex-1 p-6 text-left cursor-pointer hover:shadow-xl transition-shadow" 
+              style={{ background: '#e0f2f1', color: '#111' }}
+              onClick={handleViewActivePolls}
+            >
+              <div className="flex flex-row items-center justify-between w-full mb-2">
+                <span className="text-lg font-semibold">Active Polls</span>
+                <span>
+                  <HowToVoteIcon style={{ fontSize: 32 }} />
+                </span>
+              </div>
+              <span className="text-3xl font-bold mb-1">{activePollsCount}</span>
+              <span className="text-sm opacity-60">currently voting</span>
+            </div>
+
+            {/* Successful Polls */}
+            <div 
+              className="flex flex-col justify-center rounded-2xl shadow-lg flex-1 p-6 text-left cursor-pointer hover:shadow-xl transition-shadow" 
+              style={{ background: '#f1f8e9', color: '#111' }}
+            >
+              <div className="flex flex-row items-center justify-between w-full mb-2">
+                <span className="text-lg font-semibold">Completed Polls</span>
+                <span>
+                  <BarChartIcon style={{ fontSize: 32 }} />
+                </span>
+              </div>
+              <span className="text-3xl font-bold mb-1">{successfulPollsCount}</span>
+              <span className="text-sm opacity-60">finished voting</span>
+            </div>
           </div>
         </div>
-        {/* Category buttons: All Categories, then list on mobile */}
-        <div className={isMobile ? "mb-8" : "flex flex-row gap-3 mb-8"}>
-          <button
-            className={`px-4 py-2 rounded-lg font-semibold shadow ${activeCategory === 'All Categories' ? 'bg-blue-600 text-white active' : 'bg-gray-200 text-gray-700'}`}
-            onClick={() => setActiveCategory('All Categories')}
-          >
-            All Categories
-          </button>
-          {isMobile ? (
-            <div className="flex flex-col gap-2 mt-3">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  className={`px-4 py-2 rounded-lg font-semibold shadow text-left ${activeCategory === cat ? 'bg-blue-600 text-white active' : 'bg-gray-200 text-gray-700'}`}
-                  onClick={() => setActiveCategory(cat)}
-                >
-                  {cat}
-                </button>
-              ))}
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* Create Petition */}
+          <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-bold text-gray-900 mb-2 text-lg">
+                  📋 Start a Petition
+                </h4>
+                <p className="text-gray-600 text-sm">
+                  Gather support from your community for important causes
+                </p>
+              </div>
               <button
-                className="px-4 py-2 rounded-lg font-semibold bg-blue-800 text-white shadow mt-2"
-                onClick={() => setActiveCategory('All Categories')}
+                onClick={handleCreatePetition}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition-all transform hover:scale-105 shadow-lg"
               >
-                Clear Filters
+                Create Petition 🚀
               </button>
             </div>
-          ) : (
-            <>
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  className={`px-4 py-2 rounded-lg font-semibold shadow ${activeCategory === cat ? 'bg-blue-600 text-white active' : 'bg-gray-200 text-gray-700'}`}
-                  onClick={() => setActiveCategory(cat)}
-                >
-                  {cat}
-                </button>
-              ))}
+          </div>
+
+          {/* Create Poll */}
+          <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-bold text-gray-900 mb-2 text-lg">
+                  🗳️ Create a Poll
+                </h4>
+                <p className="text-gray-600 text-sm">
+                  Get community opinions on important decisions
+                </p>
+              </div>
               <button
-                className="px-4 py-2 rounded-lg font-semibold bg-blue-800 text-white shadow"
-                onClick={() => setActiveCategory('All Categories')}
+                onClick={handleCreatePoll}
+                className="bg-green-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-700 transition-all transform hover:scale-105 shadow-lg"
               >
-                Clear Filters
+                Create Poll 📊
               </button>
-            </>
-          )}
-        </div>
-        {/* Petition list */}
-            <div className="bg-white rounded-lg shadow-lg w-full p-4">
-                {filteredPetitions.length > 0 ? (
-                    filteredPetitions.map(p => (
-                        <div key={p._id} className="border-b border-gray-200 p-3">
-                            <div className="flex justify-between items-center">
-                                <span className="font-semibold">{p.title}</span>
-                                <span className="text-sm text-gray-500">{p.category}</span>
-                            </div>
-                            <p className="text-gray-700 text-sm mt-1">{p.description}</p>
-                            <div className="flex justify-between mt-2 text-xs text-gray-600">
-                                <span>Signatures: {p.signaturesCount || 0}/{p.signatureGoal || 100}</span>
-                                <span>Status: {p.status}</span>
-                            </div>
-                        </div>
-                    ))
-                ) : (
-                    <p className="text-center text-lg opacity-70 py-20">No petitions found with the current filters</p>
-                )}
             </div>
+          </div>
+        </div>
+
+        {/* Community Engagement Section */}
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-200">
+          <div className="text-center">
+            <h4 className="font-bold text-gray-900 mb-3 text-xl">
+              🌟 Make Your Voice Heard
+            </h4>
+            <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+              Join thousands of citizens making a difference in their communities. Whether it's through petitions or polls, 
+              every voice matters in building a better future together.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={handleViewAllPetitions}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md"
+              >
+                Browse All Petitions
+              </button>
+              <button
+                onClick={handleViewActivePolls}
+                className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-md"
+              >
+                Participate in Polls
+              </button>
+            </div>
+          </div>
+        </div>
       </>
     );
 }
