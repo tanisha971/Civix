@@ -162,27 +162,11 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-6 hover:shadow-lg transition-shadow relative">
       
-      {/* Edit/Delete buttons for creator */}
-      {isCreator && (
-        <div className="absolute top-4 right-4 flex gap-2">
-          <button
-            onClick={() => onEdit?.(poll)}
-            className="px-3 py-1 bg-blue-500 text-white rounded-md text-xs font-medium hover:bg-blue-600 transition-colors"
-          >
-            Edit
-          </button>
-          <button
-            onClick={handleDelete} // SYNCED
-            className="px-3 py-1 bg-red-500 text-white rounded-md text-xs font-medium hover:bg-red-600 transition-colors"
-          >
-            Delete
-          </button>
-        </div>
-      )}
-
-      {/* Header */}
+      {/* Header - UPDATED: Edit/Delete buttons on the left side */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center gap-3">
+          
+          
           <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(poll.status)}`}>
             {poll.status}
           </span>
@@ -190,6 +174,23 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
             <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium">
               Your Poll
             </span>
+          )}
+          {/* Edit/Delete buttons for creator - MOVED HERE */}
+          {isCreator && (
+            <div className="flex gap-2 mr-3">
+              <button
+                onClick={() => onEdit?.(poll)}
+                className="px-3 py-1 bg-yellow-500 text-white rounded-md text-xs font-medium hover:bg-blue-600 transition-colors"
+              >
+                Edit
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-3 py-1 bg-red-500 text-white rounded-md text-xs font-medium hover:bg-red-600 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
           )}
         </div>
         <span className="text-xs text-gray-500">{poll.time}</span>
