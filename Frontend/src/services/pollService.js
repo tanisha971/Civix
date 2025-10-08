@@ -72,18 +72,7 @@ export async function editPoll(pollId, updatedData) {
   }
 }
 
-// Optional: get polls the user has voted on (backend must implement)
-export async function getVotedPolls(userId) {
-  try {
-    const res = await axios.get(`${API_URL}/polls/voted/${userId}`);
-    return res.data.polls || [];
-  } catch (err) {
-    console.error("Error fetching voted polls:", err);
-    throw err;
-  }
-}
-
-// Backwards-compatible service object
+// Add this method to your pollService object
 export const pollService = {
   getPolls,
   getPollById,
@@ -91,5 +80,73 @@ export const pollService = {
   votePoll,
   deletePoll,
   editPoll,
-  getVotedPolls,
+
+  // Get polls that user has voted on
+  getVotedPolls: async (userId) => {
+    if (USE_DUMMY_DATA) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      // Filter polls where user has voted
+      const votedPolls = dummyPolls.filter(poll => 
+        poll.votes && poll.votes.some(vote => 
+          vote.user === userId || vote.user?._id === userId
+        )
+      );
+      console.log('📊 Found voted polls for user:', userId, votedPolls.length);
+      return votedPolls;
+    }
+
+    try {
+      const response = await api.get(`/polls/user/${userId}/voted`);
+      return response.data.polls || [];
+    } catch (error) {
+      console.error('Error fetching voted polls:', error);
+      // Fallback: calculate from all polls
+      const allPolls = await this.getPolls();
+      return allPolls.filter(poll => poll.userHasVoted);
+    }
+  },
+
+  // Get comprehensive poll statistics
+  getPollStats: async (userId) => {
+    if (USE_DUMMY_DATA) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      const normalizeId = (u) => typeof u === "string" ? u : (u?._id || u?.id || "");
+      
+      const stats = {
+        totalPolls: dummyPolls.length,
+        activePolls: dummyPolls.filter(p => p.status === 'active').length,
+        closedPolls: dummyPolls.filter(p => p.status === 'closed').length,
+        draftPolls: dummyPolls.filter(p => p.status === 'draft').length,
+        myPolls: dummyPolls.filter(p => normalizeId(p.creator) === String(userId)).length,
+        votedPolls: dummyPolls.filter(p => 
+          p.votes && p.votes.some(v => normalizeId(v.user) === String(userId))
+        ).length,
+        totalVotes: dummyPolls.reduce((sum, poll) => sum + (poll.votes?.length || 0), 0)
+      };
+      
+      console.log('📊 Generated comprehensive poll stats:', stats);
+      return stats;
+    }
+
+    try {
+      const response = await api.get(`/polls/stats${userId ? `?userId=${userId}` : ''}`);
+      return response.data.stats;
+    } catch (error) {
+      console.error('Error fetching poll stats:', error);
+      // Fallback calculation
+      const allPolls = await this.getPolls();
+      const normalizeId = (u) => typeof u === "string" ? u : (u?._id || u?.id || "");
+      
+      return {
+        totalPolls: allPolls.length,
+        activePolls: allPolls.filter(p => p.status === 'active').length,
+        closedPolls: allPolls.filter(p => p.status === 'closed').length,
+        draftPolls: allPolls.filter(p => p.status === 'draft').length,
+        myPolls: allPolls.filter(p => normalizeId(p.creator) === String(userId)).length,
+        votedPolls: allPolls.filter(p => p.userHasVoted).length,
+        totalVotes: allPolls.reduce((sum, poll) => sum + (poll.totalVotes || 0), 0)
+      };
+    }
+  },
 };

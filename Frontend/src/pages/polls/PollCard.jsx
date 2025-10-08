@@ -165,8 +165,6 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
       {/* Header - UPDATED: Edit/Delete buttons on the left side */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center gap-3">
-          
-          
           <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(poll.status)}`}>
             {poll.status}
           </span>
@@ -254,8 +252,7 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
                   {/* Vote count and percentage */}
                   <div className="text-right">
                     <span className="text-sm font-semibold text-gray-700">
-                      {optionVotes} votes {/* SYNCED - use optionCounts */
-                      }
+                      {optionVotes} votes {/* SYNCED - use optionCounts */}
                     </span>
                     {totalVotes > 0 && (
                       <div className="text-xs text-gray-500">
@@ -284,8 +281,8 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
         </div>
       </div>
 
-      {/* Location and Closing Date */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+      {/* UPDATED: Location, Closing Date, and Total Votes in ONE LINE - REMOVED Goal */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
         <div className="flex items-center gap-2">
           <span className="text-lg">📍</span>
           <div>
@@ -303,17 +300,13 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Vote Summary */}
-      <div className="flex items-center justify-between mb-4 p-3 bg-blue-50 rounded-lg">
-        <div className="text-sm">
-          <span className="font-semibold text-blue-900">{totalVotes}</span> {/* SYNCED */}
-          <span className="text-blue-700"> total votes</span>
-        </div>
-        <div className="text-sm">
-          <span className="text-blue-700">Goal: </span>
-          <span className="font-semibold text-blue-900">{poll.voteGoal || 100}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🗳️</span>
+          <div>
+            <p className="text-xs text-gray-500">Total Votes</p>
+            <p className="text-sm font-medium text-blue-900">{totalVotes}</p>
+          </div>
         </div>
       </div>
 
@@ -361,16 +354,9 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
             )}
           </button>
         )}
-        
-        {/* Creator message */}
-        {isCreator && (
-          <div className="text-sm text-gray-500 italic">
-            You created this poll
-          </div>
-        )}
       </div>
 
-      {/* Voting instruction - UPDATED */}
+      {/* Voting instruction */}
       {!voted && poll.status !== "Closed" && !isCreator && (
         <div className="mt-3 p-2 bg-yellow-50 rounded text-xs text-yellow-700 text-center">
           💡 Click an option to vote directly, or select multiple and click Vote button

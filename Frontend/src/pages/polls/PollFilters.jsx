@@ -12,7 +12,7 @@ const PollFilters = ({ activeFilter, onFilterChange }) => {
   };
 
   const handleSelect = (type, value) => {
-    onFilterChange(type, value);
+    onFilterChange(type, value);keep
     setDropdowns(prev => ({ ...prev, [type]: false }));
   };
 
