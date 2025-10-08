@@ -29,48 +29,42 @@ const PollCard = ({ poll, onVoted }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-4 hover:shadow-lg transition-shadow">
-      <div className="flex justify-between items-start mb-3">
-        <span
-          className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(
-            poll.status
-          )}`}
-        >
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4 hover:shadow-lg transition-shadow">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-3">
+        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(poll.status)}`}>
           {poll.status}
         </span>
-        <span className="text-xs text-gray-600">{poll.time}</span>
+        <span className="text-xs text-gray-500">{poll.time}</span>
       </div>
 
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        {poll.question}
-      </h3>
-      <p className="text-gray-600 text-sm mb-4">{poll.description}</p>
+      {/* Body */}
+      <h3 className="text-lg font-semibold text-gray-900 mb-2 leading-tight">{poll.question}</h3>
+      <p className="text-gray-600 text-sm mb-4 leading-relaxed">{poll.description}</p>
 
+      {/* Progress */}
       <div className="mb-4">
         <div className="flex justify-between text-sm text-gray-600 mb-1">
           <span>{votes} Votes</span>
           <span>Goal: {poll.voteGoal}</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
           <div
-            className="bg-blue-600 h-2 rounded-full"
-            style={{ width: `${(votes / poll.voteGoal) * 100}%` }}
-          ></div>
+            className="bg-green-600 h-2 rounded-full"
+            style={{ width: `${Math.min((votes / poll.voteGoal) * 100, 100)}%` }}
+          />
         </div>
       </div>
 
-      <div className="flex justify-between items-center">
-        <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">
-          {poll.category}
-        </span>
+      {/* Footer */}
+      <div className="flex justify-between items-center mt-4">
+        <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">{poll.category}</span>
         <button
           onClick={handleVote}
           disabled={voted}
-          className={`px-3 py-1 rounded-md text-white ${
-            voted ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-          }`}
+          className={`px-3 py-1.5 text-sm font-medium rounded-md text-white ${voted ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
         >
-          {voted ? "Voted" : "Vote"}
+          {voted ? 'Voted' : 'Vote'}
         </button>
       </div>
     </div>
