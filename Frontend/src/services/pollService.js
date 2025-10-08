@@ -16,34 +16,34 @@ export async function getPolls(filters = {}) {
   }
 }
 
-// Get single poll by id
+// Get single poll by id (returns poll object)
 export async function getPollById(pollId) {
   try {
     const res = await axios.get(`${API_URL}/polls/${pollId}`);
-    return res.data;
+    return res.data.poll || res.data;
   } catch (err) {
     console.error("Error fetching poll by id:", err);
     throw err;
   }
 }
 
-// Create a new poll
+// Create a new poll (returns created poll)
 export async function createPoll(pollData) {
   try {
     const res = await axios.post(`${API_URL}/polls`, pollData, DEFAULT_CONFIG);
-    return res.data;
+    return res.data.poll || res.data;
   } catch (err) {
     console.error("Error creating poll:", err);
     throw err;
   }
 }
 
-// Vote on a poll (option is optional — backend may accept it)
+// Vote on a poll (returns updated poll)
 export async function votePoll(pollId, option) {
   try {
     const body = option !== undefined ? { option } : {};
     const res = await axios.post(`${API_URL}/polls/${pollId}/vote`, body, DEFAULT_CONFIG);
-    return res.data;
+    return res.data.poll || res.data;
   } catch (err) {
     console.error("Error voting on poll:", err);
     throw err;
@@ -65,7 +65,7 @@ export async function deletePoll(pollId) {
 export async function editPoll(pollId, updatedData) {
   try {
     const res = await axios.put(`${API_URL}/polls/${pollId}`, updatedData, DEFAULT_CONFIG);
-    return res.data;
+    return res.data.poll || res.data;
   } catch (err) {
     console.error("Error editing poll:", err);
     throw err;

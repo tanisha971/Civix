@@ -1,71 +1,87 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { getCurrentUserId } from "../../utils/auth";
 import { votePoll } from "../../services/pollService";
 
-const PollCard = ({ poll, onVoted }) => {
+const PollCard = ({ poll, onVoted, onDelete }) => {
   const [voted, setVoted] = useState(false);
-  const [votes, setVotes] = useState(poll.votes || 0);
+  const [votedOption, setVotedOption] = useState(null);
+  const currentUserId = getCurrentUserId();
+  const isCreator = poll.creator === currentUserId || poll.creator?._id === currentUserId;
 
-  const handleVote = async () => {
-    const confirmVote = window.confirm("Do you want to vote for this poll?");
-    if (!confirmVote) return;
+  // Count votes for each option
+  const optionCounts = (poll.options || []).map((_, idx) =>
+    (poll.votes || []).filter(v => v.option === idx).length
+  );
 
-    try {
-      await votePoll(poll._id);
+  // Check if user has already voted (persist after refresh)
+  useEffect(() => {
+    if (!poll?.votes || !currentUserId) return;
+    const normalizeId = (u) => typeof u === "string" ? u : (u?._id || u?.id || "");
+    const hasVoted = poll.votes.some(v => normalizeId(v.user) === String(currentUserId));
+    if (hasVoted) {
       setVoted(true);
-      setVotes(prev => prev + 1); // increment vote count locally
-      onVoted?.(); // callback to parent if needed
+      const userVote = poll.votes.find(v => normalizeId(v.user) === String(currentUserId));
+      setVotedOption(userVote?.option);
+    }
+  }, [poll, currentUserId]);
+
+  const handleVote = async (optionIdx) => {
+    if (voted) return;
+    try {
+      const updatedPoll = await votePoll(poll._id, optionIdx);
+      // updatedPoll may be either the poll or wrapped response; service normalizes to poll
+      setVoted(true);
+      setVotedOption(optionIdx);
+      onVoted?.(poll._id, updatedPoll);
       alert("You have successfully voted in this poll!");
     } catch (err) {
       alert(err.response?.data?.message || "Error voting in poll");
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Active": return "bg-green-100 text-green-800";
-      case "Closed": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+  const handleDelete = async () => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this poll?");
+    if (!confirmDelete) return;
+    try {
+      await onDelete?.(poll._id); // Call parent handler
+    } catch (err) {
+      alert("Error deleting poll");
     }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4 hover:shadow-lg transition-shadow">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-3">
-        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(poll.status)}`}>
-          {poll.status}
-        </span>
-        <span className="text-xs text-gray-500">{poll.time}</span>
-      </div>
-
-      {/* Body */}
-      <h3 className="text-lg font-semibold text-gray-900 mb-2 leading-tight">{poll.question}</h3>
-      <p className="text-gray-600 text-sm mb-4 leading-relaxed">{poll.description}</p>
-
-      {/* Progress */}
-      <div className="mb-4">
-        <div className="flex justify-between text-sm text-gray-600 mb-1">
-          <span>{votes} Votes</span>
-          <span>Goal: {poll.voteGoal}</span>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
-          <div
-            className="bg-green-600 h-2 rounded-full"
-            style={{ width: `${Math.min((votes / poll.voteGoal) * 100, 100)}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Footer */}
+    <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-4 hover:shadow-lg transition-shadow">
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">{poll.question}</h3>
+      <p className="text-gray-600 text-sm mb-4">{poll.description}</p>
+      <ul>
+        {(poll.options || []).map((option, idx) => (
+          <li key={idx} className="mb-2">
+            <button
+              onClick={() => handleVote(idx)}
+              disabled={voted}
+              className={`px-3 py-1 rounded-md text-white w-full ${
+                voted
+                  ? (votedOption === idx ? "bg-green-500" : "bg-gray-400")
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
+            >
+              {option} ({optionCounts[idx]} votes) {voted && votedOption === idx ? "✓" : ""}
+            </button>
+          </li>
+        ))}
+      </ul>
       <div className="flex justify-between items-center mt-4">
-        <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">{poll.category}</span>
-        <button
-          onClick={handleVote}
-          disabled={voted}
-          className={`px-3 py-1.5 text-sm font-medium rounded-md text-white ${voted ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
-        >
-          {voted ? 'Voted' : 'Vote'}
-        </button>
+        <span className="text-sm text-gray-600">
+          {poll.votes ? poll.votes.length : 0} Total Votes
+        </span>
+        {isCreator && (
+          <button
+            onClick={handleDelete}
+            className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs ml-2"
+          >
+            Delete
+          </button>
+        )}
       </div>
     </div>
   );
