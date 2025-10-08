@@ -36,6 +36,7 @@ export default function AppRouter() {
           {/* Polls routes */}
           <Route path="polls" element={<PollList />} />
           <Route path="polls/create" element={<CreatePoll />} />
+          <Route path="polls/edit/:id" element={<CreatePoll />} />
 
           {/* Official routes - only accessible to public officials */}
           <Route path="official" element={<OfficialDashboard />} />

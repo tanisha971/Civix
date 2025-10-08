@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { createPoll } from "../../services/pollService";
+import { useNavigate, useParams } from 'react-router-dom';
+import { createPoll, getPollById, editPoll } from "../../services/pollService";
 
 const CreatePoll = () => {
   const navigate = useNavigate();
+  const { id: editId } = useParams();
+  const isEditMode = Boolean(editId);
   const [formData, setFormData] = useState({
     question: "",
     description: "",
@@ -50,15 +52,37 @@ const CreatePoll = () => {
     detectLocation();
   }, []);
 
-  // Set default expiry date (30 days from now)
+  // Initialize form: if editing, load poll; otherwise set default expiry
   useEffect(() => {
-    const defaultExpiry = new Date();
-    defaultExpiry.setDate(defaultExpiry.getDate() + 30);
-    setFormData(prev => ({
-      ...prev,
-      expiresAt: defaultExpiry.toISOString().split('T')[0]
-    }));
-  }, []);
+    const init = async () => {
+      if (isEditMode) {
+        try {
+          const poll = await getPollById(editId);
+          setFormData({
+            question: poll.question || "",
+            description: poll.description || "",
+            options: Array.isArray(poll.options) && poll.options.length >= 2 ? poll.options : ["", ""],
+            location: poll.location || "",
+            expiresAt: poll.expiresAt ? new Date(poll.expiresAt).toISOString().split('T')[0] : "",
+            lat: poll.lat ?? null,
+            lng: poll.lng ?? null
+          });
+        } catch (e) {
+          console.error("Failed to load poll for edit:", e);
+          alert("Failed to load poll for editing");
+          navigate('/dashboard/polls');
+        }
+      } else {
+        const defaultExpiry = new Date();
+        defaultExpiry.setDate(defaultExpiry.getDate() + 30);
+        setFormData(prev => ({
+          ...prev,
+          expiresAt: defaultExpiry.toISOString().split('T')[0]
+        }));
+      }
+    };
+    init();
+  }, [isEditMode, editId, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -83,10 +107,16 @@ const CreatePoll = () => {
 
       const pollData = {
         ...formData,
-        options: validOptions
+        options: validOptions,
+        // Ensure backend gets a valid ISO date string
+        expiresAt: new Date(formData.expiresAt).toISOString()
       };
 
-      await createPoll(pollData);
+      if (isEditMode) {
+        await editPoll(editId, pollData);
+      } else {
+        await createPoll(pollData);
+      }
       navigate("/dashboard/polls");
     } catch (error) {
       console.error("Failed to create poll:", error);
@@ -142,8 +172,8 @@ const CreatePoll = () => {
         
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Create a New Poll</h1>
-          <p className="text-gray-600 mt-1">Create a poll to gather community feedback on local issues.</p>
+          <h1 className="text-2xl font-bold text-gray-900">{isEditMode ? 'Edit Poll' : 'Create a New Poll'}</h1>
+          <p className="text-gray-600 mt-1">{isEditMode ? 'Update your poll details.' : 'Create a poll to gather community feedback on local issues.'}</p>
         </div>
 
         {/* Form */}
@@ -285,7 +315,7 @@ const CreatePoll = () => {
                 type="submit"
                 className="px-6 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
               >
-                Create Poll
+                {isEditMode ? 'Save Changes' : 'Create Poll'}
               </button>
             </div>
           </form>
