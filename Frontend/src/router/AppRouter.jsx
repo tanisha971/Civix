@@ -15,6 +15,7 @@ import CreatePetition from '../pages/petitions/CreatePetition';
 import PollList from '../pages/polls/PollList';
 import CreatePoll from '../pages/polls/CreatePoll';
 import OfficialDashboard from '../components/official/OfficialDashboard';
+import Reports from '../pages/reports/Reports';
 
 export default function AppRouter() {
   return (
@@ -43,7 +44,7 @@ export default function AppRouter() {
           <Route path="official/review" element={<PetitionList />} />
 
           {/* Other routes */}          
-          <Route path="reports" element={<div>Reports Page - Coming Soon</div>} />
+          <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<div>Settings Page - Coming Soon</div>} />
           <Route path="help" element={<div>Help & Support Page - Coming Soon</div>} />
         </Route>
