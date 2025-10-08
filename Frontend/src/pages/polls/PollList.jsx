@@ -8,6 +8,7 @@ import { getCurrentUserId } from "../../utils/auth";
 
 const PollList = () => {
   const currentUserId = getCurrentUserId();
+  const navigate = useNavigate();
 
   const [filters, setFilters] = useState({
     type: "Active Polls",
@@ -16,7 +17,6 @@ const PollList = () => {
   });
   const [polls, setPolls] = useState([]);
   const [filteredPolls, setFilteredPolls] = useState([]);
-  const navigate = useNavigate();
 
   const mapStatusToUI = (status) => {
     switch (status) {
@@ -95,9 +95,15 @@ const PollList = () => {
 
   const handleCreatePoll = () => navigate("/dashboard/polls/create");
 
-  const handleDelete = async (pollId) => {
+  const handleEditPoll = (poll) => {
+    navigate(`/dashboard/polls/edit/${poll._id}`, {
+      state: { poll }
+    });
+  };
+
+  const handleDeletePoll = async (pollId) => {
     const confirmDelete = window.confirm(
-      "Are you sure you want to delete this poll?"
+      "Are you sure you want to delete this poll? This action cannot be undone."
     );
     if (!confirmDelete) return;
 
@@ -106,12 +112,15 @@ const PollList = () => {
       setPolls((prev) => prev.filter((p) => p._id !== pollId));
       alert("Poll deleted successfully!");
     } catch (err) {
-      alert(err.response?.data?.message || "Error deleting poll");
+      console.error("Error deleting poll:", err);
+      alert(err.message || "Error deleting poll");
     }
   };
 
   const handleVoted = (pollId) => {
     console.log("Voted on poll with ID:", pollId);
+    // Optionally refetch polls to get updated vote counts
+    // fetchPolls();
   };
 
   return (
@@ -119,9 +128,9 @@ const PollList = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         {/* Header */}
         <div className="mb-8 text-center sm:text-left">
-          <h1 className="text-3xl font-bold text-gray-900">Polls</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Community Polls</h1>
           <p className="text-gray-600 mt-2">
-            Participate in community polls and make your voice heard.
+            Participate in community polls and make your voice heard on local issues.
           </p>
         </div>
 
@@ -135,35 +144,16 @@ const PollList = () => {
         </div>
 
         {/* Polls List */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           {filteredPolls.length > 0 ? (
             filteredPolls.map((poll) => (
-              <div
+              <PollCard
                 key={poll._id}
-                className="relative group transition-all duration-200"
-              >
-                <PollCard poll={poll} onVoted={handleVoted} />
-
-                {/* Edit/Delete buttons only for creator */}
-                {poll.creator?._id === currentUserId && (
-                  <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() =>
-                        navigate(`/dashboard/polls/edit/${poll._id}`)
-                      }
-                      className="px-3 py-1 bg-yellow-500 text-white rounded-md text-xs font-medium hover:bg-yellow-600"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(poll._id)}
-                      className="px-3 py-1 bg-red-500 text-white rounded-md text-xs font-medium hover:bg-red-600"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
+                poll={poll}
+                onVoted={handleVoted}
+                onEdit={handleEditPoll}
+                onDelete={handleDeletePoll}
+              />
             ))
           ) : (
             <div className="text-center py-20">
@@ -180,13 +170,13 @@ const PollList = () => {
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <button
                   onClick={() => handleFilterChange("type", "Active Polls")}
-                  className="px-5 py-2 text-sm font-medium text-green-600 border border-green-400 rounded-lg hover:bg-green-50 transition"
+                  className="px-5 py-2 text-sm font-medium text-blue-600 border border-blue-400 rounded-lg hover:bg-blue-50 transition"
                 >
                   Clear Filters
                 </button>
                 <button
                   onClick={handleCreatePoll}
-                  className="px-5 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                  className="px-5 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                 >
                   Create New Poll
                 </button>
