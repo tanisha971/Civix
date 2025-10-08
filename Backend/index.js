@@ -2,31 +2,42 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
-import cookieParser from "cookie-parser"; // Make sure this is installed
+import cookieParser from "cookie-parser";
 
 // Import routes
 import authRoutes from "./routes/auth-route.js";
 import userRoutes from "./routes/user-route.js";
 import petitionRoutes from "./routes/petition-route.js";
 import signatureRoutes from "./routes/signature-route.js";
+import pollRoutes from "./routes/poll-route.js"; // <-- Add this line
 
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// IMPORTANT: Cookie parser must come before routes
+// Cookie parser before routes
 app.use(cookieParser());
 app.use(express.json());
 
-// CORS setup is crucial for cookies - origin must match frontend exactly
+// CORS setup with whitelist (supports comma-separated origins)
+const allowedOrigins = (process.env.CLIENT_URLS || process.env.CLIENT_URL || "http://localhost:5173,http://localhost:5174")
+  .split(",")
+  .map(o => o.trim());
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173", // Must match frontend URL exactly
-    credentials: true, // This is essential for cookies
+    origin: function (origin, callback) {
+      // Allow non-browser requests (no origin) and whitelisted origins
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
   })
 );
 
-// Debug middleware to see incoming requests
+// Debug middleware
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`);
   console.log("Cookies:", req.cookies);
@@ -42,6 +53,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/petitions", petitionRoutes);
 app.use("/api/signatures", signatureRoutes);
+app.use("/api/polls", pollRoutes); // <-- Add this line
 
 // Test route
 app.get("/", (req, res) => {

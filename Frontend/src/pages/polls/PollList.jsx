@@ -31,6 +31,14 @@ const PollList = () => {
     }
   };
 
+  // SYNCED: Normalize poll function from backend logic
+  const normalizePoll = (p) => ({
+    ...p,
+    status: mapStatusToUI(p.status),
+    totalVotes: (p.votes?.length) || p.totalVotes || 0, // SYNCED - use votes array length
+    time: getRelativeTime(p.createdAt)
+  });
+
   const getRelativeTime = (date) => {
     const diff = Math.floor((Date.now() - new Date(date)) / 1000);
     if (diff < 60) return `${diff} seconds ago`;
@@ -45,12 +53,7 @@ const PollList = () => {
       try {
         const data = await pollService.getPolls();
 
-        const normalized = data.map((p) => ({
-          ...p,
-          status: mapStatusToUI(p.status),
-          totalVotes: p.totalVotes || 0,
-          time: getRelativeTime(p.createdAt),
-        }));
+        const normalized = data.map((p) => normalizePoll(p)); // SYNCED - use normalizePoll function
 
         // Sort newest → oldest
         normalized.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -101,6 +104,7 @@ const PollList = () => {
     });
   };
 
+  // SYNCED: Delete function from backend logic with UI enhancements
   const handleDeletePoll = async (pollId) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this poll? This action cannot be undone."
@@ -109,24 +113,32 @@ const PollList = () => {
 
     try {
       await pollService.deletePoll(pollId);
-      setPolls((prev) => prev.filter((p) => p._id !== pollId));
+      // SYNCED - handle both _id and id for compatibility
+      setPolls(prev => prev.filter(p => p._id !== pollId && p.id !== pollId));
+      setFilteredPolls(prev => prev.filter(p => p._id !== pollId && p.id !== pollId));
       alert("Poll deleted successfully!");
     } catch (err) {
       console.error("Error deleting poll:", err);
-      alert(err.message || "Error deleting poll");
+      alert(err.response?.data?.message || "Error deleting poll"); // SYNCED - improved error handling
     }
   };
 
-  const handleVoted = (pollId) => {
-    console.log("Voted on poll with ID:", pollId);
-    // Optionally refetch polls to get updated vote counts
-    // fetchPolls();
+  // SYNCED: Vote handler with normalization and instant UI update
+  const handleVoted = (pollId, updatedPoll) => {
+    if (updatedPoll) {
+      const normalized = normalizePoll(updatedPoll); // SYNCED - normalize updated poll
+      setPolls(prev => prev.map(p => (p._id === pollId ? normalized : p)));
+      setFilteredPolls(prev => prev.map(p => (p._id === pollId ? normalized : p)));
+    } else {
+      // Fallback: just log for debugging (keeping current behavior)
+      console.log("Voted on poll with ID:", pollId);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        {/* Header */}
+        {/* Header - KEEPING YOUR BEAUTIFUL UI */}
         <div className="mb-8 text-center sm:text-left">
           <h1 className="text-3xl font-bold text-gray-900">Community Polls</h1>
           <p className="text-gray-600 mt-2">
@@ -134,7 +146,7 @@ const PollList = () => {
           </p>
         </div>
 
-        {/* Stats & Filters */}
+        {/* Stats & Filters - KEEPING YOUR UI */}
         <div className="mb-6">
           <PollStats onCreatePoll={handleCreatePoll} />
           <PollFilters
@@ -143,16 +155,16 @@ const PollList = () => {
           />
         </div>
 
-        {/* Polls List */}
+        {/* Polls List - KEEPING YOUR BEAUTIFUL UI LAYOUT */}
         <div className="space-y-6">
           {filteredPolls.length > 0 ? (
             filteredPolls.map((poll) => (
               <PollCard
                 key={poll._id}
                 poll={poll}
-                onVoted={handleVoted}
+                onVoted={handleVoted} // SYNCED - passes updated poll data
                 onEdit={handleEditPoll}
-                onDelete={handleDeletePoll}
+                onDelete={handleDeletePoll} // SYNCED - uses backend-compatible delete
               />
             ))
           ) : (
