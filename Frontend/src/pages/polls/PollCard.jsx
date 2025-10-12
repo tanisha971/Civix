@@ -178,7 +178,7 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
             <div className="flex gap-2 mr-3">
               <button
                 onClick={() => onEdit?.(poll)}
-                className="px-3 py-1 bg-yellow-500 text-white rounded-md text-xs font-medium hover:bg-blue-600 transition-colors"
+                className="px-3 py-1 bg-yellow-500 text-white rounded-md text-xs font-medium hover:bg-yellow-600 transition-colors"
               >
                 Edit
               </button>
