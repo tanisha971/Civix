@@ -12,7 +12,7 @@ const PollFilters = ({ activeFilter, onFilterChange }) => {
   };
 
   const handleSelect = (type, value) => {
-    onFilterChange(type, value);
+    onFilterChange(type, value);keep
     setDropdowns(prev => ({ ...prev, [type]: false }));
   };
 
@@ -97,7 +97,7 @@ const PollFilters = ({ activeFilter, onFilterChange }) => {
           {/* Clear Filters */}
           <button
             onClick={clearFilters}
-            className="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 underline"
+            className="px-3 py-2 bg-gray-200 rounded-md text-sm font-medium text-gray-500 hover:text-gray-700"
           >
             Clear Filters
           </button>
