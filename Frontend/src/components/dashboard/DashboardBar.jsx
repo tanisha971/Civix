@@ -10,6 +10,7 @@ import AnalyticsIcon from "@mui/icons-material/Analytics";
 import ReportIcon from "@mui/icons-material/Report";
 import SettingsIcon from "@mui/icons-material/Settings";
 import HelpIcon from "@mui/icons-material/Help";
+import AssessmentIcon from "@mui/icons-material/Assessment"; // Add this import
 
 export default function DashboardBar() {
   const location = useLocation();
@@ -20,13 +21,13 @@ export default function DashboardBar() {
     { to: "/dashboard", label: "Dashboard", icon: <DashboardIcon /> },
     { to: "/dashboard/petitions", label: "Petitions", icon: <EditIcon /> },
     { to: "/dashboard/polls", label: "Polls", icon: <HowToVoteIcon /> },
+    { to: "/dashboard/results", label: "Results", icon: <AssessmentIcon /> }, // Add this line
   ];
 
   // Official-only links
   const officialLinks = [
     { to: "/dashboard/official", label: "Official Panel", icon: <BusinessIcon /> },
     { to: "/dashboard/official/analytics", label: "Analytics", icon: <AnalyticsIcon /> },
-    { to: "/dashboard/official/review", label: "Review Queue", icon: <PeopleIcon /> },
   ];
 
   // Common links for all users

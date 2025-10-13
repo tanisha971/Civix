@@ -16,6 +16,7 @@ import PollList from '../pages/polls/PollList';
 import CreatePoll from '../pages/polls/CreatePoll';
 import OfficialDashboard from '../components/official/OfficialDashboard';
 import Reports from '../pages/reports/Reports';
+import ResultsDashboard from '../pages/results/ResultsDashboard';
 
 export default function AppRouter() {
   return (
@@ -43,6 +44,9 @@ export default function AppRouter() {
           <Route path="official" element={<OfficialDashboard />} />
           <Route path="official/analytics" element={<OfficialDashboard />} />
           <Route path="official/review" element={<PetitionList />} />
+
+          {/* Results route */}
+          <Route path="results" element={<ResultsDashboard />} />
 
           {/* Other routes */}          
           <Route path="reports" element={<Reports />} />

@@ -278,11 +278,11 @@ export default function Navbar() {
                     bgcolor: 'white',
                     borderRadius: 2,
                     px: 1,
-                    minWidth: 300
+                    minWidth: 200
                   }}
                 >
                   <InputBase
-                    placeholder="Search polls, petitions, reports..."
+                    placeholder="Search"
                     value={searchQuery}
                     onChange={handleSearchInputChange}
                     onFocus={handleSearchFocus}

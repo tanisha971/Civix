@@ -4,7 +4,7 @@ import { getSignedPetitions } from "../../services/signatureService";
 import { getCurrentUserId } from "../../utils/auth";
 
 const PetitionStats = ({ onCreatePetition }) => {
-  // ✅ Get userId from localStorage
+  // Get userId from localStorage
   const userId = getCurrentUserId();
 
   // Dynamic count states
@@ -36,17 +36,17 @@ const PetitionStats = ({ onCreatePetition }) => {
 
       console.log('All petitions fetched:', petitions.length);
 
-      // ✅ My Petitions - Dynamic count
+      // My Petitions - Dynamic count
       const myPetitions = petitions.filter(p => p.creator?._id === userId);
       setMyPetitionsCount(myPetitions.length);
       console.log('My petitions:', myPetitions.length);
 
-      // ✅ Active Petitions - Dynamic count 
+      // Active Petitions - Dynamic count 
       const activePetitions = petitions.filter(p => p.status === "active");
       setActivePetitionsCount(activePetitions.length);
       console.log('Active petitions:', activePetitions.length);
 
-      // ✅ Successful Petitions - Dynamic count (multiple success states)
+      // Successful Petitions - Dynamic count (multiple success states)
       const successful = petitions.filter(p => 
         p.status === "closed" || 
         p.status === "successful" || 
@@ -55,7 +55,7 @@ const PetitionStats = ({ onCreatePetition }) => {
       setSuccessfulPetitionsCount(successful.length);
       console.log('Successful petitions:', successful.length);
 
-      // ✅ Signed Petitions - Dynamic count
+      // Signed Petitions - Dynamic count
       try {
         const signed = await getSignedPetitions(userId);
         setSignedPetitionsCount(signed.length);

@@ -117,23 +117,52 @@ const PollList = () => {
   useEffect(() => {
     let result = [...polls];
 
+    // Location filter
     if (filters.location !== "All Locations") {
       result = result.filter((p) => p.location === filters.location);
     }
 
+    // Status filter  
     if (filters.status !== "All Status") {
       result = result.filter((p) => p.status === filters.status);
     }
 
+    // Type filters - FIXED
     if (filters.type === "My Polls") {
-      result = result.filter((p) => p.creator?._id === currentUserId);
+      // Handle multiple possible creator field structures
+      result = result.filter((p) => {
+        const creatorId = p.creator?._id || p.creator?.id || p.creator || p.createdBy?._id || p.createdBy?.id || p.createdBy;
+        return String(creatorId) === String(currentUserId);
+      });
     } else if (filters.type === "Active Polls") {
-      result = result.filter((p) => p.status === "Active");
+      result = result.filter((p) => 
+        p.status === "Active" || p.status === "active"
+      );
     } else if (filters.type === "Closed Polls") {
-      result = result.filter((p) => p.status === "Closed");
+      result = result.filter((p) => 
+        p.status === "Closed" || p.status === "closed"
+      );
     } else if (filters.type === "Polls I Voted On") {
-      result = result.filter((p) => p.userHasVoted === true);
+      result = result.filter((p) => {
+        // Check multiple possible ways to determine if user has voted
+        if (p.userHasVoted === true) return true;
+        if (p.hasVoted === true) return true;
+        if (p.votes && Array.isArray(p.votes)) {
+          return p.votes.some(vote => {
+            const voterId = vote.user?._id || vote.user?.id || vote.user || vote.userId;
+            return String(voterId) === String(currentUserId);
+          });
+        }
+        if (p.voters && Array.isArray(p.voters)) {
+          return p.voters.some(voter => {
+            const voterId = voter._id || voter.id || voter;
+            return String(voterId) === String(currentUserId);
+          });
+        }
+        return false;
+      });
     }
+    // "All Polls" doesn't need additional filtering
 
     // Maintain highlight order even after filtering
     const sortedResult = sortPollsWithHighlight(result);
