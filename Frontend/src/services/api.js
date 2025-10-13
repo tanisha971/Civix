@@ -89,5 +89,15 @@ export const getProfile = async () => {
     throw err;
   }
 };
+export const getPetitions = async () => {
+  try {
+    const res = await api.get("/petitions"); // Adjust path if your backend route differs
+    return res.data; // e.g., [{ id, title, status, ... }]
+  } catch (err) {
+    console.error("Error fetching petitions:", err.response?.data || err);
+    throw err;
+  }
+};
+
 
 export default api;
