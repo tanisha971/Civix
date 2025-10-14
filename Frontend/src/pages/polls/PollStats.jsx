@@ -24,6 +24,7 @@ const PollStats = ({ onCreatePoll, refreshTrigger }) => {
 
       if (!userId) {
         console.warn("User ID not found. Make sure the user is logged in.");
+        setError("Please log in to view your statistics");
         return;
       }
 
@@ -111,114 +112,110 @@ const PollStats = ({ onCreatePoll, refreshTrigger }) => {
 
   const statsData = [
     { 
-      title: "Active Polls", 
-      count: stats.activePolls, 
-      link: "View All",
-      
-      color: "text-green-600"
-    },
+      title: "My Polls", 
+      count: stats.myPolls, 
+      link: "View My Polls",
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200",
+      description: "Polls you created"
+    },    
     { 
       title: "Polls I Voted On", 
       count: stats.votedPolls, 
-      link: "View Report",
-      
-      color: "text-green-600"
+      link: "View Voted Polls",
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200",
+      description: "Polls you participated in"
     },
     { 
-      title: "My Polls", 
-      count: stats.myPolls, 
-      link: "View Report",
-      
-      color: "text-green-600"
+      title: "Active Polls", 
+      count: stats.activePolls, 
+      link: "Browse Active",
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200",
+      description: "Currently accepting votes"
     },
     { 
       title: "Closed Polls", 
       count: stats.closedPolls, 
       link: "View All",
-      
-      color: "text-green-600"
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200",
+      description: "Completed polls"
     },
   ];
 
-  if (error) {
+  if (loading && stats.totalPolls === 0) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-        <div className="md:col-span-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-          <div className="flex items-center gap-2">
-            <span>⚠️</span>
-            <span>Error loading poll statistics: {error}</span>
-            <button 
-              onClick={fetchStats}
-              className="ml-auto text-red-800 hover:text-red-900 font-medium"
-            >
-              Retry
-            </button>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
+            <div className="h-4 bg-gray-200 rounded mb-4"></div>
+            <div className="h-8 bg-gray-200 rounded mb-2"></div>
+            <div className="h-3 bg-gray-200 rounded w-20"></div>
           </div>
-        </div>
-        {/* Keep create poll card even on error */}
-        <div
-          className="bg-green-600 rounded-lg shadow-lg p-6 hover:bg-green-700 transition-colors duration-200 cursor-pointer"
-          onClick={onCreatePoll}
-        >
-          <div className="w-full h-full flex flex-col items-center justify-center text-center text-white">
-            <div className="text-4xl mb-3 font-light">+</div>
-            <h3 className="text-xl font-bold mb-2">Create Poll</h3>
-            <p className="text-green-100 text-sm">
-              Ask your community a question
-            </p>
-          </div>
-        </div>
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-      {statsData.map((stat, index) => (
-        <div
-          key={index}
-          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative"
-        >
-          {/* Loading overlay */}
-          {loading && (
-            <div className="absolute inset-0 bg-white bg-opacity-75 rounded-lg flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-gray-300 border-t-green-600 rounded-full animate-spin"></div>
+    <div>
+      {/* Error message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6">
+          <p className="font-medium">Error loading statistics</p>
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
+
+      {/* Stats Grid - ALL 5 CONTAINERS IN ONE LINE */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+        {/* First 4 stat cards */}
+        {statsData.map((stat, index) => (
+          <div
+            key={index}
+            className={`${stat.bgColor} rounded-lg shadow-sm border ${stat.borderColor} p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-md`}
+          >
+            <div className="flex justify-between items-start mb-3">
+              <h3 className="text-base font-semibold text-gray-900 leading-tight">{stat.title}</h3>
+              {loading && (
+                <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-300 border-t-green-600"></div>
+              )}
             </div>
-          )}
-          
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">{stat.title}</h3>
-            <span className="text-2xl">{stat.icon}</span>
-          </div>
-          
-          <div className="flex justify-between items-end">
-            <span className={`text-3xl font-bold ${stat.color}`}>
-              {stat.count}
-            </span>
-            <button className="text-green-600 hover:text-green-800 text-sm font-medium transition-colors">
-              {stat.link}
+            
+            <div className="mb-3">
+              <span className={`text-3xl font-bold ${stat.color} transition-all duration-500`}>
+                {stat.count}
+              </span>
+            </div>
+            
+            <p className="text-xs text-gray-600 mb-3 leading-tight">
+              {stat.description}
+            </p>
+            
+            <button className={`${stat.color} hover:opacity-80 text-xs font-medium transition-colors`}>
+              {stat.link} →
             </button>
           </div>
-          
-          {/* Real-time indicator */}
-          <div className="mt-2 flex items-center justify-between">
-            
-            
-          </div>
-        </div>
-      ))}
+        ))}
 
-      {/* Create New Poll Card */}
-      <div
-        className="bg-green-600 rounded-lg shadow-lg p-6 hover:bg-green-700 transition-colors duration-200 cursor-pointer"
-        onClick={onCreatePoll}
-      >
-        <div className="w-full h-full flex flex-col items-center justify-center text-center text-white">
-          <div className="text-4xl mb-3 font-light">+</div>
-          <h3 className="text-xl font-bold mb-2">Create Poll</h3>
-          <p className="text-green-100 text-sm">
-            Ask your community a question
-          </p>
+        {/* 5th container - Enhanced Create New Poll Card */}
+        <div
+          className="bg-gradient-to-br from-green-600 to-green-700 rounded-lg shadow-lg p-6 hover:from-green-700 hover:to-green-800 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:shadow-xl"
+          onClick={onCreatePoll}
+        >
+          <div className="w-full h-full flex flex-col items-center justify-center text-center text-white">
+            <div className="text-4xl mb-3 font-light opacity-90">+</div>
+            <h3 className="text-base font-bold mb-2 leading-tight">Create New Poll</h3>
+            <p className="text-green-100 text-xs leading-tight">
+              Ask your community a question
+            </p>
+          </div>
         </div>
       </div>
     </div>

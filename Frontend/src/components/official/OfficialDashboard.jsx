@@ -119,42 +119,42 @@ const OfficialDashboard = () => {
 
         {/* UPDATED Overview Cards - Using Dynamic Counts */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-blue-500 text-white p-6 rounded-lg shadow transform transition-transform hover:scale-105">
+          <div className="bg-blue-50 text-blue-600 border border-blue-200 p-6 rounded-lg shadow transform transition-transform hover:scale-105">
             <h3 className="text-lg font-semibold">Total Petitions</h3>
             <p className="text-3xl font-bold mt-2 transition-all duration-500">
               {totalPetitionsCount}
             </p>
-            <div className="text-blue-100 text-sm mt-1">
+            <div className="text-blue-600 text-sm mt-1">
               System-wide petitions
             </div>
           </div>
-          
-          <div className="bg-yellow-500 text-white p-6 rounded-lg shadow transform transition-transform hover:scale-105">
+
+          <div className="bg-yellow-50 text-yellow-600 border border-yellow-200 p-6 rounded-lg shadow transform transition-transform hover:scale-105">
             <h3 className="text-lg font-semibold">Under Review</h3>
             <p className="text-3xl font-bold mt-2 transition-all duration-500">
               {reviewedPetitionsCount}
             </p>
-            <div className="text-yellow-100 text-sm mt-1">
+            <div className="text-yellow-600 text-sm mt-1">
               Awaiting official response
             </div>
           </div>
-          
-          <div className="bg-green-500 text-white p-6 rounded-lg shadow transform transition-transform hover:scale-105">
+
+          <div className="bg-green-50 text-green-600 border border-green-200 p-6 rounded-lg shadow transform transition-transform hover:scale-105">
             <h3 className="text-lg font-semibold">Active</h3>
             <p className="text-3xl font-bold mt-2 transition-all duration-500">
               {activePetitionsCount}
             </p>
-            <div className="text-green-100 text-sm mt-1">
+            <div className="text-green-600 text-sm mt-1">
               Currently collecting signatures
             </div>
           </div>
-          
-          <div className="bg-red-500 text-white p-6 rounded-lg shadow transform transition-transform hover:scale-105">
+
+          <div className="bg-red-50 text-red-600 border border-red-200 p-6 rounded-lg shadow transform transition-transform hover:scale-105">
             <h3 className="text-lg font-semibold">Closed</h3>
             <p className="text-3xl font-bold mt-2 transition-all duration-500">
               {closedPetitionsCount}
             </p>
-            <div className="text-red-100 text-sm mt-1">
+            <div className="text-red-600 text-sm mt-1">
               Completed or rejected
             </div>
           </div>
