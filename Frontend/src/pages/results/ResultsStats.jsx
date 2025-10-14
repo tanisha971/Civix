@@ -7,7 +7,6 @@ const ResultsStats = ({ polls, loading }) => {
         totalPolls: 0,
         totalVotes: 0,
         avgEngagement: 0,
-        activePolls: 0
       };
     }
 
@@ -48,18 +47,11 @@ const ResultsStats = ({ polls, loading }) => {
       borderColor: "border-purple-200",
       description: "Votes per hour"
     },
-    {
-      title: "Active Polls",
-      value: stats.activePolls,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
-      borderColor: "border-orange-200",
-      description: "Currently running"
-    }
+    
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
       {statsData.map((stat, index) => (
         <div
           key={index}
