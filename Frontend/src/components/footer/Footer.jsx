@@ -101,7 +101,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link 
-                  to="/petitions" 
+                  to="/dashboard/petitions" 
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
                   Browse Petitions
@@ -109,7 +109,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link 
-                  to="/polls" 
+                  to="/dashboard/polls" 
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
                   Active Polls
@@ -117,7 +117,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link 
-                  to="/reports" 
+                  to="/dashboard/reports" 
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
                   Issue Reports
@@ -140,7 +140,7 @@ const Footer = () => {
             <ul className="space-y-3">
               <li>
                 <Link 
-                  to="/help" 
+                  to="/dashboard/help" 
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
                   Help & Support

@@ -23,6 +23,9 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import DashboardBar from '../dashboard/DashboardBar';
 import CloseIcon from '@mui/icons-material/Close';
 import { getProfile } from "../../services/api";
+import { searchService } from "../../services/searchService";
+import SearchResults from "../search/SearchResults";
+import { CircularProgress } from "@mui/material";
 
 import Logo from "../../assets/images/Civix logo.jpg";
 
@@ -31,8 +34,12 @@ export default function Navbar() {
   const [user, setUser] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showResults, setShowResults] = useState(false);
   const isMobile = useMediaQuery('(max-width:600px)');
-  const navigate = useNavigate(); // SINGLE DECLARATION HERE
+  const navigate = useNavigate();
 
   // Fetch logged-in user profile using the correct API
   useEffect(() => {
@@ -48,6 +55,56 @@ export default function Navbar() {
     
     fetchUser();
   }, []);
+
+  // Search functionality
+  const handleSearch = async (query) => {
+    if (!query || query.trim().length < 2) {
+      setSearchResults(null);
+      setShowResults(false);
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      const results = await searchService.searchAll(query.trim());
+      setSearchResults(results);
+      setShowResults(true);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults({ polls: [], petitions: [], reports: [], total: 0, error: error.message });
+      setShowResults(true);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // Debounced search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      handleSearch(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const handleSearchInputChange = (event) => {
+    setSearchQuery(event.target.value);
+  };
+
+  const handleSearchFocus = () => {
+    setShowResults(true);
+  };
+
+  const handleSearchBlur = () => {
+    // Delay hiding results to allow for clicks
+    setTimeout(() => setShowResults(false), 200);
+  };
+
+  const handleCloseSearchResults = () => {
+    setShowResults(false);
+    setSearchQuery('');
+    setSearchResults(null);
+  };
 
   const handleAvatarClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -147,15 +204,51 @@ export default function Navbar() {
               <IconButton color="inherit" onClick={handleLogout}>
                 <LogoutIcon />
               </IconButton>
-              {/* Search Box (shown when searchOpen) */}
+              {/* Mobile Search Box (shown when searchOpen) */}
               {searchOpen && (
-                <Box sx={{ position: 'absolute', top: 64, right: 16, bgcolor: 'white', borderRadius: 2, boxShadow: 3, p: 1, zIndex: 200 }}>
-                  <InputBase
-                    autoFocus
-                    placeholder="Search…"
-                    sx={{ ml: 1, flex: 1, color: 'black', minWidth: 120 }}
-                    inputProps={{ 'aria-label': 'search' }}
-                  />
+                <Box sx={{ 
+                  position: 'absolute', 
+                  top: 64, 
+                  right: 16, 
+                  left: 16,
+                  bgcolor: 'white', 
+                  borderRadius: 2, 
+                  boxShadow: 3, 
+                  p: 1, 
+                  zIndex: 200 
+                }}>
+                  <Box sx={{ position: 'relative' }}>
+                    <InputBase
+                      autoFocus
+                      placeholder="Search polls, petitions, reports..."
+                      value={searchQuery}
+                      onChange={handleSearchInputChange}
+                      onFocus={handleSearchFocus}
+                      onBlur={handleSearchBlur}
+                      sx={{ 
+                        ml: 1, 
+                        flex: 1, 
+                        color: 'black', 
+                        width: '100%',
+                        pr: 4
+                      }}
+                      inputProps={{ 'aria-label': 'search' }}
+                      endAdornment={
+                        searchLoading ? (
+                          <CircularProgress size={20} sx={{ color: 'primary.main', mr: 1 }} />
+                        ) : null
+                      }
+                    />
+                    {/* Search Results for Mobile */}
+                    {showResults && (
+                      <SearchResults
+                        results={searchResults}
+                        searchQuery={searchQuery}
+                        onClose={handleCloseSearchResults}
+                        onItemClick={() => setSearchOpen(false)}
+                      />
+                    )}
+                  </Box>
                 </Box>
               )}
               {/* Drawer for DashboardBar */}
@@ -176,24 +269,50 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  bgcolor: 'white',
-                  borderRadius: 2,
-                  px: 1,
-                }}
-              >
-                <InputBase
-                  placeholder="Search…"
-                  sx={{ ml: 1, flex: 1, color: 'black', minWidth: 120 }}
-                  inputProps={{ 'aria-label': 'search' }}
-                />
-                <IconButton type="submit" sx={{ p: '8px' }} aria-label="search">
-                  <SearchIcon sx={{ color: 'primary.main' }} />
-                </IconButton>
+              {/* Desktop Search Box with Results */}
+              <Box sx={{ position: 'relative' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    bgcolor: 'white',
+                    borderRadius: 2,
+                    px: 1,
+                    minWidth: 200
+                  }}
+                >
+                  <InputBase
+                    placeholder="Search"
+                    value={searchQuery}
+                    onChange={handleSearchInputChange}
+                    onFocus={handleSearchFocus}
+                    onBlur={handleSearchBlur}
+                    sx={{ 
+                      ml: 1, 
+                      flex: 1, 
+                      color: 'black'
+                    }}
+                    inputProps={{ 'aria-label': 'search' }}
+                  />
+                  <IconButton type="submit" sx={{ p: '8px' }} aria-label="search">
+                    {searchLoading ? (
+                      <CircularProgress size={20} sx={{ color: 'primary.main' }} />
+                    ) : (
+                      <SearchIcon sx={{ color: 'primary.main' }} />
+                    )}
+                  </IconButton>
+                </Box>
+                
+                {/* Desktop Search Results */}
+                {showResults && (
+                  <SearchResults
+                    results={searchResults}
+                    searchQuery={searchQuery}
+                    onClose={handleCloseSearchResults}
+                  />
+                )}
               </Box>
+
               <IconButton color="inherit">
                 <Badge badgeContent={3} color="error">
                   <NotificationsIcon />
