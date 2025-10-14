@@ -21,7 +21,7 @@ export default function DashboardBar() {
     { to: "/dashboard", label: "Dashboard", icon: <DashboardIcon /> },
     { to: "/dashboard/petitions", label: "Petitions", icon: <EditIcon /> },
     { to: "/dashboard/polls", label: "Polls", icon: <HowToVoteIcon /> },
-    { to: "/dashboard/results", label: "Results", icon: <AssessmentIcon /> }, // Add this line
+    { to: "/dashboard/results", label: "Poll Results", icon: <AssessmentIcon /> }, // Add this line
   ];
 
   // Official-only links
