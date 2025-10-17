@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import petitionService from "../../services/petitionService";
 import { getCurrentUserId, isAuthenticated } from "../../utils/auth";
+import LocationOnIcon from '@mui/icons-material/LocationOn';
 
 const PetitionCard = ({ petition, onSigned }) => {
   const navigate = useNavigate();
@@ -205,9 +206,30 @@ const PetitionCard = ({ petition, onSigned }) => {
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-4 hover:shadow-lg transition-shadow">
       <div className="flex justify-between items-start mb-3">
-        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(petition.status)}`}>
-          {petition.status === 'active' ? 'Active' : petition.status}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(petition.status)}`}>
+            {petition.status === 'active' ? 'Active' : petition.status}
+          </span>
+          
+          {/* Edit/Delete buttons for creator - MOVED HERE */}
+          {isCreator && userIsAuthenticated && (
+            <div className="flex gap-1">
+              <button
+                onClick={handleEdit}
+                className="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs transition-colors"
+              >
+                Edit
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+        
         <span className={`text-xs ${getTimeColor(petition.time)}`}>
           {petition.time || 'Recently'}
         </span>
@@ -242,31 +264,22 @@ const PetitionCard = ({ petition, onSigned }) => {
       </div>
 
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">
             {petition.category}
           </span>
-          <span className="text-xs text-gray-500">
-            📍 {petition.location}
-          </span>
           
-          {/* Edit/Delete buttons for creator */}
-          {isCreator && userIsAuthenticated && (
-            <div className="flex gap-1">
-              <button
-                onClick={handleEdit}
-                className="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs transition-colors"
-              >
-                Edit
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs transition-colors"
-              >
-                Delete
-              </button>
+          {/* Location Card - UPDATED WITH MUI ICON */}
+          <div className="flex items-center">
+            <div className="p-1">
+              <LocationOnIcon className="text-blue-600" style={{ fontSize: '18px' }} />
             </div>
-          )}
+            <div className="ml-2">
+              <p className="text-xs font-semibold text-blue-900 truncate" title={petition.location}>
+                {petition.location || 'Not specified'}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Sign button - FIXED LOGIC */}

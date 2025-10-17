@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { getCurrentUserId } from "../../utils/auth";
 import { votePoll } from "../../services/pollService";
+// Add MUI icon imports
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import EventIcon from '@mui/icons-material/Event';
+import HowToVoteIcon from '@mui/icons-material/HowToVote';
 
 const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
   const [selectedOptions, setSelectedOptions] = useState([]);
@@ -40,53 +44,26 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
     });
   };
 
-  // SYNCED BACKEND LOGIC for single vote
-  const handleVote = async (optionIdx = null) => {
-    // If optionIdx is provided, use single vote logic (from backend sync)
-    if (optionIdx !== null) {
-      if (voted) return;
-      
-      try {
-        setIsVoting(true);
-        const updatedPoll = await votePoll(poll._id, optionIdx);
-        setVoted(true);
-        setVotedOption(optionIdx);
-        onVoted?.(poll._id, updatedPoll);
-        alert("You have successfully voted in this poll!");
-      } catch (err) {
-        console.error("Error voting:", err);
-        alert(err.response?.data?.message || "Error voting in poll");
-      } finally {
-        setIsVoting(false);
-      }
-      return;
+  // Direct voting on option click - no alerts
+  const handleDirectVote = async (optionIdx) => {
+    if (voted || poll.status === "Closed" || isVoting) return;
+    
+    try {
+      setIsVoting(true);
+      const updatedPoll = await votePoll(poll._id, optionIdx);
+      setVoted(true);
+      setVotedOption(optionIdx);
+      onVoted?.(poll._id, updatedPoll);
+    } catch (err) {
+      console.error("Error voting:", err);
+    } finally {
+      setIsVoting(false);
     }
+  };
 
-    // Multi-select vote logic (keeping current UI functionality)
-    if (selectedOptions.length === 0) {
-      alert("Please select at least one option before voting.");
-      return;
-    }
-
-    if (voted) {
-      alert("You have already voted in this poll!");
-      return;
-    }
-
-    if (isCreator) {
-      alert("You cannot vote on your own poll!");
-      return;
-    }
-
-    if (poll.status === "Closed") {
-      alert("This poll is closed for voting!");
-      return;
-    }
-
-    const confirmVote = window.confirm(
-      `Do you want to vote for: ${selectedOptions.map(i => poll.options[i]?.text).join(', ')}?`
-    );
-    if (!confirmVote) return;
+  // Multi-select vote logic (keeping current UI functionality)
+  const handleVote = async () => {
+    if (selectedOptions.length === 0 || voted || poll.status === "Closed" || isVoting) return;
 
     try {
       setIsVoting(true);
@@ -98,11 +75,8 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
       setSelectedOptions([]);
       
       onVoted?.(poll._id, updatedPoll);
-      
-      alert("You have successfully voted in this poll!");
     } catch (err) {
       console.error("Error voting:", err);
-      alert(err.response?.data?.message || "Error voting in poll");
     } finally {
       setIsVoting(false);
     }
@@ -117,7 +91,6 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
       await onDelete?.(poll._id); // Call parent handler - SYNCED
     } catch (err) {
       console.error("Error deleting poll:", err);
-      alert("Error deleting poll");
     }
   };
 
@@ -133,14 +106,21 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
     }
   };
 
+  const getTimeColor = (time) => {
+    if (!time) return "text-gray-600";
+    if (time.includes("minute")) return "text-green-600";
+    if (time.includes("hour")) return "text-blue-600";
+    if (time.includes("day")) return "text-purple-600";
+    return "text-gray-600";
+  };
+
   const formatDate = (dateString) => {
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
     } catch {
       return 'Not specified';
     }
@@ -191,7 +171,7 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
             </div>
           )}
         </div>
-        <span className="text-xs text-gray-500">{poll.time}</span>
+        <span className={`text-xs ${getTimeColor(poll.time)}`}>{poll.time}</span>
       </div>
 
       {/* Poll Question */}
@@ -217,14 +197,12 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
             return (
               <div
                 key={index}
-                onClick={() => !voted ? handleOptionSelect(index) : handleVote(index)} // SYNCED - allow direct voting
+                onClick={() => voted || poll.status === "Closed" ? null : handleDirectVote(index)}
                 className={`relative p-4 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
                   voted || poll.status === "Closed"
                     ? isVotedOption 
                       ? "border-green-500 bg-green-50" // SYNCED - highlight voted option
                       : "cursor-not-allowed opacity-60"
-                    : isCreator
-                    ? "cursor-not-allowed opacity-60"
                     : isSelected
                     ? "border-green-500 bg-green-50"
                     : "border-gray-200 hover:border-green-400 hover:bg-green-50"
@@ -281,37 +259,8 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
         </div>
       </div>
 
-      {/* UPDATED: Location, Closing Date, and Total Votes in ONE LINE - REMOVED Goal */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">📍</span>
-          <div>
-            <p className="text-xs text-gray-500">Location</p>
-            <p className="text-sm font-medium text-gray-700">{poll.location}</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <span className="text-lg">📅</span>
-          <div>
-            <p className="text-xs text-gray-500">Closes on</p>
-            <p className="text-sm font-medium text-gray-700">
-              {poll.expiresAt ? formatDate(poll.expiresAt) : 'No end date'}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🗳️</span>
-          <div>
-            <p className="text-xs text-gray-500">Total Votes</p>
-            <p className="text-sm font-medium text-blue-900">{totalVotes}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer Actions */}
-      <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+      {/* ENHANCED: Poll Information Cards with MUI Icons */}
+      <div className="flex justify-between items-center w-full">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">
             {poll.category}
@@ -320,13 +269,49 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
             by {poll.creator?.name || poll.creator}
           </span>
         </div>
+        
+        {/* Location Card */}
+        <div className="flex items-center">
+          <div className="p-1">
+            <LocationOnIcon className="text-blue-600" style={{ fontSize: '18px' }} />
+          </div>
+          <div className="ml-2">
+            <p className="text-xs font-semibold text-blue-900 truncate" title={poll.location}>
+              {poll.location || 'Not specified'}
+            </p>
+          </div>
+        </div>
+        
+        {/* Closing Date Card */}
+        <div className="flex items-center">
+          <div className="p-1">
+            <EventIcon className="text-orange-600" style={{ fontSize: '18px' }} />
+          </div>
+          <div className="ml-2">
+            <p className="text-xs font-semibold text-orange-900 truncate">
+              Closing: {poll.expiresAt ? formatDate(poll.expiresAt) : 'No end date'}
+            </p>
+          </div>
+        </div>
 
+        {/* Total Votes Card */}
+        <div className="flex items-center">
+          <div className="p-1">
+            <HowToVoteIcon className="text-green-600" style={{ fontSize: '18px' }} />
+          </div>
+          <div className="ml-2">
+            <p className="text-xs font-semibold text-green-900">
+              Total Votes: {totalVotes.toLocaleString()}
+            </p>
+          </div>
+        </div>
+  
         {/* Vote Button - UPDATED FOR BACKEND COMPATIBILITY */}
-        {!isCreator && (
+        <div className="flex justify-end">
           <button
             onClick={() => handleVote()} // Multi-select vote
             disabled={voted || isVoting || poll.status === "Closed" || selectedOptions.length === 0}
-            className={`px-6 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+            className={`px-4 py-2 rounded-md text-white font-medium transition-all duration-200 ${
               voted
                 ? "bg-green-500 text-white cursor-default"
                 : poll.status === "Closed"
@@ -353,15 +338,8 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete }) => {
               `Vote (${selectedOptions.length} selected)`
             )}
           </button>
-        )}
-      </div>
-
-      {/* Voting instruction */}
-      {!voted && poll.status !== "Closed" && !isCreator && (
-        <div className="mt-3 p-2 bg-yellow-50 rounded text-xs text-yellow-700 text-center">
-          💡 Click an option to vote directly, or select multiple and click Vote button
         </div>
-      )}
+      </div>
     </div>
   );
 };

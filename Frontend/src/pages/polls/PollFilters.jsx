@@ -6,6 +6,7 @@ const PollFilters = ({ activeFilter, onFilterChange }) => {
   const pollTypes = ['Active Polls', 'Polls I Voted On', 'My Polls', 'Closed Polls'];
   const locations = ['All Locations', 'San Diego, CA', 'Los Angeles, CA', 'New York, NY', 'Chicago, IL', 'Miami, FL'];
   const statuses = ['All Status', 'Active', 'Closed', 'Draft'];
+  const viewOptions = ['List View', 'Grid View'];
 
   const toggleDropdown = (dropdown) => {
     setDropdowns(prev => ({ ...prev, [dropdown]: !prev[dropdown] }));
