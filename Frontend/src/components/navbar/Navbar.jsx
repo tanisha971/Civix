@@ -27,7 +27,7 @@ import { getProfile } from "../../services/api";
 import { searchService } from "../../services/searchService";
 import SearchResults from "../search/SearchResults";
 import { CircularProgress } from "@mui/material";
-
+import Divider from '@mui/material/Divider';
 import Logo from "../../assets/images/Civix logo.jpg";
 
 export default function Navbar() {
@@ -42,7 +42,31 @@ export default function Navbar() {
   const isMobile = useMediaQuery('(max-width:600px)');
   const navigate = useNavigate();
 
-  // Fetch logged-in user profile using the correct API
+  //notification modal
+  const [openNotif, setOpenNotif] = useState(false);
+  const closeNotif = () => setOpenNotif(false);
+
+  //dummy notifications
+  const notifications = [
+    { id: 1, title: 'Petition Approved', body: 'Your petition “Fix Streetlights” has been approved.', time: '2 min ago' },
+    { id: 2, title: 'Poll Closed', body: 'Poll “Weekly Market Holiday” has ended.', time: '1 hour ago' },
+    { id: 3, title: 'Official Update', body: 'Official response added to your poll.', time: '3 hours ago' },
+    { id: 4, title: 'Budget Sanctioned', body: 'Community-centre budget sanctioned.', time: '5 hours ago' },
+    { id: 5, title: 'Signature Milestone', body: 'Your petition reached 500 signatures.', time: 'Yesterday' },
+    { id: 6, title: 'New Poll Published', body: 'Poll “Dog Park Location” is now live.', time: 'Yesterday' },
+    { id: 7, title: 'Petition Rejected', body: 'Petition “Allow 24×7 Hawkers” was rejected.', time: '2 days ago' },
+    { id: 8, title: 'Traffic Light Fixed', body: 'New traffic lights installed at 5th & Main.', time: '2 days ago' },
+    { id: 9, title: 'Extra Trucks Sanctioned', body: 'Ward-12 gets more waste-collection trucks.', time: '3 days ago' },
+    { id: 10, title: 'Parade Permit Granted', body: 'Independence-Day parade permit approved.', time: '4 days ago' },
+    { id: 11, title: 'Pothole Crew Dispatched', body: 'Lake-Rd pothole repair completed.', time: '5 days ago' },
+    { id: 12, title: 'LED Upgrade Phase-2', body: 'LED street-light upgrade phase-2 approved.', time: '6 days ago' },
+    { id: 13, title: 'Night-Market Response', body: 'Official response added to night-market poll.', time: '1 week ago' },
+    { id: 14, title: 'Signature Count Verified', body: '“Dog Park” petition signatures verified.', time: '1 week ago' },
+    { id: 15, title: 'Car-Ban Petition Closed', body: 'Unsuccessful “Ban all cars” petition closed.', time: '1 week ago' },
+  ];
+ 
+
+  // Fetch logged-in user profile
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -50,10 +74,8 @@ export default function Navbar() {
         setUser(response.user);
       } catch (err) {
         console.error("Error fetching profile:", err);
-        // User might not be logged in, that's okay for navbar
       }
     };
-    
     fetchUser();
   }, []);
 
@@ -64,7 +86,6 @@ export default function Navbar() {
       setShowResults(false);
       return;
     }
-
     setSearchLoading(true);
     try {
       const results = await searchService.searchAll(query.trim());
@@ -79,60 +100,28 @@ export default function Navbar() {
     }
   };
 
-  // Debounced search
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      handleSearch(searchQuery);
-    }, 300);
-
+    const timeoutId = setTimeout(() => handleSearch(searchQuery), 300);
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
-  const handleSearchInputChange = (event) => {
-    setSearchQuery(event.target.value);
-  };
-
-  const handleSearchFocus = () => {
-    setShowResults(true);
-  };
-
-  const handleSearchBlur = () => {
-    // Delay hiding results to allow for clicks
-    setTimeout(() => setShowResults(false), 200);
-  };
-
+  const handleSearchInputChange = (e) => setSearchQuery(e.target.value);
+  const handleSearchFocus = () => setShowResults(true);
+  const handleSearchBlur  = () => setTimeout(() => setShowResults(false), 200);
   const handleCloseSearchResults = () => {
-    setShowResults(false);
-    setSearchQuery('');
-    setSearchResults(null);
+    setShowResults(false); setSearchQuery(''); setSearchResults(null);
   };
 
-  const handleAvatarClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleSearchClick = () => {
-    setSearchOpen((prev) => !prev);
-  };
-
-  const handleDrawerOpen = () => {
-    setDrawerOpen(true);
-  };
-  
-  const handleDrawerClose = () => {
-    setDrawerOpen(false);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
+  const handleAvatarClick = (e) => setAnchorEl(e.currentTarget);
+  const handleSearchClick = () => setSearchOpen((p) => !p);
+  const handleDrawerOpen  = () => setDrawerOpen(true);
+  const handleDrawerClose = () => setDrawerOpen(false);
+  const handleMenuClose   = () => setAnchorEl(null);
 
   const handleLogout = async () => {
     try {
-      // Clear localStorage
       localStorage.removeItem("user");
       setUser(null);
-      // Redirect to home
       navigate("/");
     } catch (err) {
       console.error("Logout failed:", err);
@@ -146,235 +135,163 @@ export default function Navbar() {
         {/* Left: Logo, Civix, Beta */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Avatar src={Logo} alt="Civix Logo" sx={{ width: 40, height: 40, mr: 1 }} />
-          <Typography variant="h6" sx={{ fontWeight: 'bold', letterSpacing: 1 }}>
-            Civix
-          </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', letterSpacing: 1 }}>Civix</Typography>
           {!isMobile && (
-            <Typography
-              variant="caption"
-              sx={{ bgcolor: 'yellow', color: 'black', px: 1, borderRadius: 1, ml: 1 }}
-            >
-              Beta
-            </Typography>
+            <Typography variant="caption" sx={{ bgcolor: 'yellow', color: 'black', px: 1, borderRadius: 1, ml: 1 }}>Beta</Typography>
           )}
         </Box>
 
-        {/* Center: Navigation Links (hidden on mobile) */}
+        {/* Center: Navigation Links (desktop) */}
         {!isMobile && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <IconButton color="inherit" onClick={() => navigate('/')}>
-              <HomeIcon />
-              <Typography variant="body1" sx={{ ml: 0.5 }}>
-                Home
-              </Typography>
-            </IconButton>
-            <IconButton color="inherit" onClick={() => navigate('/dashboard/petitions')}>
-              <EditIcon />
-              <Typography variant="body1" sx={{ ml: 0.5 }}>
-                Petitions
-              </Typography>
-            </IconButton>
-            <IconButton color="inherit" onClick={() => navigate('/dashboard/polls')}>
-              <HowToVoteIcon />
-              <Typography variant="body1" sx={{ ml: 0.5 }}>
-                Polls
-              </Typography>
-            </IconButton>
-            <IconButton color="inherit" onClick={() => navigate('/dashboard/reports')}>
-              <ReportIcon />
-              <Typography variant="body1" sx={{ ml: 0.5 }}>
-                Reports
-              </Typography>
-            </IconButton>
+            <IconButton color="inherit" onClick={() => navigate('/')}><HomeIcon /><Typography variant="body1" sx={{ ml: 0.5 }}>Home</Typography></IconButton>
+            <IconButton color="inherit" onClick={() => navigate('/dashboard/petitions')}><EditIcon /><Typography variant="body1" sx={{ ml: 0.5 }}>Petitions</Typography></IconButton>
+            <IconButton color="inherit" onClick={() => navigate('/dashboard/polls')}><HowToVoteIcon /><Typography variant="body1" sx={{ ml: 0.5 }}>Polls</Typography></IconButton>
+            <IconButton color="inherit" onClick={() => navigate('/dashboard/reports')}><ReportIcon /><Typography variant="body1" sx={{ ml: 0.5 }}>Reports</Typography></IconButton>
           </Box>
         )}
 
-        {/* Right: Responsive controls */}
+        {/* Right: controls */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           {isMobile ? (
             <>
-              {/* Search Icon (shows search box on click) */}
-              <IconButton color="inherit" onClick={handleSearchClick}>
-                <SearchIcon />
-              </IconButton>
-              {/* Hamburger Icon (shows DashboardBar in Drawer) */}
-              <IconButton color="inherit" onClick={handleDrawerOpen}>
-                <MenuIcon />
-              </IconButton>
-              {/* Logout Icon for mobile */}
-              <IconButton color="inherit" onClick={handleLogout}>
-                <LogoutIcon />
-              </IconButton>
-              {/* Mobile Search Box (shown when searchOpen) */}
+              <IconButton color="inherit" onClick={handleSearchClick}><SearchIcon /></IconButton>
+              <IconButton color="inherit" onClick={handleDrawerOpen}><MenuIcon /></IconButton>
+              <IconButton color="inherit" onClick={handleLogout}><LogoutIcon /></IconButton>
               {searchOpen && (
-                <Box sx={{ 
-                  position: 'absolute', 
-                  top: 64, 
-                  right: 16, 
-                  left: 16,
-                  bgcolor: 'white', 
-                  borderRadius: 2, 
-                  boxShadow: 3, 
-                  p: 1, 
-                  zIndex: 200 
-                }}>
-                  <Box sx={{ position: 'relative' }}>
-                    <InputBase
-                      autoFocus
-                      placeholder="Search polls, petitions, reports..."
-                      value={searchQuery}
-                      onChange={handleSearchInputChange}
-                      onFocus={handleSearchFocus}
-                      onBlur={handleSearchBlur}
-                      sx={{ 
-                        ml: 1, 
-                        flex: 1, 
-                        color: 'black', 
-                        width: '100%',
-                        pr: 4
-                      }}
-                      inputProps={{ 'aria-label': 'search' }}
-                      endAdornment={
-                        searchLoading ? (
-                          <CircularProgress size={20} sx={{ color: 'primary.main', mr: 1 }} />
-                        ) : null
-                      }
-                    />
-                    {/* Search Results for Mobile */}
-                    {showResults && (
-                      <SearchResults
-                        results={searchResults}
-                        searchQuery={searchQuery}
-                        onClose={handleCloseSearchResults}
-                        onItemClick={() => setSearchOpen(false)}
-                      />
-                    )}
-                  </Box>
+                <Box sx={{ position: 'absolute', top: 64, left: 16, right: 16, bgcolor: 'white', borderRadius: 2, boxShadow: 3, p: 1, zIndex: 200 }}>
+                  <InputBase
+                    autoFocus
+                    placeholder="Search polls, petitions, reports..."
+                    value={searchQuery}
+                    onChange={handleSearchInputChange}
+                    onFocus={handleSearchFocus}
+                    onBlur={handleSearchBlur}
+                    endAdornment={searchLoading ? <CircularProgress size={20} sx={{ color: 'primary.main', mr: 1 }} /> : null}
+                    sx={{ ml: 1, flex: 1, color: 'black', width: '100%', pr: 4 }}
+                  />
+                  {showResults && <SearchResults results={searchResults} searchQuery={searchQuery} onClose={handleCloseSearchResults} onItemClick={() => setSearchOpen(false)} />}
                 </Box>
               )}
-              {/* Drawer for DashboardBar */}
               <Drawer anchor="right" open={drawerOpen} onClose={handleDrawerClose}>
                 <Box sx={{ width: 250, p: 2, position: 'relative', height: '100%' }}>
-                  <IconButton
-                    onClick={handleDrawerClose}
-                    sx={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
-                    aria-label="close"
-                  >
-                    <CloseIcon />
-                  </IconButton>
-                  <Box sx={{ mt: 5 }}>
-                    <DashboardBar />
-                  </Box>
+                  <IconButton onClick={handleDrawerClose} sx={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}><CloseIcon /></IconButton>
+                  <Box sx={{ mt: 5 }}><DashboardBar /></Box>
                 </Box>
               </Drawer>
             </>
           ) : (
             <>
-              {/* Desktop Search Box with Results */}
+              {/* Desktop search */}
               <Box sx={{ position: 'relative' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    bgcolor: 'white',
-                    borderRadius: 2,
-                    px: 1,
-                    minWidth: 200
-                  }}
-                >
-                  <InputBase
-                    placeholder="Search"
-                    value={searchQuery}
-                    onChange={handleSearchInputChange}
-                    onFocus={handleSearchFocus}
-                    onBlur={handleSearchBlur}
-                    sx={{ 
-                      ml: 1, 
-                      flex: 1, 
-                      color: 'black'
-                    }}
-                    inputProps={{ 'aria-label': 'search' }}
+                <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'white', borderRadius: 2, px: 1, minWidth: 200 }}>
+                  <InputBase placeholder="Search" value={searchQuery} onChange={handleSearchInputChange} onFocus={handleSearchFocus} onBlur={handleSearchBlur}
+                    endAdornment={<IconButton type="submit" sx={{ p: '8px' }} aria-label="search">{searchLoading ? <CircularProgress size={20} sx={{ color: 'primary.main' }} /> : <SearchIcon sx={{ color: 'primary.main' }} />}</IconButton>}
+                    sx={{ ml: 1, flex: 1, color: 'black' }}
                   />
-                  <IconButton type="submit" sx={{ p: '8px' }} aria-label="search">
-                    {searchLoading ? (
-                      <CircularProgress size={20} sx={{ color: 'primary.main' }} />
-                    ) : (
-                      <SearchIcon sx={{ color: 'primary.main' }} />
-                    )}
-                  </IconButton>
                 </Box>
-                
-                {/* Desktop Search Results */}
-                {showResults && (
-                  <SearchResults
-                    results={searchResults}
-                    searchQuery={searchQuery}
-                    onClose={handleCloseSearchResults}
-                  />
-                )}
+                {showResults && <SearchResults results={searchResults} searchQuery={searchQuery} onClose={handleCloseSearchResults} />}
               </Box>
 
-              <IconButton color="inherit">
-                <Badge badgeContent={3} color="error">
-                  <NotificationsIcon />
-                </Badge>
+              {/* ---- bell + blurred scrollable modal ---- */}
+              <IconButton color="inherit" onClick={() => setOpenNotif(true)}>
+                <Badge badgeContent={notifications.length} color="error"><NotificationsIcon /></Badge>
               </IconButton>
-              
-              {/* Profile Section with Avatar and Dropdown Icon */}
-              <Box 
-                sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  cursor: 'pointer',
-                  '&:hover': {
-                    opacity: 0.8
-                  }
-                }} 
-                onClick={handleAvatarClick}
-              >
-                <Avatar
-                  alt={user?.name || 'User'}
-                  src="https://randomuser.me/api/portraits/men/75.jpg"
-                  sx={{ width: 36, height: 36, ml: 1 }}
-                />
-                <ArrowDropDownIcon 
-                  sx={{ 
-                    color: 'white', 
-                    ml: 0.5,
-                    transform: Boolean(anchorEl) ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.2s ease-in-out'
-                  }} 
-                />
+              {openNotif && (
+                <>
+                  {/* blurred backdrop */}
+                  <Box
+                    sx={{
+                      position: 'fixed',
+                      inset: 0,
+                      backgroundColor: 'rgba(0,0,0,0.45)',
+                      backdropFilter: 'blur(4px)',
+                      zIndex: 1300,
+                    }}
+                    onClick={closeNotif}
+                  />
+                  {/* modal card */}
+                  <Box
+                    sx={{
+                      position: 'fixed',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%,-50%)',
+                      width: { xs: '90vw', sm: 520 },
+                      maxHeight: '80vh',
+                      bgcolor: '#ffffff',
+                      borderRadius: 3,
+                      boxShadow: 24,
+                      zIndex: 1301,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {/* header */}
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        px: 3,
+                        py: 2,
+                        bgcolor: '#303f9f',
+                        color: '#fff',
+                      }}
+                    >
+                      <Typography variant="h6" fontWeight={600}>
+                        Notifications
+                      </Typography>
+                      <IconButton onClick={closeNotif} sx={{ color: '#fff' }}>
+                        <CloseIcon />
+                      </IconButton>
+                    </Box>
+
+                    <Divider sx={{ borderColor: 'rgba(255,255,255,.18)' }} />
+
+                    {/* scrollable list */}
+                    <Box sx={{ flex: 1, overflow: 'auto', px: 2, py: 1 }}>
+                      {notifications.map((n) => (
+                        <Box
+                          key={n.id}
+                          sx={{
+                            mb: 1.5,
+                            p: 1.5,
+                            borderRadius: 2,
+                            transition: 'background-color .2s',
+                            '&:hover': { bgcolor: '#f5f5f5' },
+                          }}
+                        >
+                          <Typography variant="body2" fontWeight={600} color="#303f9f">
+                            {n.title}
+                          </Typography>
+                          <Typography variant="caption" color="#616161">
+                            {n.body}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            display="block"
+                            mt={.5}
+                          >
+                            {n.time}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                </>
+              )}
+
+              {/* profile */}
+              <Box onClick={handleAvatarClick} sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { opacity: 0.8 } }}>
+                <Avatar alt={user?.name || 'User'} src="https://randomuser.me/api/portraits/men/75.jpg  " sx={{ width: 36, height: 36, ml: 1 }} />
+                <ArrowDropDownIcon sx={{ color: 'white', ml: 0.5, transform: Boolean(anchorEl) ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
               </Box>
-              
-              {/* Dropdown Menu */}
-              <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={handleMenuClose}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                sx={{
-                  '& .MuiPaper-root': {
-                    minWidth: 180,
-                    mt: 1
-                  }
-                }}
-              >
-                <MenuItem disabled>
-                  <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                    {user?.name || 'Guest'}
-                  </Typography>
-                </MenuItem>
-                <MenuItem
-                  onClick={handleLogout}
-                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                >
-                  <LogoutIcon fontSize="small" />
-                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                    Logout
-                  </Typography>
-                </MenuItem>
+              <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }} sx={{ '& .MuiPaper-root': { minWidth: 180, mt: 1 } }}>
+                <MenuItem disabled><Typography variant="body1" sx={{ fontWeight: 700 }}>{user?.name || 'Guest'}</Typography></MenuItem>
+                <MenuItem onClick={handleLogout} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><LogoutIcon fontSize="small" /><Typography variant="body1" sx={{ fontWeight: 500 }}>Logout</Typography></MenuItem>
               </Menu>
             </>
           )}
