@@ -25,6 +25,7 @@ const PetitionList = () => {
   const [petitions, setPetitions] = useState([]);
   const [filteredPetitions, setFilteredPetitions] = useState([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
 
   const mapStatusToUI = (status) => {
     switch (status) {
@@ -149,8 +150,31 @@ const PetitionList = () => {
     setFilteredPetitions(sortedResult);
   }, [filters, petitions, currentUserId, highlightId]);
 
-  const handleFilterChange = (type, value) =>
+  // Check if screen is mobile and force grid view
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const isMobileSize = window.innerWidth < 768;
+      setIsMobile(isMobileSize);
+      
+      // Force grid view on mobile
+      if (isMobileSize) {
+        setFilters(prev => ({ ...prev, view: 'Grid View' }));
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  const handleFilterChange = (type, value) => {
+    // Prevent changing view to List View on mobile
+    if (type === 'view' && value === 'List View' && isMobile) {
+      return;
+    }
+    
     setFilters((prev) => ({ ...prev, [type]: value }));
+  };
 
   const handleSigned = (petitionId, updatedData) => {
     if (typeof petitionId === 'string' && petitionId.startsWith('delete_')) {
@@ -186,11 +210,14 @@ const PetitionList = () => {
     navigate('/dashboard/petitions/create');
   };
 
+  // Determine the actual view mode to use
+  const effectiveViewMode = isMobile ? 'Grid View' : filters.view;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         {/* Header */}
-        <div className="mb-8 text-center sm:text-left">
+        <div className="mb-8 text-center sm:text-left mt-[70px] sm:mt-0">
           <h1 className="text-3xl font-bold text-gray-900">Community Petitions</h1>
           <p className="text-gray-600 mt-2">
             Browse and support community petitions for positive change.
@@ -249,8 +276,8 @@ const PetitionList = () => {
 
         {/* Petitions List - UPDATED FOR GRID VIEW */}
         <div className={
-          filters.view === "Grid View" 
-            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+          effectiveViewMode === "Grid View" 
+            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6" 
             : "space-y-6"
         }>
           {filteredPetitions.length > 0 ? (
@@ -285,7 +312,7 @@ const PetitionList = () => {
                     onSigned={handleSigned}
                     isHighlighted={isHighlighted}
                     searchQuery={fromSearch ? searchQuery : null}
-                    viewMode={filters.view} // Pass view mode to PetitionCard
+                    viewMode={effectiveViewMode} // Pass view mode to PetitionCard
                   />
                 </div>
               );

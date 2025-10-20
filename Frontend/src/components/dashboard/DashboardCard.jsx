@@ -32,13 +32,13 @@ export default function DashboardCard() {
     // Petitions state
     const [allPetitions, setAllPetitions] = useState([]);
     
-    // Polls state
-    const [allPolls, setAllPolls] = useState([]);
+    // Polls state - UPDATED with improved logic
     const [pollStats, setPollStats] = useState({
         myPolls: 0,
         activePolls: 0,
         completedPolls: 0,
-        totalPolls: 0
+        totalPolls: 0,
+        votedPolls: 0 // Added this for tracking
     });
 
     // Fetch petitions data
@@ -57,56 +57,72 @@ export default function DashboardCard() {
         fetchAllPetitionsForStats();
     }, []);
 
-    // Fetch polls data with real-time updates
+    // IMPROVED: Fetch polls data with enhanced logic from PollStats
     const fetchPollsData = async (showLoading = true) => {
         try {
             if (showLoading) setPollsLoading(true);
             
+            if (!userId) {
+                console.warn("User ID not found. Make sure the user is logged in.");
+                return;
+            }
+
+            // Method 1: Try comprehensive stats API first (recommended)
+            try {
+                const comprehensiveStats = await pollService.getPollStats(userId);
+                setPollStats({
+                    activePolls: comprehensiveStats.activePolls || 0,
+                    completedPolls: comprehensiveStats.closedPolls || 0,
+                    myPolls: comprehensiveStats.myPolls || 0,
+                    totalPolls: comprehensiveStats.totalPolls || 0,
+                    votedPolls: comprehensiveStats.votedPolls || 0
+                });
+                return;
+            } catch (statsError) {
+                console.log("Comprehensive stats not available, falling back to individual queries");
+            }
+
+            // Method 2: Fetch all polls and calculate stats (fallback)
             const data = await pollService.getPolls();
             const pollsArray = Array.isArray(data) ? data : data.polls || [];
             
-            // Transform polls data to include vote counts
-            const transformedPolls = pollsArray.map(poll => {
-                let totalVotes = 0;
-                
-                // Calculate total votes from different data structures
-                if (poll.votes) {
-                    if (Array.isArray(poll.votes)) {
-                        totalVotes = poll.votes.length;
-                    } else if (typeof poll.votes === 'object') {
-                        totalVotes = Object.values(poll.votes).reduce((sum, count) => sum + (typeof count === 'number' ? count : 0), 0);
-                    }
+            // Helper function to normalize user IDs for comparison
+            const normalizeId = (u) => typeof u === "string" ? u : (u?._id || u?.id || "");
+
+            // Calculate stats using improved logic
+            const activePolls = pollsArray.filter(poll => 
+                poll.status === "active" || poll.status === "Active"
+            ).length;
+
+            const completedPolls = pollsArray.filter(poll => 
+                poll.status === "closed" || poll.status === "Closed" || 
+                poll.status === "completed" || poll.status === "Completed"
+            ).length;
+
+            const myPolls = pollsArray.filter(poll => 
+                normalizeId(poll.creator) === String(userId)
+            ).length;
+
+            // Calculate voted polls - check if user has voted in each poll
+            let votedPolls = 0;
+            for (const poll of pollsArray) {
+                if (poll.votes && Array.isArray(poll.votes)) {
+                    const hasVoted = poll.votes.some(vote => 
+                        normalizeId(vote.user) === String(userId)
+                    );
+                    if (hasVoted) votedPolls++;
+                } else if (poll.userHasVoted) {
+                    votedPolls++;
                 }
-                
-                return {
-                    ...poll,
-                    totalVotes: poll.totalVotes || totalVotes
-                };
-            });
+            }
             
-            setAllPolls(transformedPolls);
-            
-            // Calculate dynamic stats - FIXED LOGIC matching petitions
-            const myPollsCount = transformedPolls.filter(poll => {
-                // Use the same logic as petitions: check creator._id
-                const pollCreatorId = poll.creator?._id;
-                return pollCreatorId === userId;
-            }).length;
-            
-            const activePollsCount = transformedPolls.filter(poll => 
-                poll.status === 'active' || poll.status === 'Active'
-            ).length;
-            
-            const completedPollsCount = transformedPolls.filter(poll => 
-                poll.status === 'closed' || poll.status === 'completed' || poll.status === 'Completed'
-            ).length;
-            
-            // Update stats state
+            // Update stats state with improved calculations
             setPollStats({
-                myPolls: myPollsCount,
-                activePolls: activePollsCount,
-                completedPolls: completedPollsCount,
-                totalPolls: transformedPolls.length
+                myPolls: myPolls,
+                activePolls: activePolls,
+                completedPolls: completedPolls,
+                totalPolls: pollsArray.length,
+                votedPolls: votedPolls
             });
             
         } catch (err) {
@@ -215,14 +231,14 @@ export default function DashboardCard() {
           </div>
         </div>
 
-        {/* Polls Stats Cards */}
+        {/* Polls Stats Cards - IMPROVED LOGIC */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-800">Polls Overview</h3>
           </div>
           
           <div className={isMobile ? "flex flex-col gap-4" : "flex flex-row gap-8"}>
-            {/* My Polls */}
+            {/* My Polls - IMPROVED */}
             <div 
               className="flex flex-col justify-center rounded-2xl shadow-lg flex-1 p-6 text-left cursor-pointer hover:shadow-xl transition-shadow" 
               style={{ background: '#e8f5e8', color: '#111' }}
@@ -240,7 +256,7 @@ export default function DashboardCard() {
               <span className="text-sm opacity-60">created by you</span>
             </div>
 
-            {/* Active Polls */}
+            {/* Active Polls - IMPROVED */}
             <div 
               className="flex flex-col justify-center rounded-2xl shadow-lg flex-1 p-6 text-left cursor-pointer hover:shadow-xl transition-shadow" 
               style={{ background: '#e0f2f1', color: '#111' }}
@@ -258,7 +274,7 @@ export default function DashboardCard() {
               <span className="text-sm opacity-60">currently voting</span>
             </div>
 
-            {/* Completed Polls */}
+            {/* Completed Polls - IMPROVED */}
             <div 
               className="flex flex-col justify-center rounded-2xl shadow-lg flex-1 p-6 text-left cursor-pointer hover:shadow-xl transition-shadow" 
               style={{ background: '#f1f8e9', color: '#111' }}

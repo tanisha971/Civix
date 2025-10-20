@@ -563,27 +563,54 @@ export default function Reports({ allPolls = [] }) {
               size="small"
               pagination={false}
               loading={pollsLoading}
+              scroll={{ 
+                x: 'max-content', // Horizontal scroll for small screens
+                y: 300 // Vertical scroll with fixed height
+              }}
               columns={[
                 { 
                   title: 'Poll', 
                   dataIndex: 'title',
+                  width: 200, // Fixed width instead of percentage for better scroll behavior
+                  ellipsis: true,
                   render: (text, record) => (
                     <Button 
                       type="link" 
                       size="small" 
                       onClick={() => setSelectedPollId(record.id)}
-                      style={{ padding: 0, height: 'auto', textAlign: 'left' }}
+                      style={{ 
+                        padding: 0, 
+                        height: 'auto', 
+                        textAlign: 'left',
+                        fontSize: window.innerWidth < 768 ? '12px' : '14px',
+                        lineHeight: '1.2',
+                        width: '100%' // Full width of column
+                      }}
                     >
-                      {text}
+                      <span style={{ 
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        maxWidth: '100%' // Use full column width
+                      }}>
+                        {text}
+                      </span>
                     </Button>
                   )
                 },
                 { 
                   title: 'Votes', 
-                  dataIndex: 'votes', 
+                  dataIndex: 'votes',
+                  width: 80, // Fixed width for votes column
+                  align: 'center',
                   sorter: (a, b) => b.votes - a.votes,
                   render: (votes) => (
-                    <span style={{ fontWeight: 'bold', color: '#1890ff' }}>
+                    <span style={{ 
+                      fontWeight: 'bold', 
+                      color: '#1890ff',
+                      fontSize: window.innerWidth < 768 ? '11px' : '13px'
+                    }}>
                       {votes.toLocaleString()}
                     </span>
                   )
@@ -591,14 +618,23 @@ export default function Reports({ allPolls = [] }) {
                 { 
                   title: 'Rate', 
                   dataIndex: 'engagementRate',
+                  width: 70, // Fixed width for rate column
+                  align: 'center',
                   render: (rate) => (
-                    <span style={{ fontSize: 12, color: '#666' }}>
+                    <span style={{ 
+                      fontSize: window.innerWidth < 768 ? '10px' : '12px',
+                      color: '#666'
+                    }}>
                       {rate}/hr
                     </span>
                   )
                 },
               ]}
               dataSource={topPolls}
+              style={{
+                fontSize: window.innerWidth < 768 ? '12px' : '14px'
+              }}
+              className="responsive-table"
             />
           </Card>
         </Col>

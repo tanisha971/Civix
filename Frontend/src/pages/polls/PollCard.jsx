@@ -13,6 +13,7 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
   const [voted, setVoted] = useState(false);
   const [votedOption, setVotedOption] = useState(null);
   const [isVoting, setIsVoting] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   const currentUserId = getCurrentUserId();
   const isCreator = poll.creator === currentUserId || poll.creator?._id === currentUserId;
@@ -33,6 +34,17 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
       setVotedOption(userVote?.option);
     }
   }, [poll, currentUserId]);
+
+  // Check if mobile screen
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const handleOptionSelect = (optionIndex) => {
     if (voted || poll.status === "Closed") return;
@@ -141,11 +153,12 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
 
   const totalVotes = getTotalVotes(); // SYNCED
 
-  const isGridView = viewMode === "Grid View";
+  // Force grid view on mobile
+  const isGridView = isMobile ? true : viewMode === "Grid View";
 
   return (
-    <div className={`bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow relative ${
-      isGridView ? 'p-4 h-full flex flex-col' : 'p-6 mb-6'
+    <div className={`bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow ${
+      isGridView ? 'p-4 h-full flex flex-col' : 'p-6 mb-4'
     }`}>
     
     {/* Header */}
@@ -154,11 +167,7 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
         <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(poll.status)}`}>
           {poll.status}
         </span>
-        {isCreator && (
-          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium">
-            Your Poll
-          </span>
-        )}
+        
         {/* Edit/Delete buttons for BOTH List and Grid View - RIGHT AFTER BADGES */}
         {isCreator && (
           <div className="flex gap-2">
@@ -324,10 +333,10 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
     {/* Footer */}
     <div className={isGridView ? 'mt-auto' : ''}>
       {isGridView ? (
-        // Grid View Footer - Updated Layout
+        // Grid View Footer - UPDATED to hide total votes on mobile
         <div className="space-y-2">
-          {/* First Line - 3 Info Items */}
-          <div className=" text-xs mb-3 flex justify-between items-center w-full">
+          {/* Info Items - Hide votes count on mobile */}
+          <div className="text-xs mb-3 flex justify-between items-center w-full">
             <div className="flex items-center min-w-0">
               <LocationOnIcon className="text-blue-600 mr-1 flex-shrink-0" style={{ fontSize: '14px' }} />
               <span className="text-blue-900 truncate">{poll.location || 'N/A'}</span>
@@ -340,21 +349,14 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
               </span>
             </div>
 
-            <div className="flex items-center min-w-0">
-              <HowToVoteIcon className="text-green-600 mr-1 flex-shrink-0" style={{ fontSize: '14px' }} />
-              <span className="text-green-900">Votes: {totalVotes}</span>
-            </div>
+            {/* HIDE TOTAL VOTES ON MOBILE - Only show on larger screens */}
+            {!isMobile && (
+              <div className="flex items-center min-w-0">
+                <HowToVoteIcon className="text-green-600 mr-1 flex-shrink-0" style={{ fontSize: '14px' }} />
+                <span className="text-green-900">Votes: {totalVotes}</span>
+              </div>
+            )}
           </div>
-          
-          {/* Second Line - Creator Left, Category Right */}
-          {/* <div className="flex items-center justify-between text-xs mb-3">
-            <span className="text-gray-500 truncate">
-              {poll.creator?.name || poll.creator}
-            </span>
-            <span className="font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded flex-shrink-0">
-              {poll.category}
-            </span>
-          </div> */}
         </div>
       ) : (
         // List View Footer - Original (unchanged)
