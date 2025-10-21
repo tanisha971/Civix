@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-const officialAuth = async (req, res, next) => {
+export const requireOfficial = async (req, res, next) => {
   try {
     // First check if user is authenticated
     const token = req.cookies.token || req.header('Authorization')?.replace('Bearer ', '');
@@ -44,4 +44,8 @@ const officialAuth = async (req, res, next) => {
   }
 };
 
-export default officialAuth;
+// Alias for compatibility
+export const verifyOfficial = requireOfficial;
+
+// Keep default export for backward compatibility
+export default requireOfficial;
