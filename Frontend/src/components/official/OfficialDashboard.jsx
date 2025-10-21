@@ -3,12 +3,30 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer 
 } from 'recharts';
+import {
+  CheckCircle,
+  PriorityHigh,
+  Edit,
+  Verified,
+  LocationOn,
+  People,
+  AccessTime,
+  Task,
+  CheckBox,
+  Cancel,
+  Refresh
+} from '@mui/icons-material';
 import officialService from '../../services/officialService';
 
 const OfficialDashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [petitionsToReview, setPetitionsToReview] = useState([]);
+  const [allPetitions, setAllPetitions] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Location filter state
+  const [selectedLocation, setSelectedLocation] = useState('all');
+  const [availableLocations, setAvailableLocations] = useState([]);
   
   // DYNAMIC COUNTS STATE - Like PetitionStats
   const [totalPetitionsCount, setTotalPetitionsCount] = useState(0);
@@ -27,6 +45,11 @@ const OfficialDashboard = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Filter petitions when location changes
+  useEffect(() => {
+    filterPetitionsByLocation();
+  }, [selectedLocation, allPetitions]);
 
   const fetchAnalytics = async () => {
     try {
@@ -52,12 +75,35 @@ const OfficialDashboard = () => {
   const fetchPetitionsToReview = async () => {
     try {
       const response = await officialService.getPetitionsForReview({ status: 'active' });
-      setPetitionsToReview(response.petitions || []);
+      const petitions = response.petitions || [];
+      
+      // Store all petitions
+      setAllPetitions(petitions);
+      
+      // Extract unique locations
+      const locations = [...new Set(petitions.map(p => p.location))].sort();
+      setAvailableLocations(locations);
+      
+      // Initially show all petitions
+      setPetitionsToReview(petitions);
     } catch (error) {
       console.error('Error fetching petitions to review:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterPetitionsByLocation = () => {
+    if (selectedLocation === 'all') {
+      setPetitionsToReview(allPetitions);
+    } else {
+      const filtered = allPetitions.filter(p => p.location === selectedLocation);
+      setPetitionsToReview(filtered);
+    }
+  };
+
+  const handleLocationChange = (location) => {
+    setSelectedLocation(location);
   };
 
   const updatePetitionStatus = async (petitionId, status, response) => {
@@ -108,13 +154,61 @@ const OfficialDashboard = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h1 className="text-3xl font-bold text-gray-900">Public Official Dashboard</h1>
-          <p className="text-gray-600 mt-2">Review petitions, manage responses, and view analytics</p>
-          {/* Last Updated Indicator */}
-          <p className="text-xs text-gray-500 mt-2">
-            Last updated: {new Date().toLocaleTimeString()} • Auto-refreshes every 30 seconds
-          </p>
+        <div className="">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Public Official Dashboard</h1>
+              <p className="text-gray-600 mt-2">Review petitions, manage responses, and view analytics</p>
+              {/* Last Updated Indicator */}
+              <p className="text-xs text-gray-500 mt-2">
+                Last updated: {new Date().toLocaleTimeString()} • Auto-refreshes every 30 seconds
+              </p>
+            </div>
+
+            {/* Location Filter */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 whitespace-nowrap">
+                <LocationOn className="text-blue-600" />
+                Filter by Location:
+              </label>
+              <select
+                value={selectedLocation}
+                onChange={(e) => handleLocationChange(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[200px]"
+              >
+                <option value="all">All Locations ({allPetitions.length})</option>
+                {availableLocations.map(location => {
+                  const count = allPetitions.filter(p => p.location === location).length;
+                  return (
+                    <option key={location} value={location}>
+                      {location} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+              {selectedLocation !== 'all' && (
+                <button
+                  onClick={() => handleLocationChange('all')}
+                  className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Clear Filter
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Location Filter Info */}
+          {selectedLocation !== 'all' && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+              <LocationOn className="text-blue-600" fontSize="small" />
+              <span className="text-sm text-blue-800">
+                Showing petitions for <strong>{selectedLocation}</strong> 
+                <span className="ml-2 text-blue-600">
+                  ({petitionsToReview.length} {petitionsToReview.length === 1 ? 'petition' : 'petitions'})
+                </span>
+              </span>
+            </div>
+          )}
         </div>
 
         {/* UPDATED Overview Cards - Using Dynamic Counts */}
@@ -160,37 +254,6 @@ const OfficialDashboard = () => {
           </div>
         </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Petitions by Category */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-xl font-semibold mb-4">Petitions by Category</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={analytics?.petitionsByCategory || []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="_id" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#3B82F6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Signature Trends */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-xl font-semibold mb-4">Signature Trends (30 Days)</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={analytics?.signatureTrends || []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="_id" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#10B981" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
         {/* Petitions Requiring Review */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex justify-between items-center mb-6">
@@ -204,8 +267,9 @@ const OfficialDashboard = () => {
                   fetchAnalytics();
                   fetchPetitionsToReview();
                 }}
-                className="px-3 py-1 bg-blue-100 text-blue-600 rounded-md text-sm hover:bg-blue-200 transition-colors"
+                className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-600 rounded-md text-sm hover:bg-blue-200 transition-colors"
               >
+                <Refresh fontSize="small" />
                 Refresh
               </button>
             </div>
@@ -223,7 +287,7 @@ const OfficialDashboard = () => {
               ))
             ) : (
               <div className="text-center py-12">
-                <div className="text-gray-400 text-6xl mb-4">✅</div>
+                <CheckCircle sx={{ fontSize: 72, color: '#9CA3AF', mb: 2 }} />
                 <h4 className="text-lg font-semibold text-gray-900 mb-2">All caught up!</h4>
                 <p className="text-gray-500">No petitions requiring review at this time.</p>
               </div>
@@ -273,14 +337,16 @@ const PetitionReviewCard = ({ petition, onStatusUpdate, onVerify }) => {
           <div className="flex items-center gap-3 mb-2">
             <h4 className="font-semibold text-lg">{petition.title}</h4>
             {petition.verified && (
-              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                ✓ Verified
+              <span className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                <Verified fontSize="small" />
+                Verified
               </span>
             )}
             {/* Priority Indicator */}
             {petition.priority === 'high' && (
-              <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
-                🔥 High Priority
+              <span className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                <PriorityHigh fontSize="small" />
+                High Priority
               </span>
             )}
           </div>
@@ -290,15 +356,18 @@ const PetitionReviewCard = ({ petition, onStatusUpdate, onVerify }) => {
             <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
               {petition.category}
             </span>
-            <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">
-              📍 {petition.location}
+            <span className="flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">
+              <LocationOn fontSize="small" />
+              {petition.location}
             </span>
-            <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
-              👥 {petition.signaturesCount} signatures
+            <span className="flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
+              <People fontSize="small" />
+              {petition.signaturesCount} signatures
             </span>
             {/* Time indicator */}
-            <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
-              ⏰ {new Date(petition.createdAt).toLocaleDateString()}
+            <span className="flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
+              <AccessTime fontSize="small" />
+              {new Date(petition.createdAt).toLocaleDateString()}
             </span>
           </div>
         </div>
@@ -308,16 +377,27 @@ const PetitionReviewCard = ({ petition, onStatusUpdate, onVerify }) => {
         <button
           onClick={() => setShowResponseForm(!showResponseForm)}
           disabled={isSubmitting}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
         >
-          📝 Review Petition
+          <Edit fontSize="small" />
+          Review Petition
         </button>
         <button
           onClick={() => setShowVerifyForm(!showVerifyForm)}
           disabled={isSubmitting}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
         >
-          {petition.verified ? '✓ Verified' : '✅ Verify'}
+          {petition.verified ? (
+            <>
+              <CheckCircle fontSize="small" />
+              Verified
+            </>
+          ) : (
+            <>
+              <Task fontSize="small" />
+              Verify
+            </>
+          )}
         </button>
       </div>
 
@@ -385,25 +465,27 @@ const PetitionReviewCard = ({ petition, onStatusUpdate, onVerify }) => {
                 disabled={isSubmitting}
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={() => handleVerify(true)}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 w-full sm:w-auto"
               >
-                {isSubmitting ? 'Processing...' : '✅ Verify as Legitimate'}
+                <CheckBox fontSize="small" />
+                {isSubmitting ? 'Processing...' : 'Verify as Legitimate'}
               </button>
               <button
                 onClick={() => handleVerify(false)}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 w-full sm:w-auto"
               >
-                {isSubmitting ? 'Processing...' : '❌ Mark as Invalid'}
+                <Cancel fontSize="small" />
+                {isSubmitting ? 'Processing...' : 'Mark as Invalid'}
               </button>
               <button
                 onClick={() => setShowVerifyForm(false)}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                className="flex items-center justify-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 w-full sm:w-auto"
               >
                 Cancel
               </button>

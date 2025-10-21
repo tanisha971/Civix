@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { Tooltip } from "@mui/material";
 import { isPublicOfficial } from "../../services/authService";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import EditIcon from "@mui/icons-material/Edit";
@@ -10,7 +11,7 @@ import AnalyticsIcon from "@mui/icons-material/Analytics";
 import ReportIcon from "@mui/icons-material/Report";
 import SettingsIcon from "@mui/icons-material/Settings";
 import HelpIcon from "@mui/icons-material/Help";
-import AssessmentIcon from "@mui/icons-material/Assessment"; // Add this import
+import AssessmentIcon from "@mui/icons-material/Assessment";
 
 export default function DashboardBar() {
   const location = useLocation();
@@ -21,13 +22,13 @@ export default function DashboardBar() {
     { to: "/dashboard", label: "Dashboard", icon: <DashboardIcon /> },
     { to: "/dashboard/petitions", label: "Petitions", icon: <EditIcon /> },
     { to: "/dashboard/polls", label: "Polls", icon: <HowToVoteIcon /> },
-    { to: "/dashboard/results", label: "Poll Results", icon: <AssessmentIcon /> }, // Add this line
+    { to: "/dashboard/results", label: "Poll Results", icon: <AssessmentIcon /> },
   ];
 
   // Official-only links
   const officialLinks = [
     { to: "/dashboard/official", label: "Official Panel", icon: <BusinessIcon /> },
-    { to: "/dashboard/official/analytics", label: "Analytics", icon: <AnalyticsIcon /> },
+    { to: "/dashboard/analytics", label: "Analytics", icon: <AnalyticsIcon /> },
   ];
 
   // Common links for all users
@@ -47,20 +48,32 @@ export default function DashboardBar() {
   return (
     <nav className="w-full mt-6">
       {links.map((link) => (
-        <Link
+        <Tooltip 
           key={link.to}
-          to={link.to}
-          className={`flex items-center gap-3 px-6 py-3 mb-1 rounded-lg font-medium transition-colors
-            ${
-              location.pathname === link.to || 
-              (link.to !== '/dashboard' && location.pathname.startsWith(link.to))
-                ? "bg-[#e3f2fd] text-[#10419C]"
-                : "text-gray-800 hover:bg-gray-100"
-            }`}
+          title={link.label} 
+          placement="right"
+          arrow
+          enterDelay={500}
+          leaveDelay={200}
         >
-          {link.icon}
-          {link.label}
-        </Link>
+          <Link
+            to={link.to}
+            className={`flex items-center gap-3 px-6 py-3 mb-1 rounded-lg font-medium transition-colors
+              ${
+                location.pathname === link.to || 
+                (link.to !== '/dashboard' && location.pathname.startsWith(link.to))
+                  ? "bg-[#e3f2fd] text-[#10419C]"
+                  : "text-gray-800 hover:bg-gray-100"
+              }`}
+          >
+            <span className="tooltip-icon">
+              {link.icon}
+            </span>
+            <span className="link-label">
+              {link.label}
+            </span>
+          </Link>
+        </Tooltip>
       ))}
     </nav>
   );

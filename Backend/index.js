@@ -9,7 +9,8 @@ import authRoutes from "./routes/auth-route.js";
 import userRoutes from "./routes/user-route.js";
 import petitionRoutes from "./routes/petition-route.js";
 import signatureRoutes from "./routes/signature-route.js";
-import pollRoutes from "./routes/poll-route.js"; // <-- Add this line
+import pollRoutes from "./routes/poll-route.js";
+import adminLogRoutes from "./routes/adminLog-route.js";
 
 dotenv.config();
 const app = express();
@@ -53,7 +54,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/petitions", petitionRoutes);
 app.use("/api/signatures", signatureRoutes);
-app.use("/api/polls", pollRoutes); // <-- Add this line
+app.use("/api/polls", pollRoutes);
+app.use("/api/admin-logs", adminLogRoutes);
 
 // Test route
 app.get("/", (req, res) => {

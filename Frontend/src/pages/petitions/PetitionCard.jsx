@@ -14,11 +14,25 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
   const [signaturesCount, setSignaturesCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [checkingSignature, setCheckingSignature] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  
   const currentUserId = getCurrentUserId();
   const userIsAuthenticated = isAuthenticated();
   const isCreator = petition.creator?._id === currentUserId;
 
-  const isGridView = viewMode === "Grid View";
+  // Check if mobile screen
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  // Force grid view on mobile
+  const isGridView = isMobile ? true : viewMode === "Grid View";
 
   // Check if user has signed this petition on component mount
   useEffect(() => {
@@ -137,18 +151,6 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
     return "text-gray-600";
   };
 
-  const formatDate = (dateString) => {
-    try {
-      const date = new Date(dateString);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      return `${day}/${month}/${year}`;
-    } catch {
-      return 'Not specified';
-    }
-  };
-
   // Calculate progress percentage
   const signatureGoal = petition.signatureGoal || 100;
   const progressPercentage = Math.min((signaturesCount / signatureGoal) * 100, 100);
@@ -185,39 +187,18 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
           {/* Edit/Delete buttons for creator */}
           {isCreator && userIsAuthenticated && (
             <div className="flex gap-1">
-              {!isGridView ? (
-                // List View - Text buttons
-                <>
-                  <button
-                    onClick={handleEdit}
-                    className="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs transition-colors"
-                  >
-                    Delete
-                  </button>
-                </>
-              ) : (
-                // Grid View - Text buttons (same styling)
-                <>
-                  <button
-                    onClick={handleEdit}
-                    className="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs transition-colors"
-                  >
-                    Delete
-                  </button>
-                </>
-              )}
+              <button
+                onClick={handleEdit}
+                className="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs transition-colors"
+              >
+                Edit
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs transition-colors"
+              >
+                Delete
+              </button>
             </div>
           )}
         </div>
@@ -285,47 +266,82 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
       {/* Footer */}
       <div className={isGridView ? 'mt-auto' : ''}>
         {isGridView ? (
-          // Grid View Footer - Updated Layout
-          <div className="space-y-2">
-            {/* Single Line - Category Left, Location Center, Creator Right */}
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded flex-shrink-0">
-                {petition.category}
-              </span>
-              
-              <div className="flex items-center min-w-0 mx-2">
-                <LocationOnIcon className="text-blue-600 mr-1 flex-shrink-0" style={{ fontSize: '14px' }} />
-                <span className="text-blue-900 truncate">{petition.location || 'N/A'}</span>
+          // Grid View Footer - Optimized for mobile
+          <div className="space-y-3">
+            {/* Mobile Grid: Stacked layout for better readability */}
+            <div className="space-y-2">
+              {/* Category and Creator */}
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">
+                  {petition.category}
+                </span>
+                <span className="text-xs text-gray-500 truncate max-w-24">
+                  by {petition.creator?.name || 'Anonymous'}
+                </span>
               </div>
               
-              <span className="text-gray-500 truncate flex-shrink-0">
-                {petition.creator?.name || 'Anonymous'}
-              </span>
+              {/* Location */}
+              <div className="flex items-center">
+                <LocationOnIcon className="text-blue-600 mr-1" style={{ fontSize: '14px' }} />
+                <span className="text-xs text-blue-900 truncate">
+                  {petition.location || 'Not specified'}
+                </span>
+              </div>
             </div>
+
+            {/* Sign Button for Grid View */}
+            <button
+              onClick={handleSign}
+              disabled={signed || loading || isCreator || !userIsAuthenticated}
+              className={`w-full px-3 py-2 text-white rounded-md text-sm font-medium transition-all duration-200 ${
+                !userIsAuthenticated
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : isCreator
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : signed 
+                  ? "bg-green-500 cursor-default" 
+                  : loading
+                  ? "bg-gray-400 cursor-wait"
+                  : "bg-blue-600 hover:bg-blue-700 active:scale-95"
+              }`}
+            >
+              {!userIsAuthenticated ? (
+                "Login to Sign"
+              ) : isCreator ? (
+                "Your Petition"
+              ) : loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Signing...
+                </div>
+              ) : signed ? (
+                "✓ Signed"
+              ) : (
+                "Sign Petition"
+              )}
+            </button>
           </div>
         ) : (
-          // List View Footer - Original (unchanged)
+          // List View Footer - Desktop only
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">
                 {petition.category}
               </span>
               <span className="ml-2 text-xs font-semibold text-gray-500 truncate flex-shrink-0">
-                  by {petition.creator?.name || 'Anonymous'}
-                </span>
+                by {petition.creator?.name || 'Anonymous'}
+              </span>
+              
               {/* Location Card */}
               <div className="flex items-center">
-
                 <div className="p-1">
                   <LocationOnIcon className="text-blue-600" style={{ fontSize: '18px' }} />
                 </div>
-                
                 <div className="">
                   <p className="text-xs font-semibold text-blue-900 truncate" title={petition.location}>
                     {petition.location || 'Not specified'}
                   </p>
                 </div>
-                
               </div>
             </div>
 
@@ -361,40 +377,6 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
               )}
             </button>
           </div>
-        )}
-
-        {/* Sign Button for Grid View */}
-        {isGridView && (
-          <button
-            onClick={handleSign}
-            disabled={signed || loading || isCreator || !userIsAuthenticated}
-            className={`w-full px-3 py-2 text-white rounded-md text-sm font-medium transition-all duration-200 mt-3 ${
-              !userIsAuthenticated
-                ? "bg-gray-400 cursor-not-allowed"
-                : isCreator
-                ? "bg-gray-400 cursor-not-allowed"
-                : signed 
-                ? "bg-green-500 cursor-default" 
-                : loading
-                ? "bg-gray-400 cursor-wait"
-                : "bg-blue-600 hover:bg-blue-700 active:scale-95"
-            }`}
-          >
-            {!userIsAuthenticated ? (
-              "Login to Sign"
-            ) : isCreator ? (
-              "Your Petition"
-            ) : loading ? (
-              <div className="flex items-center justify-center gap-2">
-                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Signing...
-              </div>
-            ) : signed ? (
-              "✓ Signed"
-            ) : (
-              "Sign Petition"
-            )}
-          </button>
         )}
       </div>
     </div>

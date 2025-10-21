@@ -123,7 +123,7 @@ const ResultsFilters = ({ filters, onFilterChange, polls }) => {
             onFilterChange('timeRange', 'All Time');
             onFilterChange('pollType', 'All Polls');
           }}
-          className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 underline"
+          className="px-3 py-2 text-sm bg-gray-200 rounded text-gray-600 hover:text-gray-800"
         >
           Clear All
         </button>
