@@ -571,6 +571,7 @@ export default function Reports({ allPolls = [] }) {
                 { 
                   title: 'Poll', 
                   dataIndex: 'title',
+                  align: 'center',
                   width: 200, // Fixed width instead of percentage for better scroll behavior
                   ellipsis: true,
                   render: (text, record) => (

@@ -21,7 +21,12 @@ import officialService from '../../services/officialService';
 const OfficialDashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [petitionsToReview, setPetitionsToReview] = useState([]);
+  const [allPetitions, setAllPetitions] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Location filter state
+  const [selectedLocation, setSelectedLocation] = useState('all');
+  const [availableLocations, setAvailableLocations] = useState([]);
   
   // DYNAMIC COUNTS STATE - Like PetitionStats
   const [totalPetitionsCount, setTotalPetitionsCount] = useState(0);
@@ -40,6 +45,11 @@ const OfficialDashboard = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Filter petitions when location changes
+  useEffect(() => {
+    filterPetitionsByLocation();
+  }, [selectedLocation, allPetitions]);
 
   const fetchAnalytics = async () => {
     try {
@@ -65,12 +75,35 @@ const OfficialDashboard = () => {
   const fetchPetitionsToReview = async () => {
     try {
       const response = await officialService.getPetitionsForReview({ status: 'active' });
-      setPetitionsToReview(response.petitions || []);
+      const petitions = response.petitions || [];
+      
+      // Store all petitions
+      setAllPetitions(petitions);
+      
+      // Extract unique locations
+      const locations = [...new Set(petitions.map(p => p.location))].sort();
+      setAvailableLocations(locations);
+      
+      // Initially show all petitions
+      setPetitionsToReview(petitions);
     } catch (error) {
       console.error('Error fetching petitions to review:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterPetitionsByLocation = () => {
+    if (selectedLocation === 'all') {
+      setPetitionsToReview(allPetitions);
+    } else {
+      const filtered = allPetitions.filter(p => p.location === selectedLocation);
+      setPetitionsToReview(filtered);
+    }
+  };
+
+  const handleLocationChange = (location) => {
+    setSelectedLocation(location);
   };
 
   const updatePetitionStatus = async (petitionId, status, response) => {
@@ -121,13 +154,61 @@ const OfficialDashboard = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h1 className="text-3xl font-bold text-gray-900">Public Official Dashboard</h1>
-          <p className="text-gray-600 mt-2">Review petitions, manage responses, and view analytics</p>
-          {/* Last Updated Indicator */}
-          <p className="text-xs text-gray-500 mt-2">
-            Last updated: {new Date().toLocaleTimeString()} • Auto-refreshes every 30 seconds
-          </p>
+        <div className="">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Public Official Dashboard</h1>
+              <p className="text-gray-600 mt-2">Review petitions, manage responses, and view analytics</p>
+              {/* Last Updated Indicator */}
+              <p className="text-xs text-gray-500 mt-2">
+                Last updated: {new Date().toLocaleTimeString()} • Auto-refreshes every 30 seconds
+              </p>
+            </div>
+
+            {/* Location Filter */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 whitespace-nowrap">
+                <LocationOn className="text-blue-600" />
+                Filter by Location:
+              </label>
+              <select
+                value={selectedLocation}
+                onChange={(e) => handleLocationChange(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[200px]"
+              >
+                <option value="all">All Locations ({allPetitions.length})</option>
+                {availableLocations.map(location => {
+                  const count = allPetitions.filter(p => p.location === location).length;
+                  return (
+                    <option key={location} value={location}>
+                      {location} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+              {selectedLocation !== 'all' && (
+                <button
+                  onClick={() => handleLocationChange('all')}
+                  className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Clear Filter
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Location Filter Info */}
+          {selectedLocation !== 'all' && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+              <LocationOn className="text-blue-600" fontSize="small" />
+              <span className="text-sm text-blue-800">
+                Showing petitions for <strong>{selectedLocation}</strong> 
+                <span className="ml-2 text-blue-600">
+                  ({petitionsToReview.length} {petitionsToReview.length === 1 ? 'petition' : 'petitions'})
+                </span>
+              </span>
+            </div>
+          )}
         </div>
 
         {/* UPDATED Overview Cards - Using Dynamic Counts */}
@@ -170,37 +251,6 @@ const OfficialDashboard = () => {
             <div className="text-red-600 text-sm mt-1">
               Completed or rejected
             </div>
-          </div>
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Petitions by Category */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-xl font-semibold mb-4">Petitions by Category</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={analytics?.petitionsByCategory || []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="_id" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#3B82F6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Signature Trends */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-xl font-semibold mb-4">Signature Trends (30 Days)</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={analytics?.signatureTrends || []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="_id" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#10B981" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
           </div>
         </div>
 

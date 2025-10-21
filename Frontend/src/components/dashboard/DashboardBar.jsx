@@ -28,7 +28,7 @@ export default function DashboardBar() {
   // Official-only links
   const officialLinks = [
     { to: "/dashboard/official", label: "Official Panel", icon: <BusinessIcon /> },
-    { to: "/dashboard/official/analytics", label: "Analytics", icon: <AnalyticsIcon /> },
+    { to: "/dashboard/analytics", label: "Analytics", icon: <AnalyticsIcon /> },
   ];
 
   // Common links for all users

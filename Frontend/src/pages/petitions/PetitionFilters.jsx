@@ -140,17 +140,15 @@ const PetitionFilters = ({ activeFilter, onFilterChange }) => {
             </div>
           )}
 
-          {/* Mobile: Combined Filters Row */}
-          <div className="flex flex-wrap gap-2 sm:contents">
+          {/* Filters Row */}
+          <div className="flex flex-wrap items-center gap-4">
             {/* Location Filter */}
             <div className="relative dropdown-container">
               <button
                 onClick={() => toggleDropdown('location')}
-                className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
               >
-                <span className="truncate max-w-24 sm:max-w-none">
-                  {activeFilter.location || 'All Locations'}
-                </span>
+                <span>{activeFilter.location || 'All Locations'}</span>
                 <svg 
                   className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${dropdowns.location ? 'rotate-180' : ''}`} 
                   fill="none" 
@@ -161,14 +159,14 @@ const PetitionFilters = ({ activeFilter, onFilterChange }) => {
                 </svg>
               </button>
               {dropdowns.location && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
+                <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
                   {locations.map(item => (
                     <button 
                       key={item} 
                       onClick={() => handleSelect('location', item)} 
                       className={`w-full text-left px-4 py-2 text-sm transition-colors ${
                         activeFilter.location === item
-                          ? 'bg-green-50 text-green-600 font-medium'
+                          ? 'bg-blue-50 text-blue-700 font-medium'
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
@@ -183,11 +181,9 @@ const PetitionFilters = ({ activeFilter, onFilterChange }) => {
             <div className="relative dropdown-container">
               <button
                 onClick={() => toggleDropdown('status')}
-                className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
               >
-                <span className="truncate max-w-24 sm:max-w-none">
-                  {activeFilter.status || 'All Status'}
-                </span>
+                <span>{activeFilter.status || 'All Status'}</span>
                 <svg 
                   className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${dropdowns.status ? 'rotate-180' : ''}`} 
                   fill="none" 
@@ -198,14 +194,14 @@ const PetitionFilters = ({ activeFilter, onFilterChange }) => {
                 </svg>
               </button>
               {dropdowns.status && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
+                <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
                   {statuses.map(item => (
                     <button 
                       key={item} 
                       onClick={() => handleSelect('status', item)} 
                       className={`w-full text-left px-4 py-2 text-sm transition-colors ${
                         activeFilter.status === item
-                          ? 'bg-green-50 text-green-600 font-medium'
+                          ? 'bg-blue-50 text-blue-700 font-medium'
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
@@ -219,7 +215,7 @@ const PetitionFilters = ({ activeFilter, onFilterChange }) => {
             {/* Clear Filters */}
             <button
               onClick={clearFilters}
-              className="px-3 py-2 bg-gray-200 rounded-md text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-300 transition-colors"
+              className="px-3 py-2 text-sm bg-gray-200 rounded text-gray-600 hover:text-gray-800"
             >
               Clear
             </button>
