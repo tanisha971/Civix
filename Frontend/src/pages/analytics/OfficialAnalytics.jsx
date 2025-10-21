@@ -59,7 +59,7 @@ const OfficialAnalytics = () => {
             </div>
             <button
               onClick={fetchAnalytics}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
             >
               <Refresh fontSize="small" />
               Refresh Data

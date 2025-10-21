@@ -229,7 +229,7 @@ const ResultsDashboard = () => {
               <button
                 onClick={fetchPolls}
                 disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 disabled:opacity-50 transition-colors"
               >
                 {loading ? 'Refreshing...' : 'Refresh Now'}
               </button>
