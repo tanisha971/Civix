@@ -8,7 +8,7 @@ import {
   getRecentActions,
   deleteOldLogs
 } from '../controllers/adminLogController.js';
-import { authenticate } from '../middleware/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 import { requireOfficial } from '../middleware/officialAuth.js';
 
 const router = express.Router();
@@ -17,7 +17,7 @@ const router = express.Router();
 router.get('/recent', getRecentActions); // Get recent actions for dashboard
 
 // Protected routes - require authentication
-router.use(authenticate);
+router.use(requireAuth);
 
 // Get all logs (with filters and pagination)
 router.get('/', getAdminLogs);
