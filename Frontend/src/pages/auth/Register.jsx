@@ -73,15 +73,7 @@ export default function Register() {
     }
 
     try {
-      const result = await authService.register(
-        formData.name,
-        formData.email,
-        formData.password,
-        formData.location,
-        formData.role,
-        formData.department,
-        formData.position
-      );
+      const result = await authService.register(formData);
       
       if (result.success) {
         if (formData.role === 'public-official') {
