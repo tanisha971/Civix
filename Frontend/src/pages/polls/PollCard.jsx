@@ -162,7 +162,7 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
     }`}>
     
     {/* Header */}
-    <div className={`flex justify-between items-start ${isGridView ? 'mb-3' : 'mb-4'}`}>
+    <div className={`flex justify-between items-start ${isGridView ? 'mb-3' : 'mb-4'} flex-shrink-0`}>
       <div className="flex items-center gap-3">
         <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(poll.status)}`}>
           {poll.status}
@@ -215,123 +215,182 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
       </div>
     </div>
 
-    {/* Poll Question */}
-    <h3 className={`font-bold text-gray-900 leading-tight ${
-      isGridView 
-        ? 'text-base mb-2' 
-        : 'text-xl mb-2 pr-20'
-    }`} style={isGridView ? {
-      overflow: 'hidden',
-      display: '-webkit-box',
-      WebkitBoxOrient: 'vertical',
-      WebkitLineClamp: 2,
-      lineHeight: '1.4em',
-      maxHeight: '2.8em'
-    } : {}}>
-      {poll.question}
-    </h3>
+    {/* UNIFIED SCROLLABLE CONTENT AREA - Grid View Only */}
+    {isGridView ? (
+      <div className="flex-1 overflow-y-auto pr-2 mb-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400" 
+           style={{ maxHeight: '250px' }}>
+        
+        {/* Poll Question */}
+        <h3 className="font-bold text-gray-900 leading-tight text-base mb-2">
+          {poll.question}
+        </h3>
 
-    {/* Poll Description */}
-    <p className={`text-gray-600 text-sm leading-relaxed ${
-      isGridView ? 'mb-3' : 'mb-6'
-    }`} style={isGridView ? {
-      overflow: 'hidden',
-      display: '-webkit-box',
-      WebkitBoxOrient: 'vertical',
-      WebkitLineClamp: 2,
-      lineHeight: '1.4em',
-      maxHeight: '2.8em'
-    } : {}}>
-      {poll.description}
-    </p>
+        {/* Poll Description */}
+        <p className="text-gray-600 text-sm leading-relaxed mb-3">
+          {poll.description}
+        </p>
 
-    {/* Poll Options */}
-    <div className={`${isGridView ? 'mb-4 flex-1' : 'mb-4'}`}>
-      <div className={`space-y-2 ${
-        isGridView && poll.options && poll.options.length > 2 
-          ? 'max-h-32 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400' 
-          : ''
-      }`}>
-        {poll.options?.slice(0, isGridView ? poll.options.length : poll.options.length).map((option, index) => {
-          const isSelected = selectedOptions.includes(index);
-          const optionVotes = optionCounts[index];
-          const votePercentage = getVotePercentage(index, totalVotes);
-          const isVotedOption = voted && votedOption === index;
-          
-          return (
-            <div
-              key={index}
-              onClick={() => handleOptionSelect(index)}
-              className={`relative ${isGridView ? 'p-2' : 'p-3'} rounded-lg border transition-all duration-200 cursor-pointer ${
-                voted || poll.status === "Closed"
-                  ? isVotedOption 
+        {/* Poll Options */}
+        <div className="space-y-2">
+          {poll.options?.map((option, index) => {
+            const isSelected = selectedOptions.includes(index);
+            const optionVotes = optionCounts[index];
+            const votePercentage = getVotePercentage(index, totalVotes);
+            const isVotedOption = voted && votedOption === index;
+            
+            return (
+              <div
+                key={index}
+                onClick={() => handleOptionSelect(index)}
+                className={`relative p-2 rounded-lg border transition-all duration-200 cursor-pointer ${
+                  voted || poll.status === "Closed"
+                    ? isVotedOption 
+                      ? "border-green-500 bg-green-50"
+                      : "cursor-not-allowed opacity-60"
+                    : isSelected
                     ? "border-green-500 bg-green-50"
-                    : "cursor-not-allowed opacity-60"
-                  : isSelected
-                  ? "border-green-500 bg-green-50"
-                  : "border-gray-200 hover:border-green-400 hover:bg-green-50"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                    (isSelected || isVotedOption)
-                      ? "border-green-500 bg-green-500" 
-                      : "border-gray-300"
-                  }`}>
-                    {(isSelected || isVotedOption) && (
-                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
+                    : "border-gray-200 hover:border-green-400 hover:bg-green-50"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                      (isSelected || isVotedOption)
+                        ? "border-green-500 bg-green-500" 
+                        : "border-gray-300"
+                    }`}>
+                      {(isSelected || isVotedOption) && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="font-medium text-gray-900 text-sm break-words">
+                      {typeof option === 'string' ? option : option.text}
+                      {isVotedOption && <span className="text-green-600 ml-1">✓</span>}
+                    </span>
+                  </div>
+                  
+                  <div className="text-right flex-shrink-0 ml-2">
+                    <span className="font-semibold text-gray-700 text-xs">
+                      {optionVotes} votes
+                    </span>
+                    {totalVotes > 0 && (
+                      <div className="text-gray-500 text-xs">
+                        {votePercentage}%
+                      </div>
                     )}
                   </div>
-                  <span className={`font-medium text-gray-900 truncate ${
-                    isGridView ? 'text-sm' : 'text-base'
-                  }`}>
-                    {typeof option === 'string' ? option : option.text}
-                    {isVotedOption && <span className="text-green-600 ml-1">✓</span>}
-                  </span>
                 </div>
                 
-                <div className="text-right flex-shrink-0 ml-2">
-                  <span className={`font-semibold text-gray-700 ${
-                    isGridView ? 'text-xs' : 'text-sm'
-                  }`}>
-                    {optionVotes} votes
-                  </span>
+                {/* Progress Bar */}
+                {totalVotes > 0 && (
+                  <div className="mt-1">
+                    <div className="w-full bg-gray-200 rounded-full h-1">
+                      <div
+                        className="h-1 rounded-full transition-all duration-300 ${
+                          isVotedOption ? 'bg-green-600' : 'bg-green-500'
+                        }"
+                        style={{ width: `${votePercentage}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ) : (
+      // List View - Original Layout (No Scroll Container)
+      <>
+        {/* Poll Question */}
+        <h3 className="font-bold text-gray-900 leading-tight text-xl mb-2 pr-20">
+          {poll.question}
+        </h3>
+
+        {/* Poll Description */}
+        <p className="text-gray-600 text-sm leading-relaxed mb-6">
+          {poll.description}
+        </p>
+
+        {/* Poll Options */}
+        <div className="mb-4">
+          <div className="space-y-2">
+            {poll.options?.map((option, index) => {
+              const isSelected = selectedOptions.includes(index);
+              const optionVotes = optionCounts[index];
+              const votePercentage = getVotePercentage(index, totalVotes);
+              const isVotedOption = voted && votedOption === index;
+              
+              return (
+                <div
+                  key={index}
+                  onClick={() => handleOptionSelect(index)}
+                  className={`relative p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
+                    voted || poll.status === "Closed"
+                      ? isVotedOption 
+                        ? "border-green-500 bg-green-50"
+                        : "cursor-not-allowed opacity-60"
+                      : isSelected
+                      ? "border-green-500 bg-green-50"
+                      : "border-gray-200 hover:border-green-400 hover:bg-green-50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                        (isSelected || isVotedOption)
+                          ? "border-green-500 bg-green-500" 
+                          : "border-gray-300"
+                      }`}>
+                        {(isSelected || isVotedOption) && (
+                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="font-medium text-gray-900 truncate text-base">
+                        {typeof option === 'string' ? option : option.text}
+                        {isVotedOption && <span className="text-green-600 ml-1">✓</span>}
+                      </span>
+                    </div>
+                    
+                    <div className="text-right flex-shrink-0 ml-2">
+                      <span className="font-semibold text-gray-700 text-sm">
+                        {optionVotes} votes
+                      </span>
+                      {totalVotes > 0 && (
+                        <div className="text-gray-500 text-sm">
+                          {votePercentage}%
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Progress Bar */}
                   {totalVotes > 0 && (
-                    <div className={`text-gray-500 ${
-                      isGridView ? 'text-xs' : 'text-sm'
-                    }`}>
-                      {votePercentage}%
+                    <div className="mt-2">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="h-2 rounded-full transition-all duration-300 ${
+                            isVotedOption ? 'bg-green-600' : 'bg-green-500'
+                          }"
+                          style={{ width: `${votePercentage}%` }}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
-              
-              {/* Progress Bar */}
-              {totalVotes > 0 && (
-                <div className={isGridView ? 'mt-1' : 'mt-2'}>
-                  <div className={`w-full bg-gray-200 rounded-full ${
-                    isGridView ? 'h-1' : 'h-2'
-                  }`}>
-                    <div
-                      className={`${isGridView ? 'h-1' : 'h-2'} rounded-full transition-all duration-300 ${
-                        isVotedOption ? 'bg-green-600' : 'bg-green-500'
-                      }`}
-                      style={{ width: `${votePercentage}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
+              );
+            })}
+          </div>
+        </div>
+      </>
+    )}
 
     {/* Footer */}
-    <div className={isGridView ? 'mt-auto' : ''}>
+    <div className={`${isGridView ? 'mt-auto flex-shrink-0' : ''}`}>
       {isGridView ? (
         // Grid View Footer - UPDATED to hide total votes on mobile
         <div className="space-y-2">
