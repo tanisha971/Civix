@@ -97,7 +97,7 @@ const ResultsDashboard = () => {
     // Time range filter
     if (filters.timeRange !== 'All Time') {
       const now = new Date();
-      const filterDate = new Date();
+      let filterDate = new Date();
       
       switch (filters.timeRange) {
         case 'Last 24 Hours':

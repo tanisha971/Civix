@@ -4,7 +4,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PollIcon from '@mui/icons-material/Poll';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import petitionService from '../../services/petitionService';
