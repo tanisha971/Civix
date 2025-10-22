@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '@mui/material/Avatar';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -8,15 +8,37 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import EditIcon from '@mui/icons-material/Edit';
 import LogoutIcon from '@mui/icons-material/Logout';
 import CloseIcon from '@mui/icons-material/Close';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { IconButton, Tooltip, Button, Divider } from '@mui/material';
 import { logout } from '../../services/authService';
 
-export default function Sidebar1({ user, isMobile, onClose }) {
+export default function Sidebar1({ user: initialUser, isMobile, onClose }) {
   const navigate = useNavigate();
+  const [user, setUser] = useState(initialUser);
   const verified = user?.verified || true;
 
+  // Update user when prop changes
+  useEffect(() => {
+    setUser(initialUser);
+  }, [initialUser]);
+
+  // Listen for profile updates from Settings
+  useEffect(() => {
+    const handleProfileUpdate = (event) => {
+      const updatedUser = event.detail;
+      setUser(updatedUser);
+      console.log('Sidebar: Profile updated', updatedUser);
+    };
+
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
+    };
+  }, []);
+
   const handleProfileEdit = () => {
-    navigate('/dashboard/editProfile');
+    navigate('/dashboard/settings');
     if (onClose) onClose(); // Close mobile sidebar after navigation
   };
 
@@ -27,11 +49,13 @@ export default function Sidebar1({ user, isMobile, onClose }) {
       if (onClose) onClose();
     } catch (error) {
       console.error('Logout error:', error);
-      // Even if logout fails, redirect to home
       navigate('/');
       if (onClose) onClose();
     }
   };
+
+  // Get avatar URL
+  const avatarSrc = user?.avatar || "https://randomuser.me/api/portraits/men/75.jpg";
 
   return (
     <div style={{ 
@@ -59,7 +83,7 @@ export default function Sidebar1({ user, isMobile, onClose }) {
       <div style={{ position: 'relative', display: 'inline-block', marginBottom: 16 }}>
         <Tooltip title="Click to edit profile">
           <Avatar
-            src={user?.avatar || "https://randomuser.me/api/portraits/men/75.jpg"}
+            src={avatarSrc}
             sx={{ 
               width: isMobile ? 80 : 72, 
               height: isMobile ? 80 : 72, 
@@ -72,7 +96,9 @@ export default function Sidebar1({ user, isMobile, onClose }) {
               transition: 'all 0.2s ease-in-out'
             }}
             onClick={handleProfileEdit}
-          />
+          >
+            {!user?.avatar && user?.name?.charAt(0).toUpperCase()}
+          </Avatar>
         </Tooltip>
         
         {/* Edit icon overlay */}
@@ -92,7 +118,7 @@ export default function Sidebar1({ user, isMobile, onClose }) {
             }
           }}
         >
-          <EditIcon sx={{ fontSize: 12 }} />
+          <SettingsIcon sx={{ fontSize: 12 }} />
         </IconButton>
       </div>
       
@@ -163,10 +189,10 @@ export default function Sidebar1({ user, isMobile, onClose }) {
 
           {/* Mobile Actions */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* Edit Profile Button */}
+            {/* Settings Button */}
             <Button
               variant="outlined"
-              startIcon={<EditIcon />}
+              startIcon={<SettingsIcon />}
               onClick={handleProfileEdit}
               fullWidth
               sx={{ 
@@ -175,7 +201,7 @@ export default function Sidebar1({ user, isMobile, onClose }) {
                 fontWeight: 600
               }}
             >
-              Edit Profile
+              Settings
             </Button>
 
             {/* Logout Button */}

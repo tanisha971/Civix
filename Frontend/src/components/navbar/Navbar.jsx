@@ -53,6 +53,21 @@ export default function Navbar() {
     fetchUser();
   }, []);
 
+  // Listen for profile updates from Settings
+  useEffect(() => {
+    const handleProfileUpdate = (event) => {
+      const updatedUser = event.detail;
+      setUser(updatedUser);
+      console.log('Navbar: Profile updated', updatedUser);
+    };
+
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
+    };
+  }, []);
+
   // Search functionality
   const handleSearch = async (query) => {
     if (!query || query.trim().length < 2) {
@@ -102,6 +117,9 @@ export default function Navbar() {
     }
     setAnchorEl(null);
   };
+
+  // Update avatar src to use base64 directly from localStorage
+  const avatarSrc = user?.avatar || "https://randomuser.me/api/portraits/men/75.jpg";
 
   return (
     <AppBar position="fixed" color="primary" sx={{ zIndex: 100 }}>
@@ -179,7 +197,11 @@ export default function Navbar() {
 
               {/* profile */}
               <Box onClick={handleAvatarClick} sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { opacity: 0.8 } }}>
-                <Avatar alt={user?.name || 'User'} src="https://randomuser.me/api/portraits/men/75.jpg  " sx={{ width: 36, height: 36, ml: 1 }} />
+                <Avatar 
+                  alt={user?.name || 'User'} 
+                  src={avatarSrc} // Base64 string will work directly
+                  sx={{ width: 36, height: 36, ml: 1 }} 
+                />
                 <ArrowDropDownIcon sx={{ color: 'white', ml: 0.5, transform: Boolean(anchorEl) ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
               </Box>
               <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }} sx={{ '& .MuiPaper-root': { minWidth: 180, mt: 1 } }}>

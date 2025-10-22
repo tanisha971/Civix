@@ -1,225 +1,596 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
+  Container,
+  Paper,
+  Tabs,
+  Tab,
+  Box,
+  TextField,
   Button,
-} from "@mui/material";
-import { PhotoCamera } from "@mui/icons-material";
+  Avatar,
+  IconButton,
+  Typography,
+  Divider,
+  Alert,
+  CircularProgress,
+  InputAdornment,
+} from '@mui/material';
+import {
+  Person as PersonIcon,
+  Lock as LockIcon,
+  PhotoCamera as PhotoCameraIcon,
+  Delete as DeleteIcon,
+  Save as SaveIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
+  Email as EmailIcon,
+  LocationOn as LocationOnIcon,
+} from '@mui/icons-material';
+import settingsService from '../../services/settingsService';
+
+function TabPanel({ children, value, index }) {
+  return (
+    <div hidden={value !== index} style={{ padding: '24px 0' }}>
+      {value === index && children}
+    </div>
+  );
+}
 
 export default function Settings() {
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    location: "",
+  const [tabValue, setTabValue] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  
+  const [profileData, setProfileData] = useState({
+    name: '',
+    email: '',
+    location: '',
+    avatar: null,
   });
-  const [preview, setPreview] = useState("");
-  const [openDelete, setOpenDelete] = useState(false);
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
 
-  const handlePic = (e) => {
-    const file = e.target.files[0];
-    if (file) setPreview(URL.createObjectURL(file));
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
+
+  const fileInputRef = useRef(null);
+  const navigate = useNavigate();
+
+  // Load user settings on mount
+  useEffect(() => {
+    loadUserSettings();
+  }, []);
+
+  const loadUserSettings = async () => {
+    try {
+      setLoading(true);
+      const response = await settingsService.getUserSettings();
+      
+      if (response.success) {
+        const { user } = response;
+        setProfileData({
+          name: user.name || '',
+          email: user.email || '',
+          location: user.location || '',
+          avatar: user.avatar || null,
+        });
+      }
+    } catch (error) {
+      console.error('Load settings error:', error);
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to load settings'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSave = (e) => {
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+    setMessage({ type: '', text: '' });
+  };
+
+  const handleProfileChange = (e) => {
+    setProfileData({
+      ...profileData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handlePasswordChange = (e) => {
+    setPasswordData({
+      ...passwordData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    alert("Saved (frontend-only)!\n" + JSON.stringify(form, null, 2));
+    setUpdating(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await settingsService.updateProfile({
+        name: profileData.name,
+        email: profileData.email,
+        location: profileData.location,
+      });
+
+      if (response.success) {
+        setMessage({
+          type: 'success',
+          text: 'Profile updated successfully!'
+        });
+        
+        // Update local storage
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const updatedUser = {
+          ...currentUser,
+          ...response.user
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+
+        // Dispatch custom event to notify other components
+        window.dispatchEvent(new CustomEvent('profileUpdated', { 
+          detail: updatedUser 
+        }));
+      }
+    } catch (error) {
+      console.error('Update profile error:', error);
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to update profile'
+      });
+    } finally {
+      setUpdating(false);
+    }
   };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setUpdating(true);
+    setMessage({ type: '', text: '' });
+
+    // Validation
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setMessage({
+        type: 'error',
+        text: 'New passwords do not match'
+      });
+      setUpdating(false);
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      setMessage({
+        type: 'error',
+        text: 'Password must be at least 6 characters long'
+      });
+      setUpdating(false);
+      return;
+    }
+
+    try {
+      const response = await settingsService.changePassword(passwordData);
+
+      if (response.success) {
+        setMessage({
+          type: 'success',
+          text: 'Password changed successfully!'
+        });
+        
+        // Clear password fields
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+      }
+    } catch (error) {
+      console.error('Change password error:', error);
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to change password'
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!['image/jpeg', 'image/jpg', 'image/png', 'image/gif'].includes(file.type)) {
+      setMessage({
+        type: 'error',
+        text: 'Please select a valid image file (JPEG, PNG, or GIF)'
+      });
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({
+        type: 'error',
+        text: 'File size must be less than 5MB'
+      });
+      return;
+    }
+
+    setUploading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await settingsService.uploadAvatar(file);
+
+      if (response.success) {
+        setProfileData({
+          ...profileData,
+          avatar: response.avatar, // This is now base64 string
+        });
+        setMessage({
+          type: 'success',
+          text: 'Profile picture updated successfully!'
+        });
+
+        // Update local storage with base64 image
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const updatedUser = {
+          ...currentUser,
+          avatar: response.avatar
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+
+        // Dispatch custom event to notify other components
+        window.dispatchEvent(new CustomEvent('profileUpdated', { 
+          detail: updatedUser 
+        }));
+      }
+    } catch (error) {
+      console.error('Upload avatar error:', error);
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to upload profile picture'
+      });
+    } finally {
+      setUploading(false);
+      e.target.value = ''; // Reset file input
+    }
+  };
+
+  const handleDeleteAvatar = async () => {
+    if (!window.confirm('Are you sure you want to delete your profile picture?')) {
+      return;
+    }
+
+    setUploading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await settingsService.deleteAvatar();
+
+      if (response.success) {
+        setProfileData({
+          ...profileData,
+          avatar: null,
+        });
+        setMessage({
+          type: 'success',
+          text: 'Profile picture deleted successfully!'
+        });
+
+        // Update local storage
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const updatedUser = {
+          ...currentUser,
+          avatar: null
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+
+        // Dispatch custom event to notify other components
+        window.dispatchEvent(new CustomEvent('profileUpdated', { 
+          detail: updatedUser 
+        }));
+      }
+    } catch (error) {
+      console.error('Delete avatar error:', error);
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to delete profile picture'
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords({
+      ...showPasswords,
+      [field]: !showPasswords[field],
+    });
+  };
+
+  if (loading) {
+    return (
+      <Container maxWidth="md" sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto lg:ml-8 lg:mr-4 px-4 sm:px-6 lg:px-8 pt-4 pb-8">
-        {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Settings</h1>
-          <p className="text-gray-600 mt-1 text-sm sm:text-base">
-            Update your profile and account preferences.
-          </p>
-        </div>
+    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+      <Paper elevation={3} sx={{ overflow: 'hidden' }}>
+        {/* Header */}
+        <Box sx={{ bgcolor: 'primary.main', color: 'white', p: 3 }}>
+          <Typography variant="h4" fontWeight="bold">
+            Settings
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 0.5, opacity: 0.9 }}>
+            Manage your account settings and preferences
+          </Typography>
+        </Box>
 
-        {/* Main Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <form onSubmit={handleSave} className="p-4 sm:p-6 space-y-6">
-            {/* Avatar + Label */}
-            <div className="flex flex-col items-center space-y-2">
-              <div className="relative w-24 h-24 sm:w-36 sm:h-36">
-                {/* Avatar circle */}
-                <div className="w-full h-full rounded-full border-2 border-gray-200 overflow-hidden flex items-center justify-center bg-gray-100">
-                  {preview ? (
-                    <img
-                      src={preview}
-                      alt="Profile preview"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <PhotoCamera className="text-gray-400 w-8 h-8 sm:w-12 sm:h-12" />
-                  )}
-                </div>
+        {/* Tabs */}
+        <Tabs
+          value={tabValue}
+          onChange={handleTabChange}
+          sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
+        >
+          <Tab icon={<PersonIcon />} label="Profile" />
+          <Tab icon={<LockIcon />} label="Security" />
+        </Tabs>
 
-                {/* Blue edit icon - bottom-right */}
-                <label className="absolute bottom-0 right-0 w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition">
-                  <PhotoCamera className="text-white w-4 h-4 sm:w-5 sm:h-5" />
-                  <input hidden accept="image/*" type="file" onChange={handlePic} />
-                </label>
-              </div>
+        {/* Messages */}
+        {message.text && (
+          <Box sx={{ p: 2 }}>
+            <Alert severity={message.type} onClose={() => setMessage({ type: '', text: '' })}>
+              {message.text}
+            </Alert>
+          </Box>
+        )}
 
-              <span className="text-sm text-gray-500">Update profile pic</span>
-            </div>
-
-            {/* Name */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 sm:text-base">
-                Name
-              </label>
+        {/* Profile Tab */}
+        <TabPanel value={tabValue} index={0}>
+          <Box sx={{ px: 3 }}>
+            {/* Avatar Section */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4 }}>
+              <Box sx={{ position: 'relative' }}>
+                <Avatar
+                  src={profileData.avatar || undefined} // Use base64 string directly
+                  sx={{ width: 120, height: 120, mb: 2, cursor: 'pointer' }}
+                  onClick={handleAvatarClick}
+                >
+                  {!profileData.avatar && profileData.name?.charAt(0).toUpperCase()}
+                </Avatar>
+                {uploading && (
+                  <CircularProgress
+                    size={120}
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                    }}
+                  />
+                )}
+              </Box>
+              
               <input
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="Your full name"
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                required
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
               />
-            </div>
 
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 sm:text-base">
-                Email
-              </label>
-              <input
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<PhotoCameraIcon />}
+                  onClick={handleAvatarClick}
+                  disabled={uploading}
+                >
+                  Change Photo
+                </Button>
+                {profileData.avatar && (
+                  <IconButton
+                    color="error"
+                    onClick={handleDeleteAvatar}
+                    disabled={uploading}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                )}
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                Max file size: 5MB (JPEG, PNG, GIF)
+              </Typography>
+            </Box>
+
+            <Divider sx={{ mb: 3 }} />
+
+            {/* Profile Form */}
+            <form onSubmit={handleUpdateProfile}>
+              <TextField
+                fullWidth
+                label="Name"
+                name="name"
+                value={profileData.name}
+                onChange={handleProfileChange}
+                required
+                sx={{ mb: 3 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PersonIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                fullWidth
+                label="Email"
                 name="email"
                 type="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="you@example.com"
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                value={profileData.email}
+                onChange={handleProfileChange}
                 required
+                sx={{ mb: 3 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <EmailIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
               />
-            </div>
 
-            {/* New Password */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 sm:text-base">
-                New Password
-              </label>
-              <input
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                placeholder="Leave blank to keep current"
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-              />
-            </div>
-
-            {/* Location */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 sm:text-base">
-                Location
-              </label>
-              <input
+              <TextField
+                fullWidth
+                label="Location"
                 name="location"
-                value={form.location}
-                onChange={handleChange}
-                placeholder="City, State"
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                value={profileData.location}
+                onChange={handleProfileChange}
                 required
+                sx={{ mb: 3 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LocationOnIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
               />
-            </div>
 
-            {/* Save Button */}
-            <div className="pt-4 border-t border-gray-200">
-              <button
+              <Button
                 type="submit"
-                className="w-full px-4 py-3 text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors font-semibold text-sm sm:text-base"
+                variant="contained"
+                fullWidth
+                size="large"
+                startIcon={<SaveIcon />}
+                disabled={updating}
+                sx={{ mt: 2 }}
               >
-                Save Changes
-              </button>
-            </div>
-          </form>
-        </div>
+                {updating ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </form>
+          </Box>
+        </TabPanel>
 
-        {/* Danger Zone */}
-        <div className="bg-white rounded-lg shadow-sm border border-red-300 mt-6">
-          <div className="p-4 sm:p-6">
-            <h2 className="text-lg font-semibold text-red-700 mb-2 sm:text-xl">
-              Danger Zone
-            </h2>
-            <p className="text-sm text-red-600 mb-4 sm:text-base">
-              Deleting your Civix account is permanent. All polls, petitions, and
-              contributions will be forever erased. You will lose access to every
-              Civix service and your profile will vanish. Are you sure you want
-              to continue?
-            </p>
-            <button
-              onClick={() => setOpenDelete(true)}
-              className="w-full sm:w-auto px-6 py-3 text-sm font-semibold text-white bg-red-600 border border-transparent rounded-lg shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all"
-            >
-              Delete My Account
-            </button>
-          </div>
-        </div>
-      </div>
+        {/* Security Tab */}
+        <TabPanel value={tabValue} index={1}>
+          <Box sx={{ px: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Change Password
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Enter your current password to set a new one
+            </Typography>
 
-      {/* Delete Confirmation Dialog - Responsive */}
-      <Dialog 
-        open={openDelete} 
-        onClose={() => setOpenDelete(false)}
-        fullWidth
-        maxWidth="sm"
-        sx={{
-          '& .MuiDialog-paper': {
-            margin: '16px',
-            width: '100%',
-            maxWidth: 'calc(100% - 32px)',
-          }
-        }}
-      >
-        <DialogTitle sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
-          Confirm Deletion
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-            Deleting your Civix account is permanent. All polls, petitions, and
-            contributions will be forever erased. You will lose access to every
-            Civix service and your profile will vanish. Are you sure you want to
-            continue?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions sx={{ 
-          padding: '16px 24px',
-          flexDirection: { xs: 'column', sm: 'row' },
-          gap: { xs: 1, sm: 0 }
-        }}>
-          <Button 
-            onClick={() => setOpenDelete(false)}
-            fullWidth={window.innerWidth < 640}
-            sx={{ 
-              minWidth: { xs: '100%', sm: 'auto' },
-              marginBottom: { xs: 1, sm: 0 }
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            color="error"
-            onClick={() => {
-              alert("Account deleted (frontend-only)!");
-              setOpenDelete(false);
-            }}
-            fullWidth={window.innerWidth < 640}
-            sx={{ minWidth: { xs: '100%', sm: 'auto' } }}
-          >
-            Yes, delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </div>
+            <form onSubmit={handleChangePassword}>
+              <TextField
+                fullWidth
+                label="Current Password"
+                name="currentPassword"
+                type={showPasswords.current ? 'text' : 'password'}
+                value={passwordData.currentPassword}
+                onChange={handlePasswordChange}
+                required
+                sx={{ mb: 3 }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => togglePasswordVisibility('current')}
+                        edge="end"
+                      >
+                        {showPasswords.current ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                fullWidth
+                label="New Password"
+                name="newPassword"
+                type={showPasswords.new ? 'text' : 'password'}
+                value={passwordData.newPassword}
+                onChange={handlePasswordChange}
+                required
+                sx={{ mb: 3 }}
+                helperText="Password must be at least 6 characters and contain no spaces"
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => togglePasswordVisibility('new')}
+                        edge="end"
+                      >
+                        {showPasswords.new ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                fullWidth
+                label="Confirm New Password"
+                name="confirmPassword"
+                type={showPasswords.confirm ? 'text' : 'password'}
+                value={passwordData.confirmPassword}
+                onChange={handlePasswordChange}
+                required
+                sx={{ mb: 3 }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => togglePasswordVisibility('confirm')}
+                        edge="end"
+                      >
+                        {showPasswords.confirm ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                size="large"
+                startIcon={<LockIcon />}
+                disabled={updating}
+                sx={{ mt: 2 }}
+              >
+                {updating ? 'Changing Password...' : 'Change Password'}
+              </Button>
+            </form>
+          </Box>
+        </TabPanel>
+      </Paper>
+    </Container>
   );
 }

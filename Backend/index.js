@@ -11,6 +11,8 @@ import petitionRoutes from "./routes/petition-route.js";
 import signatureRoutes from "./routes/signature-route.js";
 import pollRoutes from "./routes/poll-route.js";
 import adminLogRoutes from "./routes/adminLog-route.js";
+import settingsRoutes from './routes/settings-route.js';
+import feedbackRoutes from './routes/feedback-route.js';
 
 dotenv.config();
 const app = express();
@@ -56,6 +58,11 @@ app.use("/api/petitions", petitionRoutes);
 app.use("/api/signatures", signatureRoutes);
 app.use("/api/polls", pollRoutes);
 app.use("/api/admin-logs", adminLogRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/feedback', feedbackRoutes);
+
+// Serve uploaded files
+app.use('/uploads', express.static('uploads'));
 
 // Test route
 app.get("/", (req, res) => {
