@@ -19,6 +19,9 @@ import OfficialAnalytics from '../pages/analytics/OfficialAnalytics';
 import Reports from '../pages/reports/Reports';
 import ResultsDashboard from '../pages/results/ResultsDashboard';
 import SearchPage from '../pages/search/SearchPage';
+import Settings from '../pages/settings/settings';
+import HelpSupport from '../pages/help&support/helpsupport';
+
 
 export default function AppRouter() {
   return (
@@ -55,8 +58,8 @@ export default function AppRouter() {
 
           {/* Other routes */}          
           <Route path="reports" element={<Reports />} />
-          <Route path="settings" element={<div>Settings Page - Coming Soon</div>} />
-          <Route path="help" element={<div>Help & Support Page - Coming Soon</div>} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="help" element={<HelpSupport />} />
         </Route>
         
         {/* Redirect unknown routes to home */}
