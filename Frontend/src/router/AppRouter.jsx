@@ -15,8 +15,13 @@ import CreatePetition from '../pages/petitions/CreatePetition';
 import PollList from '../pages/polls/PollList';
 import CreatePoll from '../pages/polls/CreatePoll';
 import OfficialDashboard from '../components/official/OfficialDashboard';
+import OfficialAnalytics from '../pages/analytics/OfficialAnalytics';
 import Reports from '../pages/reports/Reports';
 import ResultsDashboard from '../pages/results/ResultsDashboard';
+import SearchPage from '../pages/search/SearchPage';
+import Settings from '../pages/settings/settings';
+import HelpSupport from '../pages/help&support/helpsupport';
+
 
 export default function AppRouter() {
   return (
@@ -25,6 +30,9 @@ export default function AppRouter() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        
+        {/* Search route - accessible without dashboard wrapper */}
+        <Route path="/search" element={<SearchPage />} />
         
         {/* Dashboard routes */}
         <Route path="/dashboard" element={<Dashboard />}>
@@ -42,7 +50,7 @@ export default function AppRouter() {
 
           {/* Official routes - only accessible to public officials */}
           <Route path="official" element={<OfficialDashboard />} />
-          <Route path="official/analytics" element={<OfficialDashboard />} />
+          <Route path="analytics" element={<OfficialAnalytics />} />
           <Route path="official/review" element={<PetitionList />} />
 
           {/* Results route */}
@@ -50,8 +58,8 @@ export default function AppRouter() {
 
           {/* Other routes */}          
           <Route path="reports" element={<Reports />} />
-          <Route path="settings" element={<div>Settings Page - Coming Soon</div>} />
-          <Route path="help" element={<div>Help & Support Page - Coming Soon</div>} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="help" element={<HelpSupport />} />
         </Route>
         
         {/* Redirect unknown routes to home */}

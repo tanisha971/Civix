@@ -112,4 +112,7 @@ export const requireAuth = async (req, res, next) => {
   next();
 };
 
+// Alias for requireAuth (for compatibility with different naming conventions)
+export const authenticate = requireAuth;
+
 export default auth;

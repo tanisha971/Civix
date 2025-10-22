@@ -205,7 +205,7 @@ const ResultsDashboard = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 mt-[70px] sm:mt-0">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Results Dashboard</h1>
@@ -229,7 +229,7 @@ const ResultsDashboard = () => {
               <button
                 onClick={fetchPolls}
                 disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 disabled:opacity-50 transition-colors"
               >
                 {loading ? 'Refreshing...' : 'Refresh Now'}
               </button>
@@ -339,17 +339,19 @@ const ResultsDashboard = () => {
           </h2>
           
           {filteredPolls.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {filteredPolls.map((poll) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {filteredPolls.map((poll, index) => (
                 <div
                   key={poll._id}
                   id={`poll-${poll._id}`}
                   className={highlightedPollId === poll._id ? 'ring-2 ring-purple-500 rounded-lg' : ''}
                 >
-                  <PollResultsCard 
+                  <PollResultsCard
+                    key={poll.id}
                     poll={poll}
                     showSentiment={true}
-                    isHighlighted={highlightedPollId === poll._id}
+                    isHighlighted={index === 0} // Highlight first card as example
+                    realTimeUpdate={poll.status === 'active'}
                   />
                 </div>
               ))}

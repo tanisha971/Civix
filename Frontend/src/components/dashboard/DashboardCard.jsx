@@ -10,6 +10,44 @@ import petitionService from '../../services/petitionService';
 import { pollService } from '../../services/pollService';
 import { getCurrentUserId } from '../../utils/auth';
 
+//NEW: Official Actions table
+const OfficialActions = () => {
+  const dummy = [
+    { action: 'Approved petition "Fix Streetlights on Park Ave"', official: 'A. Kapoor (MCW)', timestamp: '2025-10-19 09:42' },
+    { action: 'Responded to poll "Weekly Market Holiday"', official: 'S. Das (KMC)', timestamp: '2025-10-18 17:15' },
+    { action: 'Forwarded "Rain-water Harvesting" to Engg. Dept.', official: 'R. Banerjee (CFO)', timestamp: '2025-10-18 11:03' },
+    { action: 'Closed petition "Garbage Pick-up Schedule"', official: 'P. Nandy (SWD)', timestamp: '2025-10-17 14:27' },
+  ];
+
+  return (
+    <div className="mb-8">
+      <h3 className="text-lg font-bold text-gray-800 mb-4">Recent Official Actions</h3>
+      <div className="bg-white rounded-xl shadow border border-gray-200 p-4">
+        <div className="overflow-auto max-h-36">
+          <table className="w-full text-sm text-left text-gray-700">
+            <thead className="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+              <tr>
+                <th className="px-4 py-2">Action</th>
+                <th className="px-4 py-2">Official</th>
+                <th className="px-4 py-2">Date & Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dummy.map((d, i) => (
+                <tr key={i} className="bg-white border-b hover:bg-gray-50">
+                  <td className="px-4 py-2">{d.action}</td>
+                  <td className="px-4 py-2">{d.official}</td>
+                  <td className="px-4 py-2 whitespace-nowrap">{d.timestamp}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function DashboardCard() {
   const navigate = useNavigate();
   const userId = getCurrentUserId();
@@ -180,6 +218,69 @@ export default function DashboardCard() {
             </div>
             <span className="text-3xl font-bold mb-1">{pollsLoading ? '...' : pollStats.completedPolls}</span>
             <span className="text-sm opacity-60">finished voting</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ➜  OFFICIAL ACTIONS  */}
+      <OfficialActions />
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* Create Petition */}
+        <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-bold text-gray-900 mb-2 text-lg">Start a Petition</h4>
+              <p className="text-gray-600 text-sm">Gather support from your community for important causes</p>
+            </div>
+            <button
+              onClick={() => navigate('/dashboard/petitions/create')}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition-all transform hover:scale-105 shadow-lg"
+            >
+              Create Petition
+            </button>
+          </div>
+        </div>
+
+        {/* Create Poll */}
+        <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-bold text-gray-900 mb-2 text-lg">Create a Poll</h4>
+              <p className="text-gray-600 text-sm">Get community opinions on important decisions</p>
+            </div>
+            <button
+              onClick={() => navigate('/dashboard/polls/create')}
+              className="bg-green-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-700 transition-all transform hover:scale-105 shadow-lg"
+            >
+              Create Poll
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Community Engagement Section */}
+      <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-200">
+        <div className="text-center">
+          <h4 className="font-bold text-gray-900 mb-3 text-xl">Make Your Voice Heard</h4>
+          <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+            Join thousands of citizens making a difference in their communities. Whether it's through petitions or polls,
+            every voice matters in building a better future together.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={() => navigate('/dashboard/petitions')}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md"
+            >
+              Browse All Petitions
+            </button>
+            <button
+              onClick={() => navigate('/dashboard/polls')}
+              className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-md"
+            >
+              Participate in Polls
+            </button>
           </div>
         </div>
       </div>

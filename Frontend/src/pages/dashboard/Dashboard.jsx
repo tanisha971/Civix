@@ -11,6 +11,7 @@ import { getProfile } from "../../services/api";
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -40,14 +41,28 @@ export default function Dashboard() {
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(typeof window !== 'undefined' ? window.innerWidth <= 600 : false);
+      // Close mobile sidebar when switching to desktop
+      if (window.innerWidth > 600) {
+        setShowMobileSidebar(false);
+      }
     };
     
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Close mobile sidebar when route changes
+  useEffect(() => {
+    setShowMobileSidebar(false);
+  }, [location.pathname]);
+
   // Check if current route is dashboard index
   const isDashboardIndex = location.pathname === '/dashboard' || location.pathname === '/dashboard/';
+
+  // Handle mobile profile dropdown toggle
+  const handleMobileProfileToggle = () => {
+    setShowMobileSidebar(!showMobileSidebar);
+  };
 
   // Show loading while fetching user data
   if (loading) {
@@ -77,27 +92,42 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar user={user} />
+      <Navbar 
+        user={user} 
+        isMobile={isMobile}
+        onMobileProfileClick={handleMobileProfileToggle}
+        showMobileSidebar={showMobileSidebar}
+      />
       
       {isMobile ? (
         // Mobile Layout
         <>
-          {/* Mobile Sidebar - Full width */}
-          <div style={{ 
-            width: '100%', 
-            background: '#fff', 
-            boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
-            marginTop: 64 
-          }}>
-            <Sidebar1 user={user} />
-          </div>
+          {/* Mobile Sidebar Dropdown - Conditional rendering */}
+          {showMobileSidebar && (
+            <div 
+              className="fixed inset-0 z-50 bg-black bg-opacity-50"
+              style={{ marginTop: 64 }}
+              onClick={handleMobileProfileToggle}
+            >
+              <div 
+                className="absolute top-0 right-0 w-80 max-w-[90vw] bg-white shadow-2xl rounded-bl-xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Sidebar1 
+                  user={user} 
+                  isMobile={true}
+                  onClose={handleMobileProfileToggle}
+                />
+              </div>
+            </div>
+          )}
           
           {/* Mobile Welcome - Only on dashboard index */}
           {isDashboardIndex && (
             <div style={{ 
               width: '100%', 
               padding: '16px', 
-              marginTop: 8 
+              marginTop: 70 
             }}>
               <Welcome user={user} />
             </div>
@@ -107,7 +137,7 @@ export default function Dashboard() {
           <div style={{ 
             width: '100%', 
             padding: '16px', 
-            marginTop: 8 
+            
           }}>
             <Outlet />
           </div>

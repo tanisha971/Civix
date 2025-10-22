@@ -2,6 +2,7 @@ import Petition from "../models/Petition.js";
 import Signature from "../models/Signature.js";
 import User from "../models/User.js";
 import mongoose from "mongoose";
+import { logAdminAction } from "./adminLogController.js";
 
 // Get all petitions (alias for compatibility)
 export const getPetitions = async (req, res) => {
@@ -614,6 +615,21 @@ export const updatePetitionStatus = async (req, res) => {
 
     await petition.save();
 
+    // Log the admin action
+    await logAdminAction(
+      `Updated petition status to "${status}"`,
+      petition.creator,
+      petition._id,
+      null,
+      { 
+        petitionTitle: petition.title,
+        previousStatus: petition.status,
+        newStatus: status,
+        officialId,
+        officialResponse: officialResponse || null
+      }
+    );
+
     console.log('Petition status updated successfully');
 
     res.json({
@@ -662,6 +678,20 @@ export const verifyPetition = async (req, res) => {
     petition.verifiedAt = new Date();
 
     await petition.save();
+
+    // Log the admin action
+    await logAdminAction(
+      verified ? 'Verified petition' : 'Unverified petition',
+      petition.creator,
+      petition._id,
+      null,
+      { 
+        petitionTitle: petition.title,
+        verified,
+        verificationNote,
+        officialId
+      }
+    );
 
     console.log('Petition verification completed');
 
