@@ -4,6 +4,7 @@ import authService from '../../services/authService';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 import MailIcon from '@mui/icons-material/Mail';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import LoginImage from "../../assets/images/govImg.jpeg";
 
 const Login = () => {
@@ -11,6 +12,9 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  // Check if email is admin email
+  const isAdminEmail = formData.email === 'tanisha_alicse2023@msit.edu.in';
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -28,6 +32,11 @@ const Login = () => {
       const result = await authService.login(formData.email, formData.password);
       
       console.log('Login successful:', result.message);
+      
+      // Check if admin
+      if (result.user.role === 'admin') {
+        console.log('👑 Admin logged in');
+      }
       
       // Verify token is stored
       const storedToken = localStorage.getItem('token');
@@ -52,6 +61,14 @@ const Login = () => {
           <div className="text-center mb-2">
             <h1 className="text-3xl font-extrabold text-blue-600">Welcome to Civix</h1>
             <p className="text-gray-500 text-sm mt-2">Join our platform to make your voice heard in local governance</p>
+            
+            {/* Admin Login Indicator */}
+            {isAdminEmail && (
+              <div className="mt-3 px-4 py-2 bg-purple-100 border border-purple-300 rounded-lg flex items-center justify-center gap-2">
+                <AdminPanelSettingsIcon className="text-purple-600" />
+                <span className="text-purple-800 font-medium text-sm">Admin Login Mode</span>
+              </div>
+            )}
           </div>
 
           <form className="flex flex-col space-y-4 mt-4" onSubmit={handleSubmit}>
@@ -74,7 +91,11 @@ const Login = () => {
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
-                    <MailIcon color="action" />
+                    {isAdminEmail ? (
+                      <AdminPanelSettingsIcon className="text-purple-600" />
+                    ) : (
+                      <MailIcon color="action" />
+                    )}
                   </InputAdornment>
                 ),
               }}
@@ -94,19 +115,24 @@ const Login = () => {
             <button 
               type="submit" 
               disabled={loading}
-              className={`w-full py-3 font-semibold rounded transition ${
+              className={`w-full py-3 font-semibold rounded transition flex items-center justify-center gap-2 ${
                 loading 
                   ? "bg-gray-400 text-gray-200 cursor-not-allowed" 
-                  : "bg-blue-600 text-white hover:bg-blue-700"
+                  : isAdminEmail
+                    ? "bg-purple-600 text-white hover:bg-purple-700"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
               }`}
             >
-              {loading ? "Signing In..." : "Sign In"}
+              {isAdminEmail && <AdminPanelSettingsIcon />}
+              {loading ? "Signing In..." : isAdminEmail ? "Admin Sign In" : "Sign In"}
             </button>
 
-            <p className="text-center text-gray-500 text-sm mt-2">
+            {!isAdminEmail && (
+              <p className="text-center text-gray-500 text-sm mt-2">
               Don't have an account?{" "}
               <Link to="/register" className="text-blue-600 font-medium hover:underline">Register now</Link>
-            </p>
+              </p>
+            )}
           </form>
         </div>
 

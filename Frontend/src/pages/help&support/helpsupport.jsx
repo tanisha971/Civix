@@ -9,7 +9,8 @@ import {
   XCircle,
   AlertCircle,
   Trash2,
-  Eye
+  Eye,
+  Shield
 } from "lucide-react";
 import {
   BugReport as BugReportIcon,
@@ -23,6 +24,7 @@ import {
   Schedule as ScheduleIcon,
 } from '@mui/icons-material';
 import feedbackService from "../../services/feedbackService";
+import { useAuth } from "../../hooks/useAuth";
 
 const faqs = [
   {
@@ -108,7 +110,7 @@ const categories = [
 
 const HelpSupport = () => {
   const [openIndex, setOpenIndex] = useState(null);
-  const [activeTab, setActiveTab] = useState('submit'); // 'submit' or 'history'
+  const [activeTab, setActiveTab] = useState('submit'); // 'submit', 'history', or 'all'
   const [formData, setFormData] = useState({
     subject: '',
     message: '',
@@ -118,8 +120,29 @@ const HelpSupport = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [feedbackHistory, setFeedbackHistory] = useState([]);
+  const [allFeedbacks, setAllFeedbacks] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [loadingAll, setLoadingAll] = useState(false);
   const [selectedFeedback, setSelectedFeedback] = useState(null);
+  const [responseMessage, setResponseMessage] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  // Make useAuth safe - use try/catch or optional
+  let user = null;
+  let isAdmin = false;
+  
+  try {
+    const auth = useAuth();
+    user = auth?.user;
+    isAdmin = user?.role === 'admin';
+  } catch (error) {
+    console.log('Auth context not available');
+    // Fallback: try to get user from localStorage
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      user = JSON.parse(storedUser);
+      isAdmin = user?.role === 'admin';
+    }
+  }
 
   const toggleFAQ = (index) => {
     setOpenIndex(openIndex === index ? null : index);
@@ -129,8 +152,10 @@ const HelpSupport = () => {
   useEffect(() => {
     if (activeTab === 'history') {
       loadFeedbackHistory();
+    } else if (activeTab === 'all' && isAdmin) {
+      loadAllFeedbacks();
     }
-  }, [activeTab]);
+  }, [activeTab, statusFilter]);
 
   const loadFeedbackHistory = async () => {
     try {
@@ -143,6 +168,21 @@ const HelpSupport = () => {
       console.error('Load feedback history error:', err);
     } finally {
       setLoadingHistory(false);
+    }
+  };
+
+  const loadAllFeedbacks = async () => {
+    try {
+      setLoadingAll(true);
+      const params = statusFilter !== 'all' ? { status: statusFilter } : {};
+      const response = await feedbackService.getAllFeedback(params);
+      if (response.success) {
+        setAllFeedbacks(response.feedbacks);
+      }
+    } catch (err) {
+      console.error('Load all feedbacks error:', err);
+    } finally {
+      setLoadingAll(false);
     }
   };
 
@@ -195,6 +235,41 @@ const HelpSupport = () => {
       }
     } catch (err) {
       alert('Failed to delete feedback');
+    }
+  };
+
+  const handleStatusChange = async (feedbackId, newStatus) => {
+    try {
+      const response = await feedbackService.updateFeedbackStatus(feedbackId, {
+        status: newStatus
+      });
+      if (response.success) {
+        loadAllFeedbacks();
+      }
+    } catch (err) {
+      alert('Failed to update status');
+    }
+  };
+  
+  const handleRespond = async (feedbackId) => {
+    if (!responseMessage.trim() || responseMessage.trim().length < 10) {
+      alert('Response message must be at least 10 characters');
+      return;
+    }
+
+    try {
+      const response = await feedbackService.respondToFeedback(
+        feedbackId,
+        responseMessage
+      );
+      if (response.success) {
+        setResponseMessage('');
+        setSelectedFeedback(null);
+        loadAllFeedbacks();
+        alert('Response sent successfully!');
+      }
+    } catch (err) {
+      alert('Failed to send response');
     }
   };
 
@@ -261,6 +336,19 @@ const HelpSupport = () => {
             <MessageSquare className="inline mr-2" size={18} />
             My Feedback
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-6 py-3 font-medium transition-all ${
+                activeTab === 'all'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Shield className="inline mr-2" size={18} />
+              All Feedback (Admin)
+            </button>
+          )}
         </div>
 
         {/* Submit Feedback Tab */}
@@ -519,6 +607,165 @@ const HelpSupport = () => {
                           Submitted {new Date(feedback.createdAt).toLocaleDateString()}
                         </p>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* All Feedback Tab (Admin Only) */}
+        {activeTab === 'all' && isAdmin && (
+          <div className="bg-white rounded-xl shadow-md border border-gray-200">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                All User Feedback (Admin Panel)
+              </h2>
+
+              {/* Status Filter */}
+              <div className="flex gap-2 mb-6 flex-wrap">
+                {['all', 'pending', 'reviewing', 'resolved', 'closed'].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={`px-4 py-2 rounded-lg font-medium capitalize transition-colors ${
+                      statusFilter === status
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+
+              {loadingAll ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
+              ) : allFeedbacks.length === 0 ? (
+                <div className="text-center py-12">
+                  <MessageSquare className="mx-auto text-gray-400 mb-4" size={48} />
+                  <p className="text-gray-600">No feedback found</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {allFeedbacks.map((feedback) => (
+                    <div
+                      key={feedback._id}
+                      className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getStatusColor(feedback.status)}`}>
+                              {getStatusIcon(feedback.status)}
+                              <span className="capitalize">{feedback.status}</span>
+                            </span>
+                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 flex items-center gap-1">
+                              {getCategoryIcon(feedback.category)} 
+                              <span className="capitalize">{feedback.category}</span>
+                            </span>
+                          </div>
+                          <h3 className="text-lg font-bold text-gray-900 mb-2">
+                            {feedback.subject}
+                          </h3>
+                          <p className="text-gray-600 mb-3">{feedback.message}</p>
+                          <p className="text-sm text-gray-500">
+                            From: <span className="font-medium">{feedback.user?.name || 'Unknown'}</span> ({feedback.user?.email})
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            Submitted {new Date(feedback.createdAt).toLocaleDateString()} at {new Date(feedback.createdAt).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Status Change Buttons */}
+                      <div className="flex gap-2 mb-4 flex-wrap">
+                        <button
+                          onClick={() => handleStatusChange(feedback._id, 'pending')}
+                          disabled={feedback.status === 'pending'}
+                          className="px-3 py-1.5 bg-yellow-100 text-yellow-800 rounded-md text-sm font-medium hover:bg-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Set Pending
+                        </button>
+                        <button
+                          onClick={() => handleStatusChange(feedback._id, 'reviewing')}
+                          disabled={feedback.status === 'reviewing'}
+                          className="px-3 py-1.5 bg-blue-100 text-blue-800 rounded-md text-sm font-medium hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Set Reviewing
+                        </button>
+                        <button
+                          onClick={() => handleStatusChange(feedback._id, 'closed')}
+                          disabled={feedback.status === 'closed'}
+                          className="px-3 py-1.5 bg-gray-100 text-gray-800 rounded-md text-sm font-medium hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Close
+                        </button>
+                      </div>
+
+                      {/* Response Section */}
+                      {selectedFeedback === feedback._id ? (
+                        <div className="border-t pt-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Admin Response
+                          </label>
+                          <textarea
+                            value={responseMessage}
+                            onChange={(e) => setResponseMessage(e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg p-3 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            rows="4"
+                            placeholder="Type your response (min 10 characters)..."
+                          />
+                          <p className="text-xs text-gray-500 mb-3">
+                            {responseMessage.length}/10 characters minimum
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleRespond(feedback._id)}
+                              disabled={responseMessage.trim().length < 10}
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors flex items-center gap-2"
+                            >
+                              <Send size={16} />
+                              Send Response
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedFeedback(null);
+                                setResponseMessage('');
+                              }}
+                              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : feedback.response ? (
+                        <div className="border-t pt-4 bg-green-50 p-4 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={20} />
+                            <div className="flex-1">
+                              <p className="font-medium text-green-900 mb-1">Admin Response</p>
+                              <p className="text-green-800 mb-2">{feedback.response.message}</p>
+                              <p className="text-xs text-green-700">
+                                Responded by {feedback.response.respondedBy?.name || 'Admin'} on{' '}
+                                {new Date(feedback.response.respondedAt).toLocaleDateString()} at{' '}
+                                {new Date(feedback.response.respondedAt).toLocaleTimeString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setSelectedFeedback(feedback._id)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center gap-2"
+                        >
+                          <Send size={16} />
+                          Respond to Feedback
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -1,14 +1,12 @@
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import api from './api';
 
 const feedbackService = {
   // Submit feedback
   submitFeedback: async (feedbackData) => {
     try {
-      const response = await axios.post(`${API_URL}/feedback`, feedbackData, {
-        withCredentials: true
-      });
+      console.log('Submitting feedback:', feedbackData);
+      const response = await api.post('/feedback', feedbackData);
+      console.log('Feedback submitted:', response.data);
       return response.data;
     } catch (error) {
       console.error('Submit feedback error:', error);
@@ -16,13 +14,12 @@ const feedbackService = {
     }
   },
 
-  // Get user's feedback history
-  getUserFeedback: async (params = {}) => {
+  // Get user's own feedback
+  getUserFeedback: async () => {
     try {
-      const response = await axios.get(`${API_URL}/feedback/my-feedback`, {
-        params,
-        withCredentials: true
-      });
+      console.log('Fetching user feedback...');
+      const response = await api.get('/feedback/my');
+      console.log('User feedback received:', response.data);
       return response.data;
     } catch (error) {
       console.error('Get user feedback error:', error);
@@ -33,15 +30,54 @@ const feedbackService = {
   // Delete feedback
   deleteFeedback: async (feedbackId) => {
     try {
-      const response = await axios.delete(`${API_URL}/feedback/${feedbackId}`, {
-        withCredentials: true
-      });
+      console.log('Deleting feedback:', feedbackId);
+      const response = await api.delete(`/feedback/${feedbackId}`);
+      console.log('Feedback deleted:', response.data);
       return response.data;
     } catch (error) {
       console.error('Delete feedback error:', error);
       throw error;
     }
-  }
+  },
+
+  // Admin: Get all feedback
+  getAllFeedback: async (params = {}) => {
+    try {
+      console.log('Fetching all feedback (admin)...');
+      const response = await api.get('/feedback/all', { params });
+      console.log('All feedback received:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Get all feedback error:', error);
+      throw error;
+    }
+  },
+
+  // Admin: Update feedback status
+  updateFeedbackStatus: async (feedbackId, statusData) => {
+    try {
+      console.log('Updating feedback status:', feedbackId, statusData);
+      const response = await api.put(`/feedback/${feedbackId}/status`, statusData);
+      console.log('Feedback status updated:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Update feedback status error:', error);
+      throw error;
+    }
+  },
+
+  // Admin: Respond to feedback
+  respondToFeedback: async (feedbackId, message) => {
+    try {
+      console.log('Responding to feedback:', feedbackId);
+      const response = await api.post(`/feedback/${feedbackId}/respond`, { message });
+      console.log('Feedback response sent:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Respond to feedback error:', error);
+      throw error;
+    }
+  },
 };
 
 export default feedbackService;

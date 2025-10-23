@@ -185,7 +185,7 @@ export default function DashboardCard() {
           <div
             className="flex flex-col justify-center rounded-2xl shadow-lg flex-1 p-6 cursor-pointer hover:shadow-xl transition-shadow"
             style={{ background: '#e8f5e8', color: '#111' }}
-            onClick={() => navigate('/dashboard/polls/my')}
+            onClick={() => navigate('/dashboard/polls')}
           >
             <div className="flex justify-between mb-2">
               <span className="text-lg font-semibold">My Polls</span>

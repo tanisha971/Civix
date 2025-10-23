@@ -15,7 +15,7 @@ import { logout } from '../../services/authService';
 export default function Sidebar1({ user: initialUser, isMobile, onClose }) {
   const navigate = useNavigate();
   const [user, setUser] = useState(initialUser);
-  const verified = user?.verified || true;
+  const verified = user?.verified || user?.isVerified || true;
 
   // Update user when prop changes
   useEffect(() => {
@@ -55,7 +55,17 @@ export default function Sidebar1({ user: initialUser, isMobile, onClose }) {
   };
 
   // Get avatar URL
-  const avatarSrc = user?.avatar || "https://randomuser.me/api/portraits/men/75.jpg";
+  const avatarSrc = user?.avatar || user?.profilePicture || "https://randomuser.me/api/portraits/men/75.jpg";
+
+  // Format location display
+  const getLocationDisplay = () => {
+    if (user?.address) {
+      const { city, state, country } = user.address;
+      const parts = [city, state, country].filter(Boolean);
+      return parts.length > 0 ? parts.join(', ') : 'No location set';
+    }
+    return 'No location set';
+  };
 
   return (
     <div style={{ 
@@ -160,7 +170,7 @@ export default function Sidebar1({ user: initialUser, isMobile, onClose }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
           <LocationOnIcon fontSize="small" /> 
-          <span>{user?.location || "Location"}</span>
+          <span>{getLocationDisplay()}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 16 }}>
           <EmailIcon fontSize="small" /> 
@@ -240,6 +250,11 @@ export default function Sidebar1({ user: initialUser, isMobile, onClose }) {
             <div style={{ color: '#6b7280', lineHeight: '1.5' }}>
               Member since {new Date(user?.createdAt || Date.now()).getFullYear()}
             </div>
+            {user?.address && user.address.city && (
+              <div style={{ color: '#6b7280', lineHeight: '1.5' }}>
+                Location: {getLocationDisplay()}
+              </div>
+            )}
             {user?.department && (
               <div style={{ color: '#6b7280', lineHeight: '1.5' }}>
                 Department: {user.department}

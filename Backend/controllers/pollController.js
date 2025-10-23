@@ -45,26 +45,65 @@ export const getPollById = async (req, res) => {
   }
 };
 
-// Vote on a poll
+// Vote on a poll - UPDATED TO SUPPORT TOGGLE
 export const votePoll = async (req, res) => {
   try {
+    console.log("Vote request body:", req.body);
+    console.log("User ID:", req.user?.id);
+    
     const poll = await Poll.findById(req.params.id);
     if (!poll) return res.status(404).json({ success: false, message: "Poll not found" });
 
+    if (poll.status === "Closed" || poll.status === "closed") {
+      return res.status(400).json({ success: false, message: "This poll is closed" });
+    }
+
     const { option } = req.body;
+    
+    console.log("Option received:", option, "Type:", typeof option);
+    console.log("Poll options length:", poll.options.length);
+    
     if (typeof option !== "number" || option < 0 || option >= poll.options.length) {
-      return res.status(400).json({ success: false, message: "Invalid option" });
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid option", 
+        details: { 
+          receivedOption: option, 
+          receivedType: typeof option,
+          validRange: `0 to ${poll.options.length - 1}` 
+        }
+      });
     }
 
-    // Prevent double voting
-    if (poll.votes.some(v => v.user.toString() === req.user.id)) {
-      return res.status(400).json({ success: false, message: "You have already voted" });
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ success: false, message: "User not authenticated" });
     }
 
-    poll.votes.push({ user: req.user.id, option });
+    // Check if user already voted for this specific option
+    const existingVoteIndex = poll.votes.findIndex(
+      v => v.user.toString() === req.user.id && v.option === option
+    );
+
+    console.log("Existing vote index:", existingVoteIndex);
+
+    if (existingVoteIndex !== -1) {
+      // User already voted for this option - UNVOTE (remove vote)
+      poll.votes.splice(existingVoteIndex, 1);
+      console.log("Removed vote");
+    } else {
+      // User hasn't voted for this option - ADD VOTE
+      poll.votes.push({ user: req.user.id, option });
+      console.log("Added vote");
+    }
+
     await poll.save();
+    
+    // Populate creator information before returning
+    await poll.populate('creator', 'name email');
+    
     res.json({ success: true, poll });
   } catch (err) {
+    console.error("Vote error:", err);
     res.status(500).json({ success: false, message: "Error voting", error: err.message });
   }
 };

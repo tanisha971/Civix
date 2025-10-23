@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getCurrentUserId } from "../../utils/auth";
 import { votePoll } from "../../services/pollService";
-// Add MUI icon imports
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import EventIcon from '@mui/icons-material/Event';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
@@ -9,30 +8,26 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) => {
-  const [selectedOptions, setSelectedOptions] = useState([]);
-  const [voted, setVoted] = useState(false);
-  const [votedOption, setVotedOption] = useState(null);
+  const [votedOptions, setVotedOptions] = useState([]);
   const [isVoting, setIsVoting] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   
   const currentUserId = getCurrentUserId();
   const isCreator = poll.creator === currentUserId || poll.creator?._id === currentUserId;
 
-  // Count votes for each option - SYNCED FROM BACKEND LOGIC
+  // Count votes for each option
   const optionCounts = (poll.options || []).map((_, idx) =>
     (poll.votes || []).filter(v => v.option === idx).length
   );
 
-  // Check if user has already voted (persist after refresh) - SYNCED FROM BACKEND LOGIC
+  // Get user's voted options on mount
   useEffect(() => {
     if (!poll?.votes || !currentUserId) return;
     const normalizeId = (u) => typeof u === "string" ? u : (u?._id || u?.id || "");
-    const hasVoted = poll.votes.some(v => normalizeId(v.user) === String(currentUserId));
-    if (hasVoted) {
-      setVoted(true);
-      const userVote = poll.votes.find(v => normalizeId(v.user) === String(currentUserId));
-      setVotedOption(userVote?.option);
-    }
+    const userVotes = poll.votes
+      .filter(v => normalizeId(v.user) === String(currentUserId))
+      .map(v => v.option);
+    setVotedOptions(userVotes);
   }, [poll, currentUserId]);
 
   // Check if mobile screen
@@ -46,63 +41,54 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  const handleOptionSelect = (optionIndex) => {
-    if (voted || poll.status === "Closed") return;
-
-    setSelectedOptions(prev => {
-      if (prev.includes(optionIndex)) {
-        return prev.filter(i => i !== optionIndex);
-      } else {
-        return [...prev, optionIndex];
-      }
-    });
-  };
-
-  // Direct voting on option click - no alerts
-  const handleDirectVote = async (optionIdx) => {
-    if (voted || poll.status === "Closed" || isVoting) return;
+  // Direct vote/unvote on option click
+  const handleOptionToggle = async (optionIdx) => {
+    if (poll.status === "Closed" || poll.status === "closed" || isVoting) return;
+    
+    const isCurrentlyVoted = votedOptions.includes(optionIdx);
+    
+    console.log("Toggling option:", optionIdx, "Currently voted:", isCurrentlyVoted);
     
     try {
       setIsVoting(true);
-      const updatedPoll = await votePoll(poll._id, optionIdx);
-      setVoted(true);
-      setVotedOption(optionIdx);
-      onVoted?.(poll._id, updatedPoll);
+      
+      // Call backend with the option to toggle
+      const result = await votePoll(poll._id, optionIdx);
+      const updatedPoll = result.poll || result;
+      
+      console.log("Vote response:", result);
+      
+      // Update local state based on whether it was a vote or unvote
+      if (isCurrentlyVoted) {
+        // Unvote
+        setVotedOptions(prev => prev.filter(opt => opt !== optionIdx));
+        console.log("Unvoted from option", optionIdx);
+      } else {
+        // Vote
+        setVotedOptions(prev => [...prev, optionIdx]);
+        console.log("Voted for option", optionIdx);
+      }
+      
+      // Notify parent component
+      if (onVoted) {
+        onVoted(poll._id, updatedPoll);
+      }
     } catch (err) {
-      console.error("Error voting:", err);
+      console.error("Error toggling vote:", err);
+      console.error("Error response:", err.response?.data);
+      alert(err.response?.data?.message || "Error voting on poll");
     } finally {
       setIsVoting(false);
     }
   };
 
-  // Multi-select vote logic (keeping current UI functionality)
-  const handleVote = async () => {
-    if (selectedOptions.length === 0 || voted || poll.status === "Closed" || isVoting) return;
-
-    try {
-      setIsVoting(true);
-      // For multi-select, vote for the first selected option (backend compatibility)
-      const updatedPoll = await votePoll(poll._id, selectedOptions[0]);
-      
-      setVoted(true);
-      setVotedOption(selectedOptions[0]);
-      setSelectedOptions([]);
-      
-      onVoted?.(poll._id, updatedPoll);
-    } catch (err) {
-      console.error("Error voting:", err);
-    } finally {
-      setIsVoting(false);
-    }
-  };
-
-  // SYNCED DELETE LOGIC
+  // Delete handler
   const handleDelete = async () => {
     const confirmDelete = window.confirm("Are you sure you want to delete this poll? This action cannot be undone.");
     if (!confirmDelete) return;
     
     try {
-      await onDelete?.(poll._id); // Call parent handler - SYNCED
+      await onDelete?.(poll._id);
     } catch (err) {
       console.error("Error deleting poll:", err);
     }
@@ -132,7 +118,7 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
     try {
       const date = new Date(dateString);
       const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+      const month = String(date.getMonth() + 1).padStart(2, '0');
       const year = date.getFullYear();
       return `${day}/${month}/${year}`;
     } catch {
@@ -140,20 +126,17 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
     }
   };
 
-  // UPDATED: Use backend vote counting logic
   const getTotalVotes = () => {
-    return (poll.votes || []).length; // SYNCED - use votes array length
+    return (poll.votes || []).length;
   };
 
   const getVotePercentage = (optionIndex, totalVotes) => {
     if (totalVotes === 0) return 0;
-    const optionVotes = optionCounts[optionIndex]; // SYNCED - use optionCounts
+    const optionVotes = optionCounts[optionIndex];
     return Math.round((optionVotes / totalVotes) * 100);
   };
 
-  const totalVotes = getTotalVotes(); // SYNCED
-
-  // Force grid view on mobile
+  const totalVotes = getTotalVotes();
   const isGridView = isMobile ? true : viewMode === "Grid View";
 
   return (
@@ -168,42 +151,20 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
           {poll.status}
         </span>
         
-        {/* Edit/Delete buttons for BOTH List and Grid View - RIGHT AFTER BADGES */}
         {isCreator && (
           <div className="flex gap-2">
-            {!isGridView ? (
-              // List View - Text buttons
-              <>
-                <button
-                  onClick={() => onEdit?.(poll)}
-                  className="px-3 py-1 bg-yellow-500 text-white rounded-md text-xs font-medium hover:bg-yellow-600 transition-colors"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="px-3 py-1 bg-red-500 text-white rounded-md text-xs font-medium hover:bg-red-600 transition-colors"
-                >
-                  Delete
-                </button>
-              </>
-            ) : (
-              // Grid View - Text buttons (same as List View)
-              <>
-                <button
-                  onClick={() => onEdit?.(poll)}
-                  className="px-3 py-1 bg-yellow-500 text-white rounded-md text-xs font-medium hover:bg-yellow-600 transition-colors"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="px-3 py-1 bg-red-500 text-white rounded-md text-xs font-medium hover:bg-red-600 transition-colors"
-                >
-                  Delete
-                </button>
-              </>
-            )}
+            <button
+              onClick={() => onEdit?.(poll)}
+              className="px-3 py-1 bg-yellow-500 text-white rounded-md text-xs font-medium hover:bg-yellow-600 transition-colors"
+            >
+              Edit
+            </button>
+            <button
+              onClick={handleDelete}
+              className="px-3 py-1 bg-red-500 text-white rounded-md text-xs font-medium hover:bg-red-600 transition-colors"
+            >
+              Delete
+            </button>
           </div>
         )}
       </div>
@@ -215,51 +176,50 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
       </div>
     </div>
 
-    {/* UNIFIED SCROLLABLE CONTENT AREA - Grid View Only */}
+    {/* Content Area */}
     {isGridView ? (
       <div className="flex-1 overflow-y-auto pr-2 mb-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400" 
            style={{ maxHeight: '250px' }}>
         
-        {/* Poll Question */}
         <h3 className="font-bold text-gray-900 leading-tight text-base mb-2">
           {poll.question}
         </h3>
 
-        {/* Poll Description */}
         <p className="text-gray-600 text-sm leading-relaxed mb-3">
           {poll.description}
         </p>
 
-        {/* Poll Options */}
+        {/* Poll Options - WhatsApp Style */}
         <div className="space-y-2">
           {poll.options?.map((option, index) => {
-            const isSelected = selectedOptions.includes(index);
             const optionVotes = optionCounts[index];
             const votePercentage = getVotePercentage(index, totalVotes);
-            const isVotedOption = voted && votedOption === index;
+            const isVotedOption = votedOptions.includes(index);
             
             return (
               <div
                 key={index}
-                onClick={() => handleOptionSelect(index)}
-                className={`relative p-2 rounded-lg border transition-all duration-200 cursor-pointer ${
-                  voted || poll.status === "Closed"
-                    ? isVotedOption 
-                      ? "border-green-500 bg-green-50"
-                      : "cursor-not-allowed opacity-60"
-                    : isSelected
+                onClick={() => handleOptionToggle(index)}
+                className={`relative p-2 rounded-lg border transition-all duration-200 ${
+                  poll.status === "Closed"
+                    ? "cursor-not-allowed opacity-60"
+                    : isVoting
+                    ? "cursor-wait"
+                    : "cursor-pointer hover:border-green-400 hover:bg-green-50"
+                } ${
+                  isVotedOption 
                     ? "border-green-500 bg-green-50"
-                    : "border-gray-200 hover:border-green-400 hover:bg-green-50"
+                    : "border-gray-200"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                      (isSelected || isVotedOption)
+                      isVotedOption
                         ? "border-green-500 bg-green-500" 
                         : "border-gray-300"
                     }`}>
-                      {(isSelected || isVotedOption) && (
+                      {isVotedOption && (
                         <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
@@ -273,7 +233,7 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
                   
                   <div className="text-right flex-shrink-0 ml-2">
                     <span className="font-semibold text-gray-700 text-xs">
-                      {optionVotes} votes
+                      {optionVotes} {optionVotes === 1 ? 'vote' : 'votes'}
                     </span>
                     {totalVotes > 0 && (
                       <div className="text-gray-500 text-xs">
@@ -288,9 +248,9 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
                   <div className="mt-1">
                     <div className="w-full bg-gray-200 rounded-full h-1">
                       <div
-                        className="h-1 rounded-full transition-all duration-300 ${
+                        className={`h-1 rounded-full transition-all duration-300 ${
                           isVotedOption ? 'bg-green-600' : 'bg-green-500'
-                        }"
+                        }`}
                         style={{ width: `${votePercentage}%` }}
                       />
                     </div>
@@ -302,49 +262,47 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
         </div>
       </div>
     ) : (
-      // List View - Original Layout (No Scroll Container)
       <>
-        {/* Poll Question */}
         <h3 className="font-bold text-gray-900 leading-tight text-xl mb-2 pr-20">
           {poll.question}
         </h3>
 
-        {/* Poll Description */}
         <p className="text-gray-600 text-sm leading-relaxed mb-6">
           {poll.description}
         </p>
 
-        {/* Poll Options */}
+        {/* Poll Options - WhatsApp Style */}
         <div className="mb-4">
           <div className="space-y-2">
             {poll.options?.map((option, index) => {
-              const isSelected = selectedOptions.includes(index);
               const optionVotes = optionCounts[index];
               const votePercentage = getVotePercentage(index, totalVotes);
-              const isVotedOption = voted && votedOption === index;
+              const isVotedOption = votedOptions.includes(index);
               
               return (
                 <div
                   key={index}
-                  onClick={() => handleOptionSelect(index)}
-                  className={`relative p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
-                    voted || poll.status === "Closed"
-                      ? isVotedOption 
-                        ? "border-green-500 bg-green-50"
-                        : "cursor-not-allowed opacity-60"
-                      : isSelected
+                  onClick={() => handleOptionToggle(index)}
+                  className={`relative p-3 rounded-lg border transition-all duration-200 ${
+                    poll.status === "Closed"
+                      ? "cursor-not-allowed opacity-60"
+                      : isVoting
+                      ? "cursor-wait"
+                      : "cursor-pointer hover:border-green-400 hover:bg-green-50"
+                  } ${
+                    isVotedOption 
                       ? "border-green-500 bg-green-50"
-                      : "border-gray-200 hover:border-green-400 hover:bg-green-50"
+                      : "border-gray-200"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                        (isSelected || isVotedOption)
+                        isVotedOption
                           ? "border-green-500 bg-green-500" 
                           : "border-gray-300"
                       }`}>
-                        {(isSelected || isVotedOption) && (
+                        {isVotedOption && (
                           <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
@@ -358,7 +316,7 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
                     
                     <div className="text-right flex-shrink-0 ml-2">
                       <span className="font-semibold text-gray-700 text-sm">
-                        {optionVotes} votes
+                        {optionVotes} {optionVotes === 1 ? 'vote' : 'votes'}
                       </span>
                       {totalVotes > 0 && (
                         <div className="text-gray-500 text-sm">
@@ -373,9 +331,9 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
                     <div className="mt-2">
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
-                          className="h-2 rounded-full transition-all duration-300 ${
+                          className={`h-2 rounded-full transition-all duration-300 ${
                             isVotedOption ? 'bg-green-600' : 'bg-green-500'
-                          }"
+                          }`}
                           style={{ width: `${votePercentage}%` }}
                         />
                       </div>
@@ -392,9 +350,7 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
     {/* Footer */}
     <div className={`${isGridView ? 'mt-auto flex-shrink-0' : ''}`}>
       {isGridView ? (
-        // Grid View Footer - UPDATED to hide total votes on mobile
         <div className="space-y-2">
-          {/* Info Items - Hide votes count on mobile */}
           <div className="text-xs mb-3 flex justify-between items-center w-full">
             <div className="flex items-center min-w-0">
               <LocationOnIcon className="text-blue-600 mr-1 flex-shrink-0" style={{ fontSize: '14px' }} />
@@ -408,7 +364,6 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
               </span>
             </div>
 
-            {/* HIDE TOTAL VOTES ON MOBILE - Only show on larger screens */}
             {!isMobile && (
               <div className="flex items-center min-w-0">
                 <HowToVoteIcon className="text-green-600 mr-1 flex-shrink-0" style={{ fontSize: '14px' }} />
@@ -416,9 +371,15 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
               </div>
             )}
           </div>
+
+          {/* Vote Status Indicator */}
+          {votedOptions.length > 0 && (
+            <div className="text-xs text-white font-medium text-center bg-green-600 py-1.5 px-3 rounded-md">
+              ✓ You voted for {votedOptions.length} option{votedOptions.length > 1 ? 's' : ''}
+            </div>
+          )}
         </div>
       ) : (
-        // List View Footer - Original (unchanged)
         <div className="flex justify-between items-center w-full">
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">
@@ -430,9 +391,7 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
           </div>
           
           <div className="flex items-center">
-            <div className="p-1">
-              <LocationOnIcon className="text-blue-600" style={{ fontSize: '18px' }} />
-            </div>
+            <LocationOnIcon className="text-blue-600" style={{ fontSize: '18px' }} />
             <div className="ml-2">
               <p className="text-xs font-semibold text-blue-900 truncate" title={poll.location}>
                 {poll.location || 'Not specified'}
@@ -441,9 +400,7 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
           </div>
           
           <div className="flex items-center">
-            <div className="p-1">
-              <EventIcon className="text-orange-600" style={{ fontSize: '18px' }} />
-            </div>
+            <EventIcon className="text-orange-600" style={{ fontSize: '18px' }} />
             <div className="ml-2">
               <p className="text-xs font-semibold text-orange-900 truncate">
                 Closes on: {poll.expiresAt ? formatDate(poll.expiresAt) : 'No end date'}
@@ -451,84 +408,23 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
             </div>
           </div>
 
-          <div className="flex items-center">
-            <div className="p-1">
-              <HowToVoteIcon className="text-green-600" style={{ fontSize: '18px' }} />
-            </div>
+          <div className="flex items-center gap-3">
+            <HowToVoteIcon className="text-green-600" style={{ fontSize: '18px' }} />
             <div className="ml-2">
               <p className="text-xs font-semibold text-green-900">
                 Total Votes: {totalVotes.toLocaleString()}
               </p>
             </div>
           </div>
-    
-          <div className="flex justify-end">
-            <button
-              onClick={() => handleVote()}
-              disabled={voted || isVoting || poll.status === "Closed" || selectedOptions.length === 0}
-              className={`px-4 py-2 rounded-md text-white font-medium transition-all duration-200 ${
-                voted
-                  ? "bg-green-500 text-white cursor-default"
-                  : poll.status === "Closed"
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : selectedOptions.length === 0
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : isVoting
-                  ? "bg-blue-400 text-white cursor-wait"
-                  : "bg-blue-600 hover:bg-blue-700 text-white active:scale-95"
-              }`}
-            >
-              {isVoting ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Voting...
-                </div>
-              ) : voted ? (
-                "✓ Voted"
-              ) : poll.status === "Closed" ? (
-                "Poll Closed"
-              ) : selectedOptions.length === 0 ? (
-                "Select Options"
-              ) : (
-                `Vote (${selectedOptions.length} selected)`
-              )}
-            </button>
+          <div className="flex items-center gap-3">
+            {/* Vote Status Indicator */}
+            {votedOptions.length > 0 && (
+              <div className="text-xs text-white font-medium bg-green-600 py-1.5 px-3 rounded-md whitespace-nowrap">
+                ✓ You voted for {votedOptions.length} option{votedOptions.length > 1 ? 's' : ''}
+              </div>
+            )}
           </div>
         </div>
-      )}
-
-      {/* Vote Button for Grid View - Separate from footer */}
-      {isGridView && (
-        <button
-          onClick={() => handleVote()}
-          disabled={voted || isVoting || poll.status === "Closed" || selectedOptions.length === 0}
-          className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-            voted
-              ? "bg-green-500 text-white cursor-default"
-              : poll.status === "Closed"
-              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : selectedOptions.length === 0
-              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : isVoting
-              ? "bg-blue-400 text-white cursor-wait"
-              : "bg-blue-600 hover:bg-blue-700 text-white active:scale-95"
-          }`}
-        >
-          {isVoting ? (
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Voting...
-            </div>
-          ) : voted ? (
-            "✓ Voted"
-          ) : poll.status === "Closed" ? (
-            "Poll Closed"
-          ) : selectedOptions.length === 0 ? (
-            "Select Option"
-          ) : (
-            `Vote (${selectedOptions.length})`
-          )}
-        </button>
       )}
     </div>
     </div>

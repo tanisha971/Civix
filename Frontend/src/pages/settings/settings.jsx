@@ -28,6 +28,7 @@ import {
   LocationOn as LocationOnIcon,
 } from '@mui/icons-material';
 import settingsService from '../../services/settingsService';
+import { formatUserAddress, getUserAvatar } from '../../utils/formatters';
 
 function TabPanel({ children, value, index }) {
   return (

@@ -119,7 +119,7 @@ export default function Navbar() {
   };
 
   // Update avatar src to use base64 directly from localStorage
-  const avatarSrc = user?.avatar || "https://randomuser.me/api/portraits/men/75.jpg";
+  const avatarSrc = user?.avatar || user?.profilePicture || "https://randomuser.me/api/portraits/men/75.jpg";
 
   return (
     <AppBar position="fixed" color="primary" sx={{ zIndex: 100 }}>
@@ -233,6 +233,12 @@ export default function Navbar() {
         >
           <MenuItem disabled>
             <Typography variant="body1" sx={{ fontWeight: 700 }}>{user?.name || 'Guest'}</Typography>
+          </MenuItem>
+          
+          <MenuItem disabled>
+            <Typography variant="caption" sx={{ color: 'gray' }}>
+              {user?.email || 'No email'}
+            </Typography>
           </MenuItem>
           
           <MenuItem onClick={handleLogout} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
