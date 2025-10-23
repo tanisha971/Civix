@@ -13,6 +13,7 @@ import pollRoutes from "./routes/poll-route.js";
 import adminLogRoutes from "./routes/adminLog-route.js";
 import settingsRoutes from './routes/settings-route.js';
 import feedbackRoutes from './routes/feedback-route.js';
+import commentRoutes from './routes/comment-route.js';
 
 dotenv.config();
 const app = express();
@@ -56,6 +57,7 @@ app.use("/api/signatures", signatureRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/admin-logs", adminLogRoutes);
 app.use("/api/feedback", feedbackRoutes);
+app.use("/api/comments", commentRoutes);
 console.log('✅ All routes registered');
 
 // Serve uploaded files
@@ -74,6 +76,7 @@ mongoose
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Feedback routes available at http://localhost:${PORT}/api/feedback`);
+      console.log(`Comment routes available at http://localhost:${PORT}/api/comments`);
     });
   })
   .catch((err) => {
