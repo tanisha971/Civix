@@ -1,6 +1,7 @@
 import Petition from "../models/Petition.js";
 import Signature from "../models/Signature.js";
 import User from "../models/User.js";
+import Comment from '../models/Comment.js';
 import mongoose from "mongoose";
 import { logAdminAction } from "./adminLogController.js";
 
@@ -29,6 +30,12 @@ export const getAllPetitions = async (req, res) => {
       { $group: { _id: "$petition", count: { $sum: 1 } } }
     ]);
 
+    // Get comment counts for all petitions
+    const commentCounts = await Comment.aggregate([
+      { $match: { petition: { $in: petitionIds } } },
+      { $group: { _id: "$petition", count: { $sum: 1 } } }
+    ]);
+
     // Get user's signed petitions if authenticated
     let userSignedPetitions = [];
     if (userId) {
@@ -44,29 +51,25 @@ export const getAllPetitions = async (req, res) => {
         sc => sc._id.toString() === petition._id.toString()
       );
       
+      const commentData = commentCounts.find(
+        cc => cc._id.toString() === petition._id.toString()
+      );
+      
       const signaturesCount = signatureData ? signatureData.count : 0;
+      const commentsCount = commentData ? commentData.count : 0;
       const userHasSigned = userSignedPetitions.includes(petition._id.toString());
 
       return {
         ...petition.toObject(),
         signaturesCount,
+        commentsCount,
         userHasSigned,
         signedByCurrentUser: userHasSigned
       };
     });
 
-    console.log(`Returning ${petitionsWithCounts.length} petitions with signature counts`);
+    console.log(`Returning ${petitionsWithCounts.length} petitions with signature and comment counts`);
     
-    // Log sample for debugging
-    if (petitionsWithCounts.length > 0) {
-      console.log('Sample petition with signature data:', {
-        id: petitionsWithCounts[0]._id,
-        title: petitionsWithCounts[0].title,
-        signaturesCount: petitionsWithCounts[0].signaturesCount,
-        userHasSigned: petitionsWithCounts[0].userHasSigned
-      });
-    }
-
     res.json({
       success: true,
       petitions: petitionsWithCounts,
@@ -269,7 +272,7 @@ export const signPetition = async (req, res) => {
   }
 };
 
-// Get petition by ID - Updated to use Signature collection
+// Get petition by ID - Updated to include comments
 export const getPetitionById = async (req, res) => {
   try {
     const petition = await Petition.findById(req.params.id)
@@ -288,6 +291,9 @@ export const getPetitionById = async (req, res) => {
       .populate('user', 'name email')
       .sort({ createdAt: -1 });
 
+    // Get comment count
+    const commentsCount = await Comment.countDocuments({ petition: req.params.id });
+
     // Check if current user has signed
     let userHasSigned = false;
     if (req.user) {
@@ -302,6 +308,7 @@ export const getPetitionById = async (req, res) => {
       ...petition.toObject(),
       signaturesCount: signatureCount,
       signatures: signatures,
+      commentsCount: commentsCount,
       userHasSigned: userHasSigned,
       signedByCurrentUser: userHasSigned
     };

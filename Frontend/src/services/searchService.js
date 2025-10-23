@@ -1,5 +1,5 @@
 import { pollService } from './pollService';
-import { petitionService } from './petitionService';
+import petitionService from './petitionService';
 import { reportService } from './reportService';
 
 export const searchService = {

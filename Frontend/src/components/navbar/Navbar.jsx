@@ -53,6 +53,21 @@ export default function Navbar() {
     fetchUser();
   }, []);
 
+  // Listen for profile updates from Settings
+  useEffect(() => {
+    const handleProfileUpdate = (event) => {
+      const updatedUser = event.detail;
+      setUser(updatedUser);
+      console.log('Navbar: Profile updated', updatedUser);
+    };
+
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
+    };
+  }, []);
+
   // Search functionality
   const handleSearch = async (query) => {
     if (!query || query.trim().length < 2) {
@@ -103,6 +118,9 @@ export default function Navbar() {
     setAnchorEl(null);
   };
 
+  // Update avatar src to use base64 directly from localStorage
+  const avatarSrc = user?.avatar || user?.profilePicture || "https://randomuser.me/api/portraits/men/75.jpg";
+
   return (
     <AppBar position="fixed" color="primary" sx={{ zIndex: 100 }}>
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', minHeight: 64 }}>
@@ -137,59 +155,97 @@ export default function Navbar() {
           {isMobile ? (
             <>
               <IconButton color="inherit" onClick={handleSearchClick}><SearchIcon /></IconButton>
-              <IconButton color="inherit" onClick={handleDrawerOpen}><MenuIcon /></IconButton>
-              <IconButton color="inherit" onClick={handleLogout}><LogoutIcon /></IconButton>
-              {searchOpen && (
-                <Box sx={{ position: 'absolute', top: 64, left: 16, right: 16, bgcolor: 'white', borderRadius: 2, boxShadow: 3, p: 1, zIndex: 200 }}>
-                  <InputBase
-                    autoFocus
-                    placeholder="Search polls, petitions, reports..."
-                    value={searchQuery}
-                    onChange={handleSearchInputChange}
-                    onFocus={handleSearchFocus}
-                    onBlur={handleSearchBlur}
-                    endAdornment={searchLoading ? <CircularProgress size={20} sx={{ color: 'primary.main', mr: 1 }} /> : null}
-                    sx={{ ml: 1, flex: 1, color: 'black', width: '100%', pr: 4 }}
-                  />
-                  {showResults && <SearchResults results={searchResults} searchQuery={searchQuery} onClose={handleCloseSearchResults} onItemClick={() => setSearchOpen(false)} />}
-                </Box>
-              )}
-              <Drawer anchor="right" open={drawerOpen} onClose={handleDrawerClose}>
-                <Box sx={{ width: 250, p: 2, position: 'relative', height: '100%' }}>
-                  <IconButton onClick={handleDrawerClose} sx={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}><CloseIcon /></IconButton>
-                  <Box sx={{ mt: 5 }}><DashboardBar /></Box>
-                </Box>
-              </Drawer>
-            </>
-          ) : (
-            <>
-              {/* Desktop search */}
-              <Box sx={{ position: 'relative' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'white', borderRadius: 2, px: 1, minWidth: 200 }}>
-                  <InputBase placeholder="Search" value={searchQuery} onChange={handleSearchInputChange} onFocus={handleSearchFocus} onBlur={handleSearchBlur}
-                    endAdornment={<IconButton type="submit" sx={{ p: '8px' }} aria-label="search">{searchLoading ? <CircularProgress size={20} sx={{ color: 'primary.main' }} /> : <SearchIcon sx={{ color: 'primary.main' }} />}</IconButton>}
-                    sx={{ ml: 1, flex: 1, color: 'black' }}
-                  />
-                </Box>
-                {showResults && <SearchResults results={searchResults} searchQuery={searchQuery} onClose={handleCloseSearchResults} />}
-              </Box>
-
-              {/* Notification Modal Component */}
+              {/* show notifications on mobile too */}
               <NotificationModal />
+              <IconButton color="inherit" onClick={handleDrawerOpen}><MenuIcon /></IconButton>
 
-              {/* profile */}
-              <Box onClick={handleAvatarClick} sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { opacity: 0.8 } }}>
-                <Avatar alt={user?.name || 'User'} src="https://randomuser.me/api/portraits/men/75.jpg  " sx={{ width: 36, height: 36, ml: 1 }} />
-                <ArrowDropDownIcon sx={{ color: 'white', ml: 0.5, transform: Boolean(anchorEl) ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+              {/* mobile profile dropdown (replaces standalone logout button) */}
+              <Box
+                onClick={handleAvatarClick}
+                sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', ml: 0.5 }}
+              >
+                <Avatar
+                  alt={user?.name || 'User'}
+                  src={avatarSrc}
+                  sx={{ width: 32, height: 32 }}
+                />
+                <ArrowDropDownIcon sx={{ color: 'white', ml: 0.25, transform: Boolean(anchorEl) ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
               </Box>
-              <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }} sx={{ '& .MuiPaper-root': { minWidth: 180, mt: 1 } }}>
-                <MenuItem disabled><Typography variant="body1" sx={{ fontWeight: 700 }}>{user?.name || 'Guest'}</Typography></MenuItem>
-                <MenuItem onClick={handleLogout} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><LogoutIcon fontSize="small" /><Typography variant="body1" sx={{ fontWeight: 500 }}>Logout</Typography></MenuItem>
-              </Menu>
-            </>
-          )}
-        </Box>
+               {searchOpen && (
+                 <Box sx={{ position: 'absolute', top: 64, left: 16, right: 16, bgcolor: 'white', borderRadius: 2, boxShadow: 3, p: 1, zIndex: 200 }}>
+                   <InputBase
+                     autoFocus
+                     placeholder="Search polls, petitions, reports..."
+                     value={searchQuery}
+                     onChange={handleSearchInputChange}
+                     onFocus={handleSearchFocus}
+                     onBlur={handleSearchBlur}
+                     endAdornment={searchLoading ? <CircularProgress size={20} sx={{ color: 'primary.main', mr: 1 }} /> : null}
+                     sx={{ ml: 1, flex: 1, color: 'black', width: '100%', pr: 4 }}
+                   />
+                   {showResults && <SearchResults results={searchResults} searchQuery={searchQuery} onClose={handleCloseSearchResults} onItemClick={() => setSearchOpen(false)} />}
+                 </Box>
+               )}
+               <Drawer anchor="right" open={drawerOpen} onClose={handleDrawerClose}>
+                 <Box sx={{ width: 250, p: 2, position: 'relative', height: '100%' }}>
+                   <IconButton onClick={handleDrawerClose} sx={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}><CloseIcon /></IconButton>
+                   <Box sx={{ mt: 5 }}><DashboardBar /></Box>
+                 </Box>
+               </Drawer>
+             </>
+           ) : (
+            <>
+               {/* Desktop search */}
+               <Box sx={{ position: 'relative' }}>
+                 <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'white', borderRadius: 2, px: 1, minWidth: 200 }}>
+                   <InputBase placeholder="Search" value={searchQuery} onChange={handleSearchInputChange} onFocus={handleSearchFocus} onBlur={handleSearchBlur}
+                     endAdornment={<IconButton type="submit" sx={{ p: '8px' }} aria-label="search">{searchLoading ? <CircularProgress size={20} sx={{ color: 'primary.main' }} /> : <SearchIcon sx={{ color: 'primary.main' }} />}</IconButton>}
+                     sx={{ ml: 1, flex: 1, color: 'black' }}
+                   />
+                 </Box>
+                 {showResults && <SearchResults results={searchResults} searchQuery={searchQuery} onClose={handleCloseSearchResults} />}
+               </Box>
+ 
+               {/* Notification Modal Component */}
+               <NotificationModal />
+ 
+               {/* profile */}
+               <Box onClick={handleAvatarClick} sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { opacity: 0.8 } }}>
+                 <Avatar 
+                   alt={user?.name || 'User'} 
+                   src={avatarSrc} // Base64 string will work directly
+                   sx={{ width: 36, height: 36, ml: 1 }} 
+                 />
+                 <ArrowDropDownIcon sx={{ color: 'white', ml: 0.5, transform: Boolean(anchorEl) ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+               </Box>
+             </>
+           )}
+         </Box>
       </Toolbar>
+        {/* shared profile menu (desktop + mobile) */}
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          sx={{ '& .MuiPaper-root': { minWidth: 180, mt: 1 } }}
+        >
+          <MenuItem disabled>
+            <Typography variant="body1" sx={{ fontWeight: 700 }}>{user?.name || 'Guest'}</Typography>
+          </MenuItem>
+          
+          <MenuItem disabled>
+            <Typography variant="caption" sx={{ color: 'gray' }}>
+              {user?.email || 'No email'}
+            </Typography>
+          </MenuItem>
+          
+          <MenuItem onClick={handleLogout} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <LogoutIcon fontSize="small" />
+            <Typography variant="body1" sx={{ fontWeight: 500 }}>Logout</Typography>
+          </MenuItem>
+        </Menu>
     </AppBar>
   );
 }

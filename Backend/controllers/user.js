@@ -1,6 +1,6 @@
+import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";
 
 // Generate JWT Token
 const generateToken = (userId) => {
@@ -83,78 +83,166 @@ export const register = async (req, res) => {
   }
 };
 
-// Login user - REMOVE VERIFICATION CHECK
-export const login = async (req, res) => {
+// Get current user
+export const getCurrentUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide email and password'
-      });
-    }
-
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findById(req.user.id).select("-password");
+    
     if (!user) {
-      return res.status(400).json({
+      return res.status(404).json({
         success: false,
-        message: 'Invalid credentials'
+        message: "User not found",
       });
     }
 
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid credentials'
-      });
-    }
-
-    // REMOVED VERIFICATION CHECK - ALL USERS CAN LOGIN
-    // if (user.role === 'public-official' && !user.verified) {
-    //   return res.status(403).json({ 
-    //     success: false,
-    //     message: 'Your account is pending verification.' 
-    //   });
-    // }
-
-    const token = generateToken(user._id);
-
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
-
-    const userResponse = {
+    // Format user data for frontend
+    const userData = {
       id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
-      location: user.location,
-      department: user.department,
-      position: user.position,
-      verified: user.verified
+      profilePicture: user.profilePicture,
+      isVerified: user.isVerified,
+      address: user.address,
+      // Format location properly
+      location: user.location ? {
+        type: user.location.type,
+        coordinates: user.location.coordinates
+      } : null,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     };
 
     res.json({
       success: true,
-      message: 'Login successful',
-      user: userResponse,
-      token
+      user: userData,
     });
-
   } catch (error) {
-    console.error('Login error:', error);
+    console.error("Get current user error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error during login',
-      error: error.message
+      message: "Server error",
     });
   }
 };
+
+// Login user
+export const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email }).select("+password");
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    // Check if this is an admin login attempt
+    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim()) || [];
+    const isAdminEmail = adminEmails.includes(email);
+
+    if (isAdminEmail) {
+      // Admin login - verify against env credentials
+      const adminPasswords = process.env.ADMIN_PASSWORDS?.split(',').map(p => p.trim()) || [];
+      const adminIndex = adminEmails.indexOf(email);
+      const adminPassword = adminPasswords[adminIndex];
+
+      // Check if password matches env password OR hashed password
+      const isEnvPasswordMatch = password === adminPassword;
+      const isHashedPasswordMatch = await bcrypt.compare(password, user.password);
+
+      if (!isEnvPasswordMatch && !isHashedPasswordMatch) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid admin credentials",
+        });
+      }
+
+      // Ensure user has admin role
+      if (user.role !== 'admin') {
+        user.role = 'admin';
+        user.isVerified = true;
+        await user.save();
+      }
+
+      console.log('✅ Admin login successful:', email);
+    } else {
+      // Regular user login
+      const isPasswordMatch = await bcrypt.compare(password, user.password);
+
+      if (!isPasswordMatch) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid email or password",
+        });
+      }
+
+      // Prevent non-admins from having admin role
+      if (user.role === 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: "Unauthorized admin access attempt",
+        });
+      }
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // Set cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    // Format user data for response
+    const userData = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      profilePicture: user.profilePicture,
+      isVerified: user.isVerified,
+      address: user.address,
+      // Don't send location object in login response
+    };
+
+    // Return user data
+    res.json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: userData,
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during login",
+    });
+  }
+};
+
+// Export as 'login' for backwards compatibility
+export const login = loginUser;
 
 // Logout user
 export const logout = async (req, res) => {
@@ -173,80 +261,6 @@ export const logout = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error during logout'
-    });
-  }
-};
-
-// Get current user
-export const getCurrentUser = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select('-password');
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        location: user.location,
-        department: user.department,
-        position: user.position,
-        verified: user.verified
-      }
-    });
-  } catch (error) {
-    console.error('Get current user error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
-  }
-};
-
-// Update profile
-export const updateProfile = async (req, res) => {
-  try {
-    const { name, location } = req.body;
-    
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
-      });
-    }
-
-    if (name) user.name = name;
-    if (location) user.location = location;
-
-    await user.save();
-
-    res.json({
-      success: true,
-      message: 'Profile updated successfully',
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        location: user.location,
-        role: user.role
-      }
-    });
-  } catch (error) {
-    console.error('Profile update error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update profile', 
-      error: error.message 
     });
   }
 };

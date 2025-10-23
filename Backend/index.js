@@ -11,6 +11,9 @@ import petitionRoutes from "./routes/petition-route.js";
 import signatureRoutes from "./routes/signature-route.js";
 import pollRoutes from "./routes/poll-route.js";
 import adminLogRoutes from "./routes/adminLog-route.js";
+import settingsRoutes from './routes/settings-route.js';
+import feedbackRoutes from './routes/feedback-route.js';
+import commentRoutes from './routes/comment-route.js';
 
 dotenv.config();
 const app = express();
@@ -41,21 +44,24 @@ app.use(
 // Debug middleware
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`);
-  console.log("Cookies:", req.cookies);
-  console.log(
-    "Headers:",
-    req.headers.authorization ? "Has auth header" : "No auth header"
-  );
   next();
 });
 
 // Routes
+console.log('🔧 Registering routes...');
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/polls", pollRoutes);
 app.use("/api/petitions", petitionRoutes);
 app.use("/api/signatures", signatureRoutes);
-app.use("/api/polls", pollRoutes);
+app.use("/api/settings", settingsRoutes);
 app.use("/api/admin-logs", adminLogRoutes);
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/comments", commentRoutes);
+console.log('✅ All routes registered');
+
+// Serve uploaded files
+app.use('/uploads', express.static('uploads'));
 
 // Test route
 app.get("/", (req, res) => {
@@ -69,6 +75,8 @@ mongoose
     console.log("Connected to MongoDB");
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
+      console.log(`Feedback routes available at http://localhost:${PORT}/api/feedback`);
+      console.log(`Comment routes available at http://localhost:${PORT}/api/comments`);
     });
   })
   .catch((err) => {
