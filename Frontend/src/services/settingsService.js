@@ -7,7 +7,7 @@ const settingsService = {
       const response = await api.get('/settings');
       return response.data;
     } catch (error) {
-      console.error('Get user settings error:', error);
+      console.error('Get settings error:', error);
       throw error;
     }
   },
@@ -34,17 +34,18 @@ const settingsService = {
     }
   },
 
-  // Upload profile picture
+  // Upload avatar
   uploadAvatar: async (file) => {
     try {
-      const formData = new FormData();
-      formData.append('avatar', file);
-
-      const response = await api.post('/settings/avatar', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      // Convert file to base64
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (error) => reject(error);
       });
+
+      const response = await api.post('/settings/avatar', { avatar: base64 });
       return response.data;
     } catch (error) {
       console.error('Upload avatar error:', error);
@@ -52,7 +53,7 @@ const settingsService = {
     }
   },
 
-  // Delete profile picture
+  // Delete avatar
   deleteAvatar: async () => {
     try {
       const response = await api.delete('/settings/avatar');

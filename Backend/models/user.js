@@ -22,8 +22,12 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["citizen", "official", "admin"],
+      enum: ["citizen", "public-official", "admin"],
       default: "citizen",
+    },
+    locationString: {
+      type: String,
+      default: ""
     },
     location: {
       type: {
@@ -43,6 +47,14 @@ const userSchema = new mongoose.Schema(
       zipCode: String,
       country: String,
     },
+    department: {
+      type: String,
+      default: ""
+    },
+    position: {
+      type: String,
+      default: ""
+    },
     profilePicture: {
       type: String,
       default: "",
@@ -51,6 +63,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    verified: {
+      type: Boolean,
+      default: false,
+    }
   },
   {
     timestamps: true,
@@ -59,13 +75,26 @@ const userSchema = new mongoose.Schema(
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
+  // Only hash if password is modified
+  if (!this.isModified('password')) {
+    console.log('Password not modified, skipping hash');
+    return next();
+  }
+
   try {
+    // Check if password is already hashed (bcrypt hashes start with $2a$ or $2b$)
+    if (this.password.startsWith('$2a$') || this.password.startsWith('$2b$')) {
+      console.log('Password already hashed, skipping');
+      return next();
+    }
+
+    console.log('Hashing password');
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    console.log('Password hashed successfully');
     next();
   } catch (error) {
+    console.error('Password hashing error:', error);
     next(error);
   }
 });

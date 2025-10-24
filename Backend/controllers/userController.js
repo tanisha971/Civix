@@ -14,6 +14,8 @@ export const register = async (req, res) => {
   try {
     const { name, email, password, location, role, department, position } = req.body;
 
+    console.log('Registration request:', { name, email, location, role });
+
     if (!name || !email || !password || !location) {
       return res.status(400).json({
         success: false,
@@ -33,18 +35,31 @@ export const register = async (req, res) => {
       name,
       email,
       password,
-      location,
+      locationString: location,
+      location: {
+        type: 'Point',
+        coordinates: [0, 0]
+      },
       role: role || 'citizen'
     };
 
     if (role === 'public-official') {
       userData.department = department;
       userData.position = position;
-      userData.verified = true; // AUTO-VERIFY PUBLIC OFFICIALS
+      userData.verified = true;
+      userData.isVerified = true;
     }
+
+    console.log('Creating user with data:', {
+      name: userData.name,
+      locationString: userData.locationString,
+      role: userData.role
+    });
 
     const user = new User(userData);
     await user.save();
+
+    console.log('User created successfully:', user._id);
 
     const token = generateToken(user._id);
 
@@ -60,11 +75,14 @@ export const register = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      location: user.location,
+      locationString: user.locationString,
       department: user.department,
       position: user.position,
-      verified: user.verified
+      verified: user.verified,
+      isVerified: user.isVerified
     };
+
+    console.log('Sending user response:', userResponse);
 
     res.status(201).json({
       success: true,
@@ -95,16 +113,23 @@ export const getCurrentUser = async (req, res) => {
       });
     }
 
-    // Format user data for frontend
+    console.log('Fetching user location data:', {
+      locationString: user.locationString,
+      hasLocationString: !!user.locationString
+    });
+
     const userData = {
       id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
       profilePicture: user.profilePicture,
-      isVerified: user.isVerified,
+      isVerified: user.isVerified || user.verified,
+      verified: user.verified || user.isVerified,
       address: user.address,
-      // Format location properly
+      locationString: user.locationString,
+      department: user.department,
+      position: user.position,
       location: user.location ? {
         type: user.location.type,
         coordinates: user.location.coordinates
@@ -112,6 +137,8 @@ export const getCurrentUser = async (req, res) => {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
+
+    console.log('Sending user data with locationString:', userData.locationString);
 
     res.json({
       success: true,
@@ -131,7 +158,8 @@ export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
+    console.log('Login attempt for:', email);
+
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -139,10 +167,10 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // Find user by email
     const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
+      console.log('User not found:', email);
       return res.status(401).json({
         success: false,
         message: "Invalid email or password",
@@ -154,58 +182,57 @@ export const loginUser = async (req, res) => {
     const isAdminEmail = adminEmails.includes(email);
 
     if (isAdminEmail) {
-      // Admin login - verify against env credentials
       const adminPasswords = process.env.ADMIN_PASSWORDS?.split(',').map(p => p.trim()) || [];
       const adminIndex = adminEmails.indexOf(email);
       const adminPassword = adminPasswords[adminIndex];
 
-      // Check if password matches env password OR hashed password
       const isEnvPasswordMatch = password === adminPassword;
       const isHashedPasswordMatch = await bcrypt.compare(password, user.password);
 
       if (!isEnvPasswordMatch && !isHashedPasswordMatch) {
+        console.log('Invalid admin credentials for:', email);
         return res.status(401).json({
           success: false,
           message: "Invalid admin credentials",
         });
       }
 
-      // Ensure user has admin role
       if (user.role !== 'admin') {
         user.role = 'admin';
         user.isVerified = true;
+        user.verified = true;
         await user.save();
       }
 
-      console.log('✅ Admin login successful:', email);
+      console.log('Admin login successful:', email);
     } else {
-      // Regular user login
+      console.log('Comparing password for user:', email);
       const isPasswordMatch = await bcrypt.compare(password, user.password);
 
       if (!isPasswordMatch) {
+        console.log('Invalid password for user:', email);
         return res.status(401).json({
           success: false,
           message: "Invalid email or password",
         });
       }
 
-      // Prevent non-admins from having admin role
       if (user.role === 'admin') {
         return res.status(403).json({
           success: false,
           message: "Unauthorized admin access attempt",
         });
       }
+
+      console.log('User login successful:', email);
     }
 
-    // Generate JWT token
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // Set cookie
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -213,19 +240,22 @@ export const loginUser = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Format user data for response
     const userData = {
       id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
       profilePicture: user.profilePicture,
-      isVerified: user.isVerified,
+      isVerified: user.isVerified || user.verified,
+      verified: user.verified || user.isVerified,
       address: user.address,
-      // Don't send location object in login response
+      locationString: user.locationString,
+      department: user.department,
+      position: user.position,
     };
 
-    // Return user data
+    console.log('Login response with location:', userData.locationString);
+
     res.json({
       success: true,
       message: "Login successful",
@@ -241,10 +271,8 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// Export as 'login' for backwards compatibility
 export const login = loginUser;
 
-// Logout user
 export const logout = async (req, res) => {
   try {
     res.cookie('token', '', {
@@ -265,7 +293,6 @@ export const logout = async (req, res) => {
   }
 };
 
-// Create official
 export const createOfficial = async (req, res) => {
   try {
     const { name, email, password, location, department, position } = req.body;
@@ -274,11 +301,16 @@ export const createOfficial = async (req, res) => {
       name,
       email,
       password,
-      location,
+      locationString: location,
+      location: {
+        type: 'Point',
+        coordinates: [0, 0]
+      },
       role: 'public-official',
       department,
       position,
-      verified: true
+      verified: true,
+      isVerified: true
     });
 
     await official.save();
