@@ -13,8 +13,13 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // Check if email is admin email
-  const isAdminEmail = formData.email === 'tanisha_alicse2023@msit.edu.in';
+  // Get admin emails from environment variable
+  const adminEmails = import.meta.env.VITE_ADMIN_EMAILS 
+    ? import.meta.env.VITE_ADMIN_EMAILS.split(',').map(email => email.trim())
+    : ['tanisha321465@gmail.com']; // Fallback
+
+  // Check if current email is an admin email
+  const isAdminEmail = adminEmails.includes(formData.email.trim());
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -28,6 +33,7 @@ const Login = () => {
 
     try {
       console.log('Login submission:', formData.email);
+      console.log('Is admin email:', isAdminEmail);
       
       const result = await authService.login(formData.email, formData.password);
       
@@ -64,7 +70,7 @@ const Login = () => {
             
             {/* Admin Login Indicator */}
             {isAdminEmail && (
-              <div className="mt-3 px-4 py-2 bg-purple-100 border border-purple-300 rounded-lg flex items-center justify-center gap-2">
+              <div className="mt-3 px-4 py-2 bg-purple-100 border border-purple-300 rounded-lg flex items-center justify-center gap-2 animate-pulse">
                 <AdminPanelSettingsIcon className="text-purple-600" />
                 <span className="text-purple-800 font-medium text-sm">Admin Login Mode</span>
               </div>
@@ -99,6 +105,22 @@ const Login = () => {
                   </InputAdornment>
                 ),
               }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: isAdminEmail ? '#9333ea' : undefined,
+                  },
+                  '&:hover fieldset': {
+                    borderColor: isAdminEmail ? '#a855f7' : undefined,
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: isAdminEmail ? '#9333ea' : undefined,
+                  },
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: isAdminEmail ? '#9333ea' : undefined,
+                },
+              }}
             />
             <TextField
               label="Password"
@@ -110,6 +132,22 @@ const Login = () => {
               onChange={handleChange}
               fullWidth
               disabled={loading}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: isAdminEmail ? '#9333ea' : undefined,
+                  },
+                  '&:hover fieldset': {
+                    borderColor: isAdminEmail ? '#a855f7' : undefined,
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: isAdminEmail ? '#9333ea' : undefined,
+                  },
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: isAdminEmail ? '#9333ea' : undefined,
+                },
+              }}
             />
 
             <button 
@@ -119,7 +157,7 @@ const Login = () => {
                 loading 
                   ? "bg-gray-400 text-gray-200 cursor-not-allowed" 
                   : isAdminEmail
-                    ? "bg-purple-600 text-white hover:bg-purple-700"
+                    ? "bg-purple-600 text-white hover:bg-purple-700 shadow-lg hover:shadow-xl"
                     : "bg-blue-600 text-white hover:bg-blue-700"
               }`}
             >
@@ -129,8 +167,8 @@ const Login = () => {
 
             {!isAdminEmail && (
               <p className="text-center text-gray-500 text-sm mt-2">
-              Don't have an account?{" "}
-              <Link to="/register" className="text-blue-600 font-medium hover:underline">Register now</Link>
+                Don't have an account?{" "}
+                <Link to="/register" className="text-blue-600 font-medium hover:underline">Register now</Link>
               </p>
             )}
           </form>

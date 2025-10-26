@@ -418,18 +418,39 @@ export const deletePetition = async (req, res) => {
   }
 };
 
-// Get analytics for public officials - FIXED WITH ERROR HANDLING
+// Get analytics for public officials - FIXED WITH CORRECT STATUS COUNTING
 export const getOfficialAnalytics = async (req, res) => {
   try {
     console.log('Fetching official analytics...');
 
-    // Basic overview counts
+    // Basic overview counts - FIXED to match actual statuses
     const totalPetitions = await Petition.countDocuments();
     const activePetitions = await Petition.countDocuments({ status: 'active' });
-    const reviewedPetitions = await Petition.countDocuments({ status: 'under_review' });
-    const closedPetitions = await Petition.countDocuments({ status: 'closed' });
+    
+    // FIX: Count ALL "under review" related statuses
+    const reviewedPetitions = await Petition.countDocuments({ 
+      status: { $in: ['under_review', 'reviewed', 'in_progress'] } 
+    });
+    
+    // FIX: Count ALL "closed" related statuses
+    const closedPetitions = await Petition.countDocuments({ 
+      status: { $in: ['closed', 'successful', 'rejected', 'expired'] } 
+    });
 
-    console.log('Overview counts:', { totalPetitions, activePetitions, reviewedPetitions, closedPetitions });
+    console.log('Overview counts:', { 
+      totalPetitions, 
+      activePetitions, 
+      reviewedPetitions, 
+      closedPetitions 
+    });
+    
+    // DEBUG: Log actual status distribution
+    const allPetitions = await Petition.find({}, 'status');
+    const statusBreakdown = {};
+    allPetitions.forEach(p => {
+      statusBreakdown[p.status] = (statusBreakdown[p.status] || 0) + 1;
+    });
+    console.log('Actual petition status breakdown:', statusBreakdown);
 
     // Petitions by category with error handling
     let petitionsByCategory = [];
@@ -579,140 +600,177 @@ export const getOfficialAnalytics = async (req, res) => {
   }
 };
 
-// Update petition status (Public Officials only)
+// Update petition status (Public Officials only) - ENHANCED VERSION
 export const updatePetitionStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, officialResponse, timeline } = req.body;
-    const officialId = req.user.id;
+    const { status, officialResponse } = req.body;
+    const officialId = req.user?.id;
 
-    console.log('Updating petition status:', { id, status, officialResponse, officialId });
+    console.log('=== UPDATE PETITION STATUS ===');
+    console.log('Petition ID:', id);
+    console.log('New Status:', status);
+    console.log('Official ID:', officialId);
 
-    // Validate official role
-    if (req.user.role !== 'public-official') {
+    // Verify user is public official
+    if (req.user.role !== 'public-official' && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
-        message: "Only public officials can update petition status"
+        message: 'Only public officials can update petition status'
       });
     }
 
-    const petition = await Petition.findById(id);
+    const petition = await Petition.findById(id).populate('creator', 'name email');
+    
     if (!petition) {
       return res.status(404).json({
         success: false,
-        message: "Petition not found"
+        message: 'Petition not found'
       });
     }
 
-    // Update petition fields
+    const previousStatus = petition.status;
+
+    // Update petition
     petition.status = status;
-    if (officialResponse) petition.officialResponse = officialResponse;
+    if (officialResponse) {
+      petition.officialResponse = officialResponse;
+    }
     petition.reviewedBy = officialId;
     petition.reviewedAt = new Date();
-    
-    if (timeline) {
-      if (!petition.timeline) petition.timeline = [];
-      petition.timeline.push({
-        status,
-        date: new Date(),
-        note: timeline,
-        official: officialId
-      });
-    }
+
+    // Add to timeline
+    petition.timeline.push({
+      status: status,
+      date: new Date(),
+      note: officialResponse,
+      official: officialId
+    });
 
     await petition.save();
 
-    // Log the admin action
+    // Get official details
+    const official = await User.findById(officialId).select('name department position');
+
+    // FIXED: Create admin log with PETITION TITLE in metadata
     await logAdminAction(
       `Updated petition status to "${status}"`,
-      petition.creator,
+      petition.creator._id,
       petition._id,
       null,
-      { 
-        petitionTitle: petition.title,
-        previousStatus: petition.status,
+      {
+        petitionTitle: petition.title, // ✅ ADDED
+        previousStatus: previousStatus,
         newStatus: status,
-        officialId,
-        officialResponse: officialResponse || null
+        officialId: officialId,
+        officialName: official?.name || 'Official',
+        officialDepartment: official?.department || 'N/A',
+        officialPosition: official?.position || 'N/A',
+        officialResponse: officialResponse
       }
     );
 
-    console.log('Petition status updated successfully');
+    console.log('✅ Petition status updated and logged with title:', petition.title);
 
     res.json({
       success: true,
-      message: "Petition status updated successfully",
+      message: 'Petition status updated successfully',
       petition
     });
+
   } catch (error) {
-    console.error("Update petition status error:", error);
-    res.status(500).json({ 
+    console.error('Update petition status error:', error);
+    res.status(500).json({
       success: false,
-      message: "Error updating petition status",
-      error: error.message 
+      message: 'Error updating petition status',
+      error: error.message
     });
   }
 };
 
-// Verify petition (Public Officials only)
+// Verify petition (Public Officials only) - ENHANCED VERSION
 export const verifyPetition = async (req, res) => {
   try {
     const { id } = req.params;
     const { verified, verificationNote } = req.body;
-    const officialId = req.user.id;
+    const officialId = req.user?.id;
 
-    console.log('Verifying petition:', { id, verified, verificationNote, officialId });
+    console.log('=== VERIFY PETITION ===');
+    console.log('Petition ID:', id);
+    console.log('Verified:', verified);
+    console.log('Official ID:', officialId);
 
-    // Validate official role
-    if (req.user.role !== 'public-official') {
+    // Verify user is public official
+    if (req.user.role !== 'public-official' && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
-        message: "Only public officials can verify petitions"
+        message: 'Only public officials can verify petitions'
       });
     }
 
-    const petition = await Petition.findById(id);
+    const petition = await Petition.findById(id).populate('creator', 'name email');
+    
     if (!petition) {
       return res.status(404).json({
         success: false,
-        message: "Petition not found"
+        message: 'Petition not found'
       });
     }
 
+    // Update petition
     petition.verified = verified;
-    petition.verificationNote = verificationNote;
     petition.verifiedBy = officialId;
     petition.verifiedAt = new Date();
+    
+    if (verificationNote) {
+      petition.verificationNote = verificationNote;
+    }
+
+    // Add to timeline
+    petition.timeline.push({
+      status: verified ? 'verified' : 'unverified',
+      date: new Date(),
+      note: verificationNote,
+      official: officialId
+    });
 
     await petition.save();
 
-    // Log the admin action
+    // Get official details
+    const official = await User.findById(officialId).select('name department position');
+
+    // FIXED: Create admin log with PETITION TITLE in metadata
+    const action = verified ? 'Verified petition' : 'Marked petition as invalid';
     await logAdminAction(
-      verified ? 'Verified petition' : 'Unverified petition',
-      petition.creator,
+      action,
+      petition.creator._id,
       petition._id,
       null,
-      { 
-        petitionTitle: petition.title,
-        verified,
-        verificationNote,
-        officialId
+      {
+        petitionTitle: petition.title, // ✅ ADDED
+        verified: verified,
+        verificationNote: verificationNote,
+        officialId: officialId,
+        officialName: official?.name || 'Official',
+        officialDepartment: official?.department || 'N/A',
+        officialPosition: official?.position || 'N/A'
       }
     );
 
-    console.log('Petition verification completed');
+    console.log('✅ Petition verification logged with title:', petition.title);
 
     res.json({
       success: true,
-      message: `Petition ${verified ? 'verified' : 'marked as unverified'}`,
+      message: verified ? 'Petition verified successfully' : 'Petition marked as invalid',
       petition
     });
+
   } catch (error) {
-    console.error("Verify petition error:", error);
-    res.status(500).json({ 
+    console.error('Verify petition error:', error);
+    res.status(500).json({
       success: false,
-      message: "Error verifying petition",
-      error: error.message 
+      message: 'Error verifying petition',
+      error: error.message
     });
   }
 };
@@ -722,72 +780,94 @@ export const addOfficialResponse = async (req, res) => {
   try {
     const { petitionId } = req.params;
     const { message, type, isPublic } = req.body;
-    const officialId = req.user.id;
+    const officialId = req.user?.id;
 
-    console.log('Adding official response:', { petitionId, message, type, isPublic, officialId });
+    console.log('=== ADD OFFICIAL RESPONSE ===');
+    console.log('Petition ID:', petitionId);
+    console.log('Official ID:', officialId);
 
-    // Validate official role
-    if (req.user.role !== 'public-official') {
+    // Verify user is public official
+    if (req.user.role !== 'public-official' && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
-        message: "Only public officials can add responses"
+        message: 'Only public officials can add responses'
       });
     }
 
-    const petition = await Petition.findById(petitionId);
+    const petition = await Petition.findById(petitionId).populate('creator', 'name email');
+    
     if (!petition) {
       return res.status(404).json({
         success: false,
-        message: "Petition not found"
+        message: 'Petition not found'
       });
     }
 
-    // Initialize internalNotes if it doesn't exist
-    if (!petition.internalNotes) {
-      petition.internalNotes = [];
-    }
-
-    // Add response to petition's internal notes
-    petition.internalNotes.push({
-      note: message,
-      author: officialId,
-      createdAt: new Date()
+    // Create official response
+    const response = new OfficialResponse({
+      petition: petitionId,
+      official: officialId,
+      message,
+      type: type || 'general_response',
+      isPublic: isPublic !== undefined ? isPublic : true
     });
 
-    // If public response, update the officialResponse field
-    if (isPublic !== false) {
-      petition.officialResponse = message;
-      petition.reviewedBy = officialId;
-      petition.reviewedAt = new Date();
-    }
+    await response.save();
+    await response.populate('official', 'name department position');
 
-    await petition.save();
+    // Get official details
+    const official = await User.findById(officialId).select('name department position');
 
-    console.log('Official response added successfully');
+    // FIXED: Create admin log with PETITION TITLE in metadata
+    await logAdminAction(
+      'Added official response to petition',
+      petition.creator._id,
+      petition._id,
+      null,
+      {
+        petitionTitle: petition.title, // ✅ ADDED
+        responseType: type,
+        responseMessage: message.substring(0, 100) + (message.length > 100 ? '...' : ''),
+        officialId: officialId,
+        officialName: official?.name || 'Official',
+        officialDepartment: official?.department || 'N/A',
+        officialPosition: official?.position || 'N/A',
+        isPublic: isPublic
+      }
+    );
+
+    console.log('✅ Official response logged with title:', petition.title);
 
     res.json({
       success: true,
-      message: "Official response added successfully",
-      petition
+      message: 'Official response added successfully',
+      response
     });
+
   } catch (error) {
-    console.error("Add official response error:", error);
-    res.status(500).json({ 
+    console.error('Add official response error:', error);
+    res.status(500).json({
       success: false,
-      message: "Error adding official response",
-      error: error.message 
+      message: 'Error adding official response',
+      error: error.message
     });
   }
 };
 
-// Get petitions for official review
+// Get petitions for official review - FIXED to return ALL by default
 export const getPetitionsForReview = async (req, res) => {
   try {
-    const { status = 'active', category, location, limit = 50 } = req.query;
+    const { status, category, location, limit = 50 } = req.query;
 
     console.log('Fetching petitions for review:', { status, category, location, limit });
 
-    const filter = { status };
+    // FIX: Don't default to 'active' status, allow fetching ALL
+    const filter = {};
+    
+    // Only add status filter if explicitly provided
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
     
     if (category && category !== 'all') filter.category = category;
     if (location && location !== 'all') filter.location = { $regex: location, $options: 'i' };
@@ -810,6 +890,14 @@ export const getPetitionsForReview = async (req, res) => {
     );
 
     console.log(`Found ${petitionsWithCounts.length} petitions for review`);
+    console.log('Status distribution:', {
+      active: petitionsWithCounts.filter(p => p.status === 'active').length,
+      under_review: petitionsWithCounts.filter(p => p.status === 'under_review').length,
+      reviewed: petitionsWithCounts.filter(p => p.status === 'reviewed').length,
+      in_progress: petitionsWithCounts.filter(p => p.status === 'in_progress').length,
+      closed: petitionsWithCounts.filter(p => p.status === 'closed').length,
+      successful: petitionsWithCounts.filter(p => p.status === 'successful').length,
+    });
 
     res.json({
       success: true,

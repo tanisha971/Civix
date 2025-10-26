@@ -44,7 +44,7 @@ export default function DashboardBar() {
   ];
 
   return (
-    <nav className="w-full mt-6">
+    <nav className="w-full ">
       {links.map((link) => (
         <Tooltip 
           key={link.to}

@@ -11,7 +11,7 @@ const PollFilters = ({ activeFilter, onFilterChange }) => {
   const [loadingLocations, setLoadingLocations] = useState(true);
   const [locationCounts, setLocationCounts] = useState({});
 
-  const pollTypes = ['Active Polls', 'Polls I Voted On', 'My Polls', 'Closed Polls'];
+  const pollTypes = ['Active Polls', 'Polls I Voted On', 'My Polls'];
   const statuses = ['All Status', 'Active', 'Closed'];
 
   // Fetch real-time locations from polls

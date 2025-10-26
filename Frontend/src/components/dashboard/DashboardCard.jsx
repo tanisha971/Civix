@@ -7,46 +7,11 @@ import PollIcon from '@mui/icons-material/Poll';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import petitionService from '../../services/petitionService';
-import { pollService } from '../../services/pollService';
+import {pollService} from '../../services/pollService';
 import { getCurrentUserId } from '../../utils/auth';
 
-//NEW: Official Actions table
-const OfficialActions = () => {
-  const dummy = [
-    { action: 'Approved petition "Fix Streetlights on Park Ave"', official: 'A. Kapoor (MCW)', timestamp: '2025-10-19 09:42' },
-    { action: 'Responded to poll "Weekly Market Holiday"', official: 'S. Das (KMC)', timestamp: '2025-10-18 17:15' },
-    { action: 'Forwarded "Rain-water Harvesting" to Engg. Dept.', official: 'R. Banerjee (CFO)', timestamp: '2025-10-18 11:03' },
-    { action: 'Closed petition "Garbage Pick-up Schedule"', official: 'P. Nandy (SWD)', timestamp: '2025-10-17 14:27' },
-  ];
-
-  return (
-    <div className="mb-8">
-      <h3 className="text-lg font-bold text-gray-800 mb-4">Recent Official Actions</h3>
-      <div className="bg-white rounded-xl shadow border border-gray-200 p-4">
-        <div className="overflow-auto max-h-36">
-          <table className="w-full text-sm text-left text-gray-700">
-            <thead className="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
-              <tr>
-                <th className="px-4 py-2">Action</th>
-                <th className="px-4 py-2">Official</th>
-                <th className="px-4 py-2">Date & Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dummy.map((d, i) => (
-                <tr key={i} className="bg-white border-b hover:bg-gray-50">
-                  <td className="px-4 py-2">{d.action}</td>
-                  <td className="px-4 py-2">{d.official}</td>
-                  <td className="px-4 py-2 whitespace-nowrap">{d.timestamp}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-};
+// Import the real OfficialActions component
+import OfficialActions from './OfficialActions';
 
 export default function DashboardCard() {
   const navigate = useNavigate();
@@ -232,7 +197,7 @@ export default function DashboardCard() {
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-bold text-gray-900 mb-2 text-lg">Start a Petition</h4>
-              <p className="text-gray-600 text-sm">Gather support from your community for important causes</p>
+              <p className="text-gray-600 text-sm">Gather support from your community</p>
             </div>
             <button
               onClick={() => navigate('/dashboard/petitions/create')}

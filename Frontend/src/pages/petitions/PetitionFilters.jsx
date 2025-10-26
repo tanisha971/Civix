@@ -11,7 +11,7 @@ const PetitionFilters = ({ activeFilter, onFilterChange }) => {
   const [loadingLocations, setLoadingLocations] = useState(true);
   const [locationCounts, setLocationCounts] = useState({});
 
-  const petitionTypes = ['Active Petitions', 'Petitions I Signed', 'My Petitions', 'Closed Petitions'];
+  const petitionTypes = ['Active Petitions', 'Petitions I Signed', 'My Petitions'];
   const statuses = ['All Status', 'Active', 'Closed', 'Under Review'];
 
   // Fetch real-time locations from petitions
