@@ -134,11 +134,11 @@ export default function DashboardCard() {
             style={{ background: '#fff3e0', color: '#111' }}
           >
             <div className="flex justify-between mb-2">
-              <span className="text-lg font-semibold">Successful</span>
+              <span className="text-lg font-semibold">Closed</span>
               <CheckCircleIcon style={{ fontSize: 32 }} />
             </div>
             <span className="text-3xl font-bold mb-1">{loading ? '...' : successfulPetitionsCount}</span>
-            <span className="text-sm opacity-60">completed or under review</span>
+            <span className="text-sm opacity-60">closed or under review</span>
           </div>
         </div>
       </div>

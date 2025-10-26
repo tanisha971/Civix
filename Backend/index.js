@@ -45,7 +45,6 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/admin-logs", adminLogRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/comments", commentRoutes);
-console.log('✅ All routes registered');
 
 // Serve uploaded files
 app.use('/uploads', express.static('uploads'));
@@ -74,16 +73,13 @@ app.get("/", (req, res) => {
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
-    console.log("✅ MongoDB Connected");
+    console.log("MongoDB Connected");
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📍 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:5173"}`);
-      console.log(`Feedback routes available at http://localhost:${PORT}/api/feedback`);
-      console.log(`Comment routes available at http://localhost:${PORT}/api/comments`);
+      console.log(`Server running on port ${PORT}`);
     });
   })
   .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
+    console.error("MongoDB connection error:", err);
     process.exit(1);
   });
 

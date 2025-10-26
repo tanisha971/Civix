@@ -79,12 +79,12 @@ class NotificationService {
                             log.metadata?.official?.position || 
                             'N/A';
 
-    // ✅ FIXED: Get petition title from multiple sources
+    // FIXED: Get petition title from multiple sources
     const petitionTitle = log.metadata?.petitionTitle || 
                          log.relatedPetition?.title || 
                          'Petition';
 
-    // ✅ FIXED: Get poll title from multiple sources  
+    // FIXED: Get poll title from multiple sources  
     const pollTitle = log.metadata?.pollTitle || 
                      log.relatedPoll?.title || 
                      'Poll';
@@ -96,7 +96,6 @@ class NotificationService {
       officialDepartment: officialDepartment,
       officialPosition: officialPosition,
       officialDetails: `${officialName} - ${officialPosition} (${officialDepartment})`,
-      // ✅ ADDED: Include petition and poll titles
       petitionTitle: log.relatedPetition ? petitionTitle : null,
       pollTitle: log.relatedPoll ? pollTitle : null,
       timestamp: log.createdAt,
@@ -119,11 +118,6 @@ class NotificationService {
   // Get user-specific notifications - ENHANCED DEBUGGING
   async getUserNotifications(userId, page = 1, limit = 20) {
     try {
-      console.log('\n=== getUserNotifications SERVICE ===');
-      console.log('User ID:', userId);
-      console.log('User ID type:', typeof userId);
-      console.log('Page:', page, 'Limit:', limit);
-
       if (!userId) {
         throw new Error('User ID is required');
       }
@@ -133,38 +127,32 @@ class NotificationService {
         ? new mongoose.Types.ObjectId(userId)
         : userId;
 
-      console.log('User ObjectId:', userObjectId);
-
       const skip = (page - 1) * limit;
 
       // STEP 1: Find all petitions created by this user
-      console.log('STEP 1: Finding user petitions...');
       const userPetitions = await Petition.find({ creator: userObjectId })
         .select('_id title')
         .lean();
       
       const petitionIds = userPetitions.map(p => p._id);
-      console.log('✅ Found', petitionIds.length, 'petitions for user');
+      
       
       if (petitionIds.length > 0) {
         console.log('Petition IDs:', petitionIds.map(id => id.toString()));
       }
 
       // STEP 2: Find all polls created by this user
-      console.log('STEP 2: Finding user polls...');
       const userPolls = await Poll.find({ creator: userObjectId })
         .select('_id title')
         .lean();
       
       const pollIds = userPolls.map(p => p._id);
-      console.log('✅ Found', pollIds.length, 'polls for user');
       
       if (pollIds.length > 0) {
         console.log('Poll IDs:', pollIds.map(id => id.toString()));
       }
 
       // STEP 3: Build query
-      console.log('STEP 3: Building query...');
       const query = {
         $or: []
       };
@@ -178,7 +166,6 @@ class NotificationService {
       }
 
       if (query.$or.length === 0) {
-        console.log('⚠️ User has no petitions or polls, returning empty');
         return {
           success: true,
           notifications: [],
@@ -191,11 +178,6 @@ class NotificationService {
           }
         };
       }
-
-      console.log('Query:', JSON.stringify(query, null, 2));
-
-      // STEP 4: Find logs
-      console.log('STEP 4: Querying AdminLog...');
       
       const [logs, total] = await Promise.all([
         AdminLog.find(query)
@@ -208,19 +190,7 @@ class NotificationService {
         AdminLog.countDocuments(query)
       ]);
 
-      console.log('✅ Found', logs.length, 'logs');
-      console.log('📊 Total count:', total);
-
-      if (logs.length > 0) {
-        console.log('Sample log:');
-        console.log('  - ID:', logs[0]._id);
-        console.log('  - Action:', logs[0].action);
-        console.log('  - Petition:', logs[0].relatedPetition?._id);
-        console.log('  - Created:', logs[0].createdAt);
-      }
-
       if (logs.length === 0) {
-        console.log('⚠️ No notifications found');
         return {
           success: true,
           notifications: [],
@@ -235,13 +205,8 @@ class NotificationService {
       }
 
       // STEP 5: Format notifications
-      console.log('STEP 5: Formatting notifications...');
       const notifications = logs.map(log => this.formatNotification(log));
       const unreadCount = logs.filter(log => !log.read).length;
-
-      console.log('✅ Formatted', notifications.length, 'notifications');
-      console.log('📬 Unread count:', unreadCount);
-      console.log('=== END SERVICE ===\n');
 
       return {
         success: true,
@@ -255,7 +220,7 @@ class NotificationService {
         }
       };
     } catch (error) {
-      console.error('❌ Get user notifications error:', error);
+      console.error('Get user notifications error:', error);
       throw error;
     }
   }
@@ -278,10 +243,10 @@ class NotificationService {
       : officialName;
     
     if (actionLower.includes('approved')) {
-      title = '✅ Petition Approved';
+      title = 'Petition Approved';
       body = `Your petition was approved by ${officialTitle}`;
     } else if (actionLower.includes('rejected')) {
-      title = '❌ Petition Rejected';
+      title = 'Petition Rejected';
       body = `Your petition was rejected by ${officialTitle}`;
     } else if (actionLower.includes('verified petition') && !actionLower.includes('unverified')) {
       // ENHANCED: Specific handling for verification
@@ -293,7 +258,7 @@ class NotificationService {
         body += `\nNote: ${log.metadata.verificationNote}`;
       }
     } else if (actionLower.includes('unverified')) {
-      title = '⚠️ Petition Unverified';
+      title = 'Petition Unverified';
       body = `Your petition was marked as invalid by ${officialTitle}`;
       
       // Add verification note if available
@@ -328,7 +293,6 @@ class NotificationService {
       read: log.read || false,
       relatedPetition: log.relatedPetition,
       relatedPoll: log.relatedPoll,
-      // ADDED: Include official information
       officialName: officialName,
       officialPosition: officialPosition,
       officialDepartment: officialDepartment,
