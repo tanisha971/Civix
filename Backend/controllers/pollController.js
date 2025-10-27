@@ -24,20 +24,22 @@ export const createPoll = async (req, res) => {
   }
 };
 
-// Get all polls
+// Get all polls - UPDATED TO POPULATE CREATOR
 export const getPolls = async (req, res) => {
   try {
-    const polls = await Poll.find().sort({ createdAt: -1 });
+    const polls = await Poll.find()
+      .populate('creator', 'name email')
+      .sort({ createdAt: -1 });
     res.json({ success: true, polls });
   } catch (err) {
     res.status(500).json({ success: false, message: "Error fetching polls", error: err.message });
   }
 };
 
-// Get poll by ID
+// Get poll by ID - UPDATED TO POPULATE CREATOR
 export const getPollById = async (req, res) => {
   try {
-    const poll = await Poll.findById(req.params.id);
+    const poll = await Poll.findById(req.params.id).populate('creator', 'name email');
     if (!poll) return res.status(404).json({ success: false, message: "Poll not found" });
     res.json({ success: true, poll });
   } catch (err) {

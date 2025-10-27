@@ -7,7 +7,7 @@ import PollIcon from '@mui/icons-material/Poll';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import petitionService from '../../services/petitionService';
-import {pollService} from '../../services/pollService';
+import { pollService } from '../../services/pollService';
 import { getCurrentUserId } from '../../utils/auth';
 
 // Import the real OfficialActions component
@@ -54,7 +54,7 @@ export default function DashboardCard() {
     fetchPetitions();
   }, []);
 
-  // Fetch polls
+  // Fetch polls - FIXED CREATOR COMPARISON
   useEffect(() => {
     const fetchPolls = async () => {
       try {
@@ -62,10 +62,27 @@ export default function DashboardCard() {
         const data = await pollService.getPolls();
         const pollsArray = Array.isArray(data) ? data : data.polls || [];
 
-        // Count stats
-        const myPollsCount = pollsArray.filter(
-          poll => poll.creator && poll.creator.toString() === userId.toString()
-        ).length;
+        console.log('📊 Dashboard: Fetched polls:', pollsArray.length);
+        console.log('👤 Current User ID:', userId);
+
+        // Helper function to normalize ID comparison
+        const normalizeId = (id) => {
+          if (!id) return null;
+          if (typeof id === 'string') return id;
+          return id._id || id.id || id.toString();
+        };
+
+        // Count stats with improved creator matching
+        const myPollsCount = pollsArray.filter(poll => {
+          const creatorId = normalizeId(poll.creator);
+          const matches = creatorId && String(creatorId) === String(userId);
+          
+          if (matches) {
+            console.log('✅ Found my poll:', poll.question);
+          }
+          
+          return matches;
+        }).length;
 
         const activePollsCount = pollsArray.filter(
           poll => poll.status?.toLowerCase() === 'active'
@@ -75,6 +92,13 @@ export default function DashboardCard() {
           poll => ['closed', 'completed'].includes(poll.status?.toLowerCase())
         ).length;
 
+        console.log('📈 Poll Stats:', {
+          myPolls: myPollsCount,
+          active: activePollsCount,
+          completed: completedPollsCount,
+          total: pollsArray.length
+        });
+
         setPollStats({
           myPolls: myPollsCount,
           activePolls: activePollsCount,
@@ -82,12 +106,18 @@ export default function DashboardCard() {
           totalPolls: pollsArray.length
         });
       } catch (err) {
-        console.error('Error fetching polls:', err);
+        console.error('❌ Error fetching polls:', err);
       } finally {
         setPollsLoading(false);
       }
     };
-    fetchPolls();
+
+    if (userId) {
+      fetchPolls();
+    } else {
+      console.warn('⚠️ No user ID found');
+      setPollsLoading(false);
+    }
   }, [userId]);
 
   // Petition counts
@@ -156,7 +186,15 @@ export default function DashboardCard() {
               <span className="text-lg font-semibold">My Polls</span>
               <PollIcon style={{ fontSize: 32 }} />
             </div>
-            <span className="text-3xl font-bold mb-1">{pollsLoading ? '...' : pollStats.myPolls}</span>
+            <span className="text-3xl font-bold mb-1">
+              {pollsLoading ? (
+                <div className="inline-flex items-center">
+                  <div className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : (
+                pollStats.myPolls
+              )}
+            </span>
             <span className="text-sm opacity-60">created by you</span>
           </div>
 
@@ -169,7 +207,15 @@ export default function DashboardCard() {
               <span className="text-lg font-semibold">Active Polls</span>
               <HowToVoteIcon style={{ fontSize: 32 }} />
             </div>
-            <span className="text-3xl font-bold mb-1">{pollsLoading ? '...' : pollStats.activePolls}</span>
+            <span className="text-3xl font-bold mb-1">
+              {pollsLoading ? (
+                <div className="inline-flex items-center">
+                  <div className="w-6 h-6 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : (
+                pollStats.activePolls
+              )}
+            </span>
             <span className="text-sm opacity-60">currently voting</span>
           </div>
 
@@ -181,7 +227,15 @@ export default function DashboardCard() {
               <span className="text-lg font-semibold">Completed Polls</span>
               <BarChartIcon style={{ fontSize: 32 }} />
             </div>
-            <span className="text-3xl font-bold mb-1">{pollsLoading ? '...' : pollStats.completedPolls}</span>
+            <span className="text-3xl font-bold mb-1">
+              {pollsLoading ? (
+                <div className="inline-flex items-center">
+                  <div className="w-6 h-6 border-2 border-lime-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : (
+                pollStats.completedPolls
+              )}
+            </span>
             <span className="text-sm opacity-60">finished voting</span>
           </div>
         </div>

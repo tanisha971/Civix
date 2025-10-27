@@ -128,7 +128,7 @@ const PetitionStats = ({ onCreatePetition }) => {
       color: "text-blue-600",
       bgColor: "bg-blue-50",
       borderColor: "border-blue-200",
-      description: "Completed or under review"
+      description: "Closed or under review"
     },
   ];
 

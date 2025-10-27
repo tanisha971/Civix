@@ -253,10 +253,6 @@ const HelpSupport = () => {
   };
 
   const handleDeleteFeedback = async (feedbackId) => {
-    if (!window.confirm('Are you sure you want to delete this feedback?')) {
-      return;
-    }
-
     try {
       const response = await feedbackService.deleteFeedback(feedbackId);
       if (response.success) {
@@ -264,7 +260,8 @@ const HelpSupport = () => {
         setSelectedFeedback(null);
       }
     } catch (err) {
-      alert('Failed to delete feedback');
+      console.error('Failed to delete feedback:', err);
+      setError('Failed to delete feedback. Please try again.');
     }
   };
 
