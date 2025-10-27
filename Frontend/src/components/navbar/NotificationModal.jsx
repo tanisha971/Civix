@@ -281,6 +281,10 @@ const NotificationModal = () => {
                     const petitionTitle = n.relatedPetition?.title;
                     const pollTitle = n.relatedPoll?.title;
                     
+                    // ✅ NEW: Extract official response and verification note
+                    const officialResponse = n.officialResponse || n.response;
+                    const verificationNote = n.verificationNote;
+                    
                     return (
                       <Box
                         key={n.id || index}
@@ -300,7 +304,7 @@ const NotificationModal = () => {
                         }}
                         onClick={() => handleNotificationClick(n)}
                       >
-                        {/* Compact Header with Icon and Title */}
+                        {/* Header with Icon and Title */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                           {getNotificationIcon(n.title)}
                           <Typography
@@ -316,7 +320,7 @@ const NotificationModal = () => {
                           </Typography>
                         </Box>
                         
-                        {/* Compact Petition/Poll Title as Badge */}
+                        {/* Petition/Poll Title Badge */}
                         {(petitionTitle || pollTitle) && (
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
                             <Box
@@ -345,7 +349,7 @@ const NotificationModal = () => {
                           </Box>
                         )}
                         
-                        {/* Compact Official Info */}
+                        {/* Official Info */}
                         {n.officialName && (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
                             <BusinessIcon sx={{ fontSize: 12, color: '#6b7280' }} />
@@ -358,20 +362,82 @@ const NotificationModal = () => {
                           </Box>
                         )}
 
-                        {/* Compact Verification Note */}
-                        {n.verificationNote && n.verificationNote.trim() && (
-                          <Typography
-                            variant="caption"
+                        {/* ✅ NEW: Official Response Section */}
+                        {officialResponse && officialResponse.trim() && (
+                          <Box
                             sx={{
-                              display: 'block',
-                              mt: 0.5,
-                              fontSize: '0.7rem',
-                              color: n.title.includes('Unverified') ? '#991b1b' : '#065f46',
-                              fontStyle: 'italic',
+                              mt: 1,
+                              p: 1.5,
+                              bgcolor: '#f0f9ff',
+                              borderLeft: '3px solid #3b82f6',
+                              borderRadius: 1,
                             }}
                           >
-                            "{n.verificationNote}"
-                          </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                              <ChatBubbleIcon sx={{ fontSize: 14, color: '#3b82f6' }} />
+                              <Typography
+                                variant="caption"
+                                sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#1e40af' }}
+                              >
+                                Official Response:
+                              </Typography>
+                            </Box>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                display: 'block',
+                                fontSize: '0.75rem',
+                                color: '#374151',
+                                lineHeight: 1.5,
+                                fontStyle: 'italic'
+                              }}
+                            >
+                              "{officialResponse}"
+                            </Typography>
+                          </Box>
+                        )}
+
+                        {/* ✅ NEW: Verification Note Section */}
+                        {verificationNote && verificationNote.trim() && (
+                          <Box
+                            sx={{
+                              mt: 1,
+                              p: 1.5,
+                              bgcolor: n.title.includes('Unverified') ? '#fef2f2' : '#f0fdf4',
+                              borderLeft: n.title.includes('Unverified') ? '3px solid #ef4444' : '3px solid #10b981',
+                              borderRadius: 1,
+                            }}
+                          >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                              {n.title.includes('Unverified') ? (
+                                <CancelIcon sx={{ fontSize: 14, color: '#ef4444' }} />
+                              ) : (
+                                <VerifiedIcon sx={{ fontSize: 14, color: '#10b981' }} />
+                              )}
+                              <Typography
+                                variant="caption"
+                                sx={{ 
+                                  fontSize: '0.7rem', 
+                                  fontWeight: 600, 
+                                  color: n.title.includes('Unverified') ? '#991b1b' : '#065f46'
+                                }}
+                              >
+                                Verification Note:
+                              </Typography>
+                            </Box>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                display: 'block',
+                                fontSize: '0.75rem',
+                                color: n.title.includes('Unverified') ? '#7f1d1d' : '#064e3b',
+                                lineHeight: 1.5,
+                                fontStyle: 'italic'
+                              }}
+                            >
+                              "{verificationNote}"
+                            </Typography>
+                          </Box>
                         )}
                       </Box>
                     );
@@ -394,7 +460,7 @@ const NotificationModal = () => {
               )}
             </Box>
 
-            {/* Compact Footer */}
+            {/* Footer */}
             {notifications.length > 0 && (
               <>
                 <Divider />

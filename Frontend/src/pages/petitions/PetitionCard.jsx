@@ -19,6 +19,9 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
   const currentUserId = getCurrentUserId();
   const userIsAuthenticated = isAuthenticated();
   const isCreator = petition.creator?._id === currentUserId;
+  
+  // ✅ NEW: Check if petition is closed
+  const isClosed = ['closed', 'Closed', 'successful', 'Successful', 'rejected', 'Rejected', 'expired', 'Expired'].includes(petition.status);
 
   // Initialize comment count
   useEffect(() => {
@@ -85,6 +88,11 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
     }
 
     if (isCreator) {
+      return;
+    }
+
+    // ✅ NEW: Prevent signing closed petitions
+    if (isClosed) {
       return;
     }
 
@@ -207,6 +215,13 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
             {petition.status === 'active' ? 'Active' : petition.status}
           </span>
           
+          {/* ✅ NEW: Show "Closed" badge for closed petitions */
+          isClosed && (
+            <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800 border border-gray-300">
+              Signing Closed
+            </span>
+          )}
+          
           {/* Edit/Delete buttons for creator */}
           {isCreator && userIsAuthenticated && (
             <div className="flex gap-1">
@@ -327,26 +342,31 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
               </div>
             </div>
 
-            {/* Sign Button for Grid View */}
+            {/* Sign Button for Grid View - ✅ UPDATED */}
             <button
               onClick={handleSign}
-              disabled={signed || loading || isCreator || !userIsAuthenticated}
+              disabled={signed || loading || isCreator || !userIsAuthenticated || isClosed}
               className={`w-full px-3 py-2 text-white rounded-md text-sm font-medium transition-all duration-200 ${
                 !userIsAuthenticated
                   ? "bg-gray-400 cursor-not-allowed"
                   : isCreator
                   ? "bg-gray-400 cursor-not-allowed"
+                  : isClosed
+                  ? "bg-gray-500 cursor-not-allowed"
                   : signed 
                   ? "bg-green-500 cursor-default" 
                   : loading
                   ? "bg-gray-400 cursor-wait"
                   : "bg-blue-600 hover:bg-blue-700 active:scale-95"
               }`}
+              title={isClosed ? "This petition is closed and no longer accepting signatures" : ""}
             >
               {!userIsAuthenticated ? (
                 "Login to Sign"
               ) : isCreator ? (
                 "Your Petition"
+              ) : isClosed ? (
+                "Petition Closed"
               ) : loading ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -360,7 +380,7 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
             </button>
           </div>
         ) : (
-          // List View Footer - Desktop only
+          // List View Footer - Desktop only - ✅ UPDATED
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">
@@ -395,26 +415,31 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
               </button>
             </div>
 
-            {/* Sign button */}
+            {/* Sign button - ✅ UPDATED */}
             <button
               onClick={handleSign}
-              disabled={signed || loading || isCreator || !userIsAuthenticated}
+              disabled={signed || loading || isCreator || !userIsAuthenticated || isClosed}
               className={`px-4 py-2 rounded-md text-white font-medium transition-all duration-200 ${
                 !userIsAuthenticated
                   ? "bg-gray-400 cursor-not-allowed"
                   : isCreator
                   ? "bg-gray-400 cursor-not-allowed"
+                  : isClosed
+                  ? "bg-gray-500 cursor-not-allowed"
                   : signed 
                   ? "bg-green-500 cursor-default" 
                   : loading
                   ? "bg-gray-400 cursor-wait"
                   : "bg-blue-600 hover:bg-blue-700 active:scale-95"
               }`}
+              title={isClosed ? "This petition is closed and no longer accepting signatures" : ""}
             >
               {!userIsAuthenticated ? (
                 "Login to Sign"
               ) : isCreator ? (
                 "Your Petition"
+              ) : isClosed ? (
+                "Petition Closed"
               ) : loading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

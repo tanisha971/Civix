@@ -35,7 +35,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
 // Routes
-console.log('🔧 Registering routes...');
+console.log('Registering routes...');
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/polls", pollRoutes);

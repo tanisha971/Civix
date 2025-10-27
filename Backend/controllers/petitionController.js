@@ -152,7 +152,7 @@ export const createPetition = async (req, res) => {
   }
 };
 
-// Sign a petition - COMPLETELY FIXED VERSION
+// Sign a petition - UPDATED WITH CLOSED CHECK
 export const signPetition = async (req, res) => {
   try {
     const petitionId = req.params.id;
@@ -161,7 +161,6 @@ export const signPetition = async (req, res) => {
     console.log('=== PETITION SIGNING DEBUG ===');
     console.log('Petition ID:', petitionId);
     console.log('User ID:', userId);
-    console.log('User object:', req.user);
 
     if (!userId) {
       return res.status(401).json({
@@ -188,6 +187,15 @@ export const signPetition = async (req, res) => {
     }
 
     console.log('Petition found:', petition.title);
+
+    // ✅ NEW: Check if petition is closed
+    const closedStatuses = ['closed', 'successful', 'rejected', 'expired'];
+    if (closedStatuses.includes(petition.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `This petition is ${petition.status} and no longer accepting signatures`
+      });
+    }
 
     // Check if user is the petition creator
     if (petition.creator.toString() === userId) {
@@ -223,7 +231,7 @@ export const signPetition = async (req, res) => {
 
     console.log('User found:', user.name);
 
-    // Create new signature - FIXED: Proper ObjectId handling
+    // Create new signature
     const signature = new Signature({
       petition: petitionId,
       user: userId

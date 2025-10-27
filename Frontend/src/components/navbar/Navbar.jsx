@@ -164,168 +164,143 @@ export default function Navbar() {
     return 'No location set';
   };
 
-  // FIXED: Create menu items array instead of using Fragment
+  // ✅ UPDATED: Unified profile dropdown design for both mobile and desktop
   const renderMenuItems = () => {
-    if (isMobile) {
-      return [
-        <Box key="mobile-menu" sx={{ p: 2, textAlign: 'center' }}>
-          <Avatar
-            sx={{ 
-              width: 80, 
-              height: 80, 
-              margin: "0 auto 16px",
-              bgcolor: stringToColor(user?.name),
-              fontSize: '2rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              '&:hover': {
-                opacity: 0.8,
-                transform: 'scale(1.05)'
-              },
-              transition: 'all 0.2s ease-in-out'
-            }}
-            onClick={handleSettings}
-          >
-            {getInitials(user?.name)}
-          </Avatar>
-
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-            {user?.name}
-          </Typography>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 2 }}>
-            {verified ? (
-              <CheckCircleIcon color="success" fontSize="small" />
-            ) : (
-              <CancelIcon color="error" fontSize="small" />
-            )}
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-              {verified ? 'Verified' : 'Unverified'} Account
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 1 }}>
-            <LocationOnIcon fontSize="small" color="action" />
-            <Typography variant="body2" color="text.secondary">
-              {getLocationDisplay()}
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 2 }}>
-            <EmailIcon fontSize="small" color="action" />
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: 13 }}>
-              {user?.email}
-            </Typography>
-          </Box>
-
-          <Divider sx={{ my: 2 }} />
-
-          <Box sx={{ 
-            backgroundColor: user?.role === 'public-official' ? '#e8f5e8' : '#e3f2fd',
-            color: user?.role === 'public-official' ? '#2e7d32' : '#1565c0',
-            padding: '8px 16px',
-            borderRadius: '20px',
-            fontSize: '0.8rem',
-            fontWeight: '600',
-            mb: 2,
-            textTransform: 'capitalize'
-          }}>
-            {user?.role?.replace('-', ' ') || 'Citizen'}
-          </Box>
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            <Button
-              variant="outlined"
-              startIcon={<SettingsIcon />}
-              onClick={handleSettings}
-              fullWidth
-              sx={{ 
-                borderRadius: '8px',
-                textTransform: 'none',
-                fontWeight: 600
-              }}
-            >
-              Settings
-            </Button>
-
-            <Button
-              variant="contained"
-              startIcon={<LogoutIcon />}
-              onClick={handleLogout}
-              fullWidth
-              sx={{ 
-                backgroundColor: '#dc2626',
-                '&:hover': {
-                  backgroundColor: '#b91c1c'
-                },
-                borderRadius: '8px',
-                textTransform: 'none',
-                fontWeight: 600
-              }}
-            >
-              Logout
-            </Button>
-          </Box>
-
-          <Divider sx={{ my: 2 }} />
-
-          <Box sx={{ 
-            textAlign: 'left',
-            backgroundColor: '#f8fafc',
-            padding: '12px',
-            borderRadius: '8px',
-            fontSize: '0.875rem'
-          }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>
-              Quick Info
-            </Typography>
-            <Typography variant="body2" sx={{ color: '#6b7280', lineHeight: '1.5' }}>
-              Member since {new Date(user?.createdAt || Date.now()).getFullYear()}
-            </Typography>
-            
-            {getLocationDisplay() !== 'No location set' && (
-              <Typography variant="body2" sx={{ color: '#6b7280', lineHeight: '1.5' }}>
-                📍 {getLocationDisplay()}
-              </Typography>
-            )}
-            
-            {user?.department && (
-              <Typography variant="body2" sx={{ color: '#6b7280', lineHeight: '1.5' }}>
-                Department: {user.department}
-              </Typography>
-            )}
-            
-            {user?.position && (
-              <Typography variant="body2" sx={{ color: '#6b7280', lineHeight: '1.5' }}>
-                Position: {user.position}
-              </Typography>
-            )}
-          </Box>
-        </Box>
-      ];
-    }
-
-    // Desktop menu items
     return [
-      <MenuItem key="name" disabled>
-        <Typography variant="body1" sx={{ fontWeight: 700 }}>
-          {user?.name || 'Guest'}
+      <Box key="profile-menu" sx={{ p: 2, textAlign: 'center', minWidth: isMobile ? 280 : 320 }}>
+        <Avatar
+          sx={{ 
+            width: isMobile ? 80 : 72,
+            height: isMobile ? 80 : 72,
+            margin: "0 auto 16px",
+            bgcolor: stringToColor(user?.name),
+            fontSize: isMobile ? '2rem' : '1.75rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            '&:hover': {
+              opacity: 0.8,
+              transform: 'scale(1.05)'
+            },
+            transition: 'all 0.2s ease-in-out'
+          }}
+          onClick={handleSettings}
+        >
+          {getInitials(user?.name)}
+        </Avatar>
+
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, fontSize: isMobile ? '1.25rem' : '1.1rem' }}>
+          {user?.name}
         </Typography>
-      </MenuItem>,
-      <MenuItem key="email" disabled>
-        <Typography variant="caption" sx={{ color: 'gray' }}>
-          {user?.email || 'No email'}
-        </Typography>
-      </MenuItem>,
-      <Divider key="divider1" />,
-      <MenuItem key="settings" onClick={handleSettings} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <SettingsIcon fontSize="small" />
-        <Typography variant="body2">Settings</Typography>
-      </MenuItem>,
-      <MenuItem key="logout" onClick={handleLogout} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <LogoutIcon fontSize="small" />
-        <Typography variant="body2">Logout</Typography>
-      </MenuItem>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 2 }}>
+          {verified ? (
+            <CheckCircleIcon color="success" fontSize="small" />
+          ) : (
+            <CancelIcon color="error" fontSize="small" />
+          )}
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            {verified ? 'Verified' : 'Unverified'} Account
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 1 }}>
+          <LocationOnIcon fontSize="small" color="action" />
+          <Typography variant="body2" color="text.secondary">
+            {getLocationDisplay()}
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 2 }}>
+          <EmailIcon fontSize="small" color="action" />
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: 13 }}>
+            {user?.email}
+          </Typography>
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Box sx={{ 
+          backgroundColor: user?.role === 'public-official' ? '#e8f5e8' : '#e3f2fd',
+          color: user?.role === 'public-official' ? '#2e7d32' : '#1565c0',
+          padding: '8px 16px',
+          borderRadius: '20px',
+          fontSize: '0.8rem',
+          fontWeight: '600',
+          mb: 2,
+          textTransform: 'capitalize'
+        }}>
+          {user?.role?.replace('-', ' ') || 'Citizen'}
+        </Box>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Button
+            variant="outlined"
+            startIcon={<SettingsIcon />}
+            onClick={handleSettings}
+            fullWidth
+            sx={{ 
+              borderRadius: '8px',
+              textTransform: 'none',
+              fontWeight: 600
+            }}
+          >
+            Settings
+          </Button>
+
+          <Button
+            variant="contained"
+            startIcon={<LogoutIcon />}
+            onClick={handleLogout}
+            fullWidth
+            sx={{ 
+              backgroundColor: '#dc2626',
+              '&:hover': {
+                backgroundColor: '#b91c1c'
+              },
+              borderRadius: '8px',
+              textTransform: 'none',
+              fontWeight: 600
+            }}
+          >
+            Logout
+          </Button>
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Box sx={{ 
+          textAlign: 'left',
+          backgroundColor: '#f8fafc',
+          padding: '12px',
+          borderRadius: '8px',
+          fontSize: '0.875rem'
+        }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>
+            Quick Info
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#6b7280', lineHeight: '1.5' }}>
+            Member since {new Date(user?.createdAt || Date.now()).getFullYear()}
+          </Typography>
+          
+          {getLocationDisplay() !== 'No location set' && (
+            <Typography variant="body2" sx={{ color: '#6b7280', lineHeight: '1.5' }}>
+              Location: {getLocationDisplay()}
+            </Typography>
+          )}
+          
+          {user?.department && (
+            <Typography variant="body2" sx={{ color: '#6b7280', lineHeight: '1.5' }}>
+              Department: {user.department}
+            </Typography>
+          )}
+          
+          {user?.position && (
+            <Typography variant="body2" sx={{ color: '#6b7280', lineHeight: '1.5' }}>
+              Position: {user.position}
+            </Typography>
+          )}
+        </Box>
+      </Box>
     ];
   };
 
@@ -367,7 +342,6 @@ export default function Navbar() {
               <NotificationModal />
               <IconButton color="inherit" onClick={handleDrawerOpen}><MenuIcon /></IconButton>
 
-              {/* mobile profile dropdown (replaces standalone logout button) */}
               <Box
                 onClick={handleAvatarClick}
                 sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', ml: 0.5 }}
@@ -504,24 +478,25 @@ export default function Navbar() {
            )}
          </Box>
       </Toolbar>
-        {/* FIXED: Use array of menu items instead of Fragment */}
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-          sx={{ 
-            '& .MuiPaper-root': { 
-              minWidth: isMobile ? 280 : 200, 
-              mt: 1,
-              maxHeight: isMobile ? '80vh' : 'auto',
-              overflowY: 'auto'
-            } 
-          }}
-        >
-          {renderMenuItems()}
-        </Menu>
+
+      {/* ✅ UPDATED: Unified profile dropdown menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        sx={{ 
+          '& .MuiPaper-root': { 
+            minWidth: isMobile ? 280 : 320,
+            mt: 1,
+            maxHeight: isMobile ? '80vh' : '70vh',
+            overflowY: 'auto'
+          } 
+        }}
+      >
+        {renderMenuItems()}
+      </Menu>
     </AppBar>
   );
 }
