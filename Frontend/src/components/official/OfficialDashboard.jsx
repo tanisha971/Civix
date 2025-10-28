@@ -206,7 +206,7 @@ const OfficialDashboard = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="">
+        <div className="mb-8 text-center sm:text-left mt-[70px] sm:mt-0">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Public Official Dashboard</h1>

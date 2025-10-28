@@ -77,21 +77,17 @@ const userSchema = new mongoose.Schema(
 userSchema.pre('save', async function(next) {
   // Only hash if password is modified
   if (!this.isModified('password')) {
-    console.log('Password not modified, skipping hash');
     return next();
   }
 
   try {
     // Check if password is already hashed (bcrypt hashes start with $2a$ or $2b$)
     if (this.password.startsWith('$2a$') || this.password.startsWith('$2b$')) {
-      console.log('Password already hashed, skipping');
       return next();
     }
 
-    console.log('Hashing password');
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    console.log('Password hashed successfully');
     next();
   } catch (error) {
     console.error('Password hashing error:', error);

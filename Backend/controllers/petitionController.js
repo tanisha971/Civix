@@ -13,9 +13,6 @@ export const getPetitions = async (req, res) => {
 // Get all petitions with signature counts
 export const getAllPetitions = async (req, res) => {
   try {
-    console.log('=== GET ALL PETITIONS ===');
-    console.log('User from auth:', req.user);
-    
     const userId = req.user?.id || req.user?._id;
     
     // Get all petitions with creator info
@@ -39,10 +36,8 @@ export const getAllPetitions = async (req, res) => {
     // Get user's signed petitions if authenticated
     let userSignedPetitions = [];
     if (userId) {
-      console.log('Checking signatures for user:', userId);
       const userSignatures = await Signature.find({ user: userId });
       userSignedPetitions = userSignatures.map(sig => sig.petition.toString());
-      console.log('User signed petitions:', userSignedPetitions.length);
     }
 
     // Map signature counts to petitions
@@ -67,8 +62,6 @@ export const getAllPetitions = async (req, res) => {
         signedByCurrentUser: userHasSigned
       };
     });
-
-    console.log(`Returning ${petitionsWithCounts.length} petitions with signature and comment counts`);
     
     res.json({
       success: true,
@@ -86,13 +79,11 @@ export const getAllPetitions = async (req, res) => {
   }
 };
 
-// Create petition - MISSING FUNCTION
+// Create petition
 export const createPetition = async (req, res) => {
   try {
     const { title, description, category, location, signatureGoal } = req.body;
     const userId = req.user?.id;
-
-    console.log('Creating petition:', { title, category, location, userId });
 
     if (!userId) {
       return res.status(401).json({
@@ -120,8 +111,6 @@ export const createPetition = async (req, res) => {
 
     await petition.save();
     await petition.populate('creator', 'name email');
-
-    console.log('Petition created successfully:', petition._id);
 
     res.status(201).json({
       success: true,
@@ -152,15 +141,11 @@ export const createPetition = async (req, res) => {
   }
 };
 
-// Sign a petition - UPDATED WITH CLOSED CHECK
+// Sign a petition
 export const signPetition = async (req, res) => {
   try {
     const petitionId = req.params.id;
     const userId = req.user?.id || req.user?._id;
-    
-    console.log('=== PETITION SIGNING DEBUG ===');
-    console.log('Petition ID:', petitionId);
-    console.log('User ID:', userId);
 
     if (!userId) {
       return res.status(401).json({
@@ -186,9 +171,7 @@ export const signPetition = async (req, res) => {
       });
     }
 
-    console.log('Petition found:', petition.title);
-
-    // ✅ NEW: Check if petition is closed
+    // Check if petition is closed
     const closedStatuses = ['closed', 'successful', 'rejected', 'expired'];
     if (closedStatuses.includes(petition.status)) {
       return res.status(400).json({
@@ -229,8 +212,6 @@ export const signPetition = async (req, res) => {
       });
     }
 
-    console.log('User found:', user.name);
-
     // Create new signature
     const signature = new Signature({
       petition: petitionId,
@@ -238,11 +219,9 @@ export const signPetition = async (req, res) => {
     });
 
     const savedSignature = await signature.save();
-    console.log('Signature saved successfully:', savedSignature._id);
 
     // Get updated signature count
     const totalSignatures = await Signature.countDocuments({ petition: petitionId });
-    console.log('Total signatures for petition:', totalSignatures);
 
     res.json({
       success: true,
@@ -255,8 +234,7 @@ export const signPetition = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('=== PETITION SIGNING ERROR ===');
-    console.error('Error details:', error);
+    console.error('Petition signing error:', error);
     
     // Handle duplicate key error specifically
     if (error.code === 11000) {
@@ -280,7 +258,7 @@ export const signPetition = async (req, res) => {
   }
 };
 
-// Get petition by ID - Updated to include comments
+// Get petition by ID
 export const getPetitionById = async (req, res) => {
   try {
     const petition = await Petition.findById(req.params.id)
@@ -335,7 +313,7 @@ export const getPetitionById = async (req, res) => {
   }
 };
 
-// Update/Edit petition - FIXED FUNCTION NAME
+// Update/Edit petition
 export const editPetition = async (req, res) => {
   try {
     const petition = await Petition.findById(req.params.id);
@@ -387,7 +365,7 @@ export const editPetition = async (req, res) => {
   }
 };
 
-// Delete petition - Also delete associated signatures
+// Delete petition
 export const deletePetition = async (req, res) => {
   try {
     const petition = await Petition.findById(req.params.id);
@@ -410,7 +388,6 @@ export const deletePetition = async (req, res) => {
     
     // Delete all associated signatures from Signature collection
     await Signature.deleteMany({ petition: req.params.id });
-    console.log('Deleted petition and associated signatures');
 
     res.json({ 
       success: true,
@@ -426,41 +403,23 @@ export const deletePetition = async (req, res) => {
   }
 };
 
-// Get analytics for public officials - FIXED WITH CORRECT STATUS COUNTING
+// Get analytics for public officials
 export const getOfficialAnalytics = async (req, res) => {
   try {
-    console.log('Fetching official analytics...');
-
-    // Basic overview counts - FIXED to match actual statuses
+    // Basic overview counts
     const totalPetitions = await Petition.countDocuments();
     const activePetitions = await Petition.countDocuments({ status: 'active' });
-    
-    // FIX: Count ALL "under review" related statuses
     const reviewedPetitions = await Petition.countDocuments({ 
       status: { $in: ['under_review', 'reviewed', 'in_progress'] } 
     });
-    
-    // FIX: Count ALL "closed" related statuses
     const closedPetitions = await Petition.countDocuments({ 
       status: { $in: ['closed', 'successful', 'rejected', 'expired'] } 
     });
 
-    console.log('Overview counts:', { 
-      totalPetitions, 
-      activePetitions, 
-      reviewedPetitions, 
-      closedPetitions 
-    });
-    
-    // DEBUG: Log actual status distribution
-    const allPetitions = await Petition.find({}, 'status');
-    const statusBreakdown = {};
-    allPetitions.forEach(p => {
-      statusBreakdown[p.status] = (statusBreakdown[p.status] || 0) + 1;
-    });
-    console.log('Actual petition status breakdown:', statusBreakdown);
+    // Calculate total signatures across all petitions
+    const totalSignatures = await Signature.countDocuments();
 
-    // Petitions by category with error handling
+    // Petitions by category
     let petitionsByCategory = [];
     try {
       petitionsByCategory = await Petition.aggregate([
@@ -472,7 +431,7 @@ export const getOfficialAnalytics = async (req, res) => {
       petitionsByCategory = [];
     }
 
-    // Petitions by location (top 10) with error handling
+    // Petitions by location (top 10)
     let petitionsByLocation = [];
     try {
       petitionsByLocation = await Petition.aggregate([
@@ -489,7 +448,7 @@ export const getOfficialAnalytics = async (req, res) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Trending petitions with error handling
+    // Trending petitions
     let trendingPetitions = [];
     try {
       trendingPetitions = await Petition.aggregate([
@@ -548,10 +507,9 @@ export const getOfficialAnalytics = async (req, res) => {
       trendingPetitions = [];
     }
 
-    // Signature trends with error handling
+    // Signature trends
     let signatureTrends = [];
     try {
-      // Check if Signature model exists
       const signatureExists = await mongoose.connection.db.listCollections({ name: 'signatures' }).hasNext();
       
       if (signatureExists) {
@@ -571,16 +529,11 @@ export const getOfficialAnalytics = async (req, res) => {
           },
           { $sort: { _id: 1 } }
         ]);
-      } else {
-        console.log('Signatures collection does not exist');
-        signatureTrends = [];
       }
     } catch (err) {
       console.error('Error in signatureTrends aggregation:', err);
       signatureTrends = [];
     }
-
-    console.log('Analytics data prepared successfully');
 
     res.json({
       success: true,
@@ -589,7 +542,8 @@ export const getOfficialAnalytics = async (req, res) => {
           totalPetitions,
           activePetitions,
           reviewedPetitions,
-          closedPetitions
+          closedPetitions,
+          totalSignatures
         },
         petitionsByCategory,
         petitionsByLocation,
@@ -608,17 +562,12 @@ export const getOfficialAnalytics = async (req, res) => {
   }
 };
 
-// Update petition status (Public Officials only) - ENHANCED VERSION
+// Update petition status (Public Officials only)
 export const updatePetitionStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, officialResponse } = req.body;
     const officialId = req.user?.id;
-
-    console.log('=== UPDATE PETITION STATUS ===');
-    console.log('Petition ID:', id);
-    console.log('New Status:', status);
-    console.log('Official ID:', officialId);
 
     // Verify user is public official
     if (req.user.role !== 'public-official' && req.user.role !== 'admin') {
@@ -660,14 +609,14 @@ export const updatePetitionStatus = async (req, res) => {
     // Get official details
     const official = await User.findById(officialId).select('name department position');
 
-    // FIXED: Create admin log with PETITION TITLE in metadata
+    // Create admin log
     await logAdminAction(
       `Updated petition status to "${status}"`,
       petition.creator._id,
       petition._id,
       null,
       {
-        petitionTitle: petition.title, // ✅ ADDED
+        petitionTitle: petition.title,
         previousStatus: previousStatus,
         newStatus: status,
         officialId: officialId,
@@ -677,8 +626,6 @@ export const updatePetitionStatus = async (req, res) => {
         officialResponse: officialResponse
       }
     );
-
-    console.log('✅ Petition status updated and logged with title:', petition.title);
 
     res.json({
       success: true,
@@ -696,17 +643,12 @@ export const updatePetitionStatus = async (req, res) => {
   }
 };
 
-// Verify petition (Public Officials only) - ENHANCED VERSION
+// Verify petition (Public Officials only)
 export const verifyPetition = async (req, res) => {
   try {
     const { id } = req.params;
     const { verified, verificationNote } = req.body;
     const officialId = req.user?.id;
-
-    console.log('=== VERIFY PETITION ===');
-    console.log('Petition ID:', id);
-    console.log('Verified:', verified);
-    console.log('Official ID:', officialId);
 
     // Verify user is public official
     if (req.user.role !== 'public-official' && req.user.role !== 'admin') {
@@ -747,7 +689,7 @@ export const verifyPetition = async (req, res) => {
     // Get official details
     const official = await User.findById(officialId).select('name department position');
 
-    // FIXED: Create admin log with PETITION TITLE in metadata
+    // Create admin log
     const action = verified ? 'Verified petition' : 'Marked petition as invalid';
     await logAdminAction(
       action,
@@ -755,7 +697,7 @@ export const verifyPetition = async (req, res) => {
       petition._id,
       null,
       {
-        petitionTitle: petition.title, // ✅ ADDED
+        petitionTitle: petition.title,
         verified: verified,
         verificationNote: verificationNote,
         officialId: officialId,
@@ -764,8 +706,6 @@ export const verifyPetition = async (req, res) => {
         officialPosition: official?.position || 'N/A'
       }
     );
-
-    console.log('✅ Petition verification logged with title:', petition.title);
 
     res.json({
       success: true,
@@ -789,10 +729,6 @@ export const addOfficialResponse = async (req, res) => {
     const { petitionId } = req.params;
     const { message, type, isPublic } = req.body;
     const officialId = req.user?.id;
-
-    console.log('=== ADD OFFICIAL RESPONSE ===');
-    console.log('Petition ID:', petitionId);
-    console.log('Official ID:', officialId);
 
     // Verify user is public official
     if (req.user.role !== 'public-official' && req.user.role !== 'admin') {
@@ -826,14 +762,14 @@ export const addOfficialResponse = async (req, res) => {
     // Get official details
     const official = await User.findById(officialId).select('name department position');
 
-    // FIXED: Create admin log with PETITION TITLE in metadata
+    // Create admin log
     await logAdminAction(
       'Added official response to petition',
       petition.creator._id,
       petition._id,
       null,
       {
-        petitionTitle: petition.title, // ✅ ADDED
+        petitionTitle: petition.title,
         responseType: type,
         responseMessage: message.substring(0, 100) + (message.length > 100 ? '...' : ''),
         officialId: officialId,
@@ -843,8 +779,6 @@ export const addOfficialResponse = async (req, res) => {
         isPublic: isPublic
       }
     );
-
-    console.log('✅ Official response logged with title:', petition.title);
 
     res.json({
       success: true,
@@ -862,14 +796,11 @@ export const addOfficialResponse = async (req, res) => {
   }
 };
 
-// Get petitions for official review - FIXED to return ALL by default
+// Get petitions for official review
 export const getPetitionsForReview = async (req, res) => {
   try {
     const { status, category, location, limit = 50 } = req.query;
 
-    console.log('Fetching petitions for review:', { status, category, location, limit });
-
-    // FIX: Don't default to 'active' status, allow fetching ALL
     const filter = {};
     
     // Only add status filter if explicitly provided
@@ -897,16 +828,6 @@ export const getPetitionsForReview = async (req, res) => {
       })
     );
 
-    console.log(`Found ${petitionsWithCounts.length} petitions for review`);
-    console.log('Status distribution:', {
-      active: petitionsWithCounts.filter(p => p.status === 'active').length,
-      under_review: petitionsWithCounts.filter(p => p.status === 'under_review').length,
-      reviewed: petitionsWithCounts.filter(p => p.status === 'reviewed').length,
-      in_progress: petitionsWithCounts.filter(p => p.status === 'in_progress').length,
-      closed: petitionsWithCounts.filter(p => p.status === 'closed').length,
-      successful: petitionsWithCounts.filter(p => p.status === 'successful').length,
-    });
-
     res.json({
       success: true,
       petitions: petitionsWithCounts,
@@ -926,8 +847,6 @@ export const getPetitionsForReview = async (req, res) => {
 export const getOfficialResponses = async (req, res) => {
   try {
     const { petitionId } = req.params;
-
-    console.log('Fetching official responses for petition:', petitionId);
 
     const petition = await Petition.findById(petitionId)
       .populate('reviewedBy', 'name email role')
@@ -976,8 +895,6 @@ export const getOfficialResponses = async (req, res) => {
 export const getPetitionSignatures = async (req, res) => {
   try {
     const petitionId = req.params.id;
-    
-    console.log('Fetching signatures for petition:', petitionId);
 
     // Validate petition exists
     const petition = await Petition.findById(petitionId);
@@ -994,8 +911,6 @@ export const getPetitionSignatures = async (req, res) => {
       .sort({ createdAt: -1 });
 
     const signatureCount = signatures.length;
-
-    console.log(`Found ${signatureCount} signatures for petition: ${petition.title}`);
 
     res.json({
       success: true,
@@ -1018,7 +933,7 @@ export const getPetitionSignatures = async (req, res) => {
   }
 };
 
-// Update petition - Add this if it's missing
+// Update petition
 export const updatePetition = async (req, res) => {
   try {
     const petitionId = req.params.id;
@@ -1063,8 +978,6 @@ export const updatePetition = async (req, res) => {
     // Get updated petition with signature count
     const signatureCount = await Signature.countDocuments({ petition: petition._id });
 
-    console.log('Petition updated successfully:', petition._id);
-
     res.json({ 
       success: true,
       message: "Petition updated successfully", 
@@ -1079,6 +992,67 @@ export const updatePetition = async (req, res) => {
       success: false,
       message: "Error updating petition", 
       error: error.message 
+    });
+  }
+};
+
+// Search petitions
+export const searchPetitions = async (req, res) => {
+  try {
+    const { query, location, category, status } = req.query;
+    
+    let filter = {};
+    
+    // Text search
+    if (query) {
+      filter.$or = [
+        { title: { $regex: query, $options: 'i' } },
+        { description: { $regex: query, $options: 'i' } },
+        { location: { $regex: query, $options: 'i' } },
+        { category: { $regex: query, $options: 'i' } }
+      ];
+    }
+    
+    // Additional filters
+    if (location && location !== 'All Locations') {
+      filter.location = location;
+    }
+    
+    if (category && category !== 'all') {
+      filter.category = category;
+    }
+    
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+    
+    const petitions = await Petition.find(filter)
+      .populate('creator', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(100);
+    
+    // Add signature counts
+    const petitionsWithCounts = await Promise.all(
+      petitions.map(async (petition) => {
+        const signatureCount = await Signature.countDocuments({ petition: petition._id });
+        return {
+          ...petition.toObject(),
+          signaturesCount: signatureCount
+        };
+      })
+    );
+    
+    res.json({
+      success: true,
+      results: petitionsWithCounts,
+      count: petitionsWithCounts.length
+    });
+  } catch (error) {
+    console.error('Search petitions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error searching petitions',
+      error: error.message
     });
   }
 };

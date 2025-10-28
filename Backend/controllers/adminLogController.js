@@ -190,11 +190,9 @@ export const getLogsByPoll = async (req, res) => {
 export const getRecentOfficialActions = async (req, res) => {
   try {
     const { limit = 3 } = req.query;
-    console.log('Getting recent official actions, limit:', limit);
     
     const result = await notificationService.getRecentActions(parseInt(limit));
     
-    console.log('Recent actions result:', result.actions?.length || 0);
     res.status(200).json(result);
   } catch (error) {
     console.error('Error fetching recent official actions:', error);
@@ -230,38 +228,26 @@ export const getAllOfficialActions = async (req, res) => {
 // Get user notifications
 export const getUserNotifications = async (req, res) => {
   try {
-    console.log('\n=== GET USER NOTIFICATIONS CONTROLLER ===');
-    console.log('req.user:', req.user);
-    
     const userId = req.user?.id || req.user?._id;
     
     if (!userId) {
-      console.error('❌ No user ID found in request');
       return res.status(401).json({
         success: false,
         message: 'Authentication required'
       });
     }
     
-    console.log('✅ User ID:', userId);
-    
     const { page = 1, limit = 20 } = req.query;
     
-    console.log('📄 Page:', page, 'Limit:', limit);
-    
-    // Call the service
     const result = await notificationService.getUserNotifications(
       userId,
       parseInt(page),
       parseInt(limit)
     );
     
-    console.log('📦 Service returned:', result.notifications?.length || 0, 'notifications');
-    console.log('=== END CONTROLLER ===\n');
-    
     res.status(200).json(result);
   } catch (error) {
-    console.error('❌ Error in getUserNotifications controller:', error);
+    console.error('Error in getUserNotifications controller:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch notifications',
@@ -390,10 +376,9 @@ export const logAdminAction = async (action, userId, relatedPetitionId = null, r
       read: false
     });
     await log.save();
-    console.log('✅ Admin action logged:', action);
     return log;
   } catch (error) {
-    console.error('❌ Error logging admin action:', error);
+    console.error('Error logging admin action:', error);
     return null;
   }
 };

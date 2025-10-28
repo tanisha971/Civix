@@ -3,12 +3,16 @@ import { useNavigate, Link } from 'react-router-dom';
 import authService from '../../services/authService';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
 import MailIcon from '@mui/icons-material/Mail';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import LoginImage from "../../assets/images/govImg.jpeg";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false); // <-- Add this state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -24,6 +28,12 @@ const Login = () => {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError(''); // Clear error when user types
+  };
+
+  const handleClickShowPassword = () => setShowPassword((show) => !show);
+
+  const handleMouseDownPassword = (event) => {
+    event.preventDefault();
   };
 
   const handleSubmit = async (e) => {
@@ -125,13 +135,28 @@ const Login = () => {
             <TextField
               label="Password"
               variant="outlined"
-              type="password"
+              type={showPassword ? "text" : "password"}
               name="password"
               required
               value={formData.password}
               onChange={handleChange}
               fullWidth
               disabled={loading}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      onClick={handleClickShowPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      edge="end"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   '& fieldset': {

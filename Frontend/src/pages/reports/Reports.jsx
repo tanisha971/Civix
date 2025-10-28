@@ -489,7 +489,9 @@ export default function Reports({ allPolls = [] }) {
       {/* HEADER */}
       <Row justify="space-between" align="middle" style={{ marginBottom: 24 }} wrap>
         <Col>
-          <h1 className="page-heading">Reports & Analytics</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center sm:text-left mt-[70px] sm:mt-0">
+            Reports & Analytics
+          </h1>
           {lastUpdated && (
             <p style={{ color: '#666', fontSize: 14, margin: 0 }}>
               Last updated: {lastUpdated.toLocaleTimeString()} 
@@ -506,7 +508,7 @@ export default function Reports({ allPolls = [] }) {
             </p>
           )}
         </Col>
-        <Col>
+        <Col className="mt-4 sm:mt-0">
           <Button 
             icon={<ReloadOutlined spin={pollsLoading || petitionsLoading} />} 
             onClick={handleRefresh}
@@ -594,7 +596,7 @@ export default function Reports({ allPolls = [] }) {
                   loading={petitionsLoading}
                 >
                   <Option key="overall" value="overall">
-                    📊 Overall Petition Review
+                    Overall Petition Review
                   </Option>
                   {allPetitions
                     .filter(petition => petition.signaturesCount > 0)

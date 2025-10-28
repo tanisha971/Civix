@@ -14,8 +14,6 @@ export const register = async (req, res) => {
   try {
     const { name, email, password, location, role, department, position } = req.body;
 
-    console.log('Registration request:', { name, email, location, role });
-
     if (!name || !email || !password || !location) {
       return res.status(400).json({
         success: false,
@@ -50,16 +48,8 @@ export const register = async (req, res) => {
       userData.isVerified = true;
     }
 
-    console.log('Creating user with data:', {
-      name: userData.name,
-      locationString: userData.locationString,
-      role: userData.role
-    });
-
     const user = new User(userData);
     await user.save();
-
-    console.log('User created successfully:', user._id);
 
     const token = generateToken(user._id);
 
@@ -81,8 +71,6 @@ export const register = async (req, res) => {
       verified: user.verified,
       isVerified: user.isVerified
     };
-
-    console.log('Sending user response:', userResponse);
 
     res.status(201).json({
       success: true,
@@ -113,11 +101,6 @@ export const getCurrentUser = async (req, res) => {
       });
     }
 
-    console.log('Fetching user location data:', {
-      locationString: user.locationString,
-      hasLocationString: !!user.locationString
-    });
-
     const userData = {
       id: user._id,
       name: user.name,
@@ -138,8 +121,6 @@ export const getCurrentUser = async (req, res) => {
       updatedAt: user.updatedAt,
     };
 
-    console.log('Sending user data with locationString:', userData.locationString);
-
     res.json({
       success: true,
       user: userData,
@@ -158,8 +139,6 @@ export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log('Login attempt for:', email);
-
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -170,7 +149,6 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
-      console.log('User not found:', email);
       return res.status(401).json({
         success: false,
         message: "Invalid email or password",
@@ -190,7 +168,6 @@ export const loginUser = async (req, res) => {
       const isHashedPasswordMatch = await bcrypt.compare(password, user.password);
 
       if (!isEnvPasswordMatch && !isHashedPasswordMatch) {
-        console.log('Invalid admin credentials for:', email);
         return res.status(401).json({
           success: false,
           message: "Invalid admin credentials",
@@ -203,14 +180,10 @@ export const loginUser = async (req, res) => {
         user.verified = true;
         await user.save();
       }
-
-      console.log('Admin login successful:', email);
     } else {
-      console.log('Comparing password for user:', email);
       const isPasswordMatch = await bcrypt.compare(password, user.password);
 
       if (!isPasswordMatch) {
-        console.log('Invalid password for user:', email);
         return res.status(401).json({
           success: false,
           message: "Invalid email or password",
@@ -223,8 +196,6 @@ export const loginUser = async (req, res) => {
           message: "Unauthorized admin access attempt",
         });
       }
-
-      console.log('User login successful:', email);
     }
 
     const token = jwt.sign(
@@ -253,8 +224,6 @@ export const loginUser = async (req, res) => {
       department: user.department,
       position: user.position,
     };
-
-    console.log('Login response with location:', userData.locationString);
 
     res.json({
       success: true,

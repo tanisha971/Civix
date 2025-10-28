@@ -339,7 +339,7 @@ const HelpSupport = () => {
       <div className="max-w-6xl mx-auto lg:ml-8 lg:mr-4 px-4 sm:px-6 lg:px-8 pt-6 pb-8">
         
         {/* Header Section */}
-        <div className="mb-8">
+        <div className="mb-8 text-center sm:text-left mt-[70px] sm:mt-0">
           <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl mb-2">Help & Support</h1>
           <p className="text-gray-600 text-base sm:text-lg">
             Got a question, suggestion, or issue? We're here to help!

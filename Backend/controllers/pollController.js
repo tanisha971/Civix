@@ -20,11 +20,12 @@ export const createPoll = async (req, res) => {
     await poll.save();
     res.status(201).json({ success: true, poll });
   } catch (err) {
+    console.error("Create poll error:", err);
     res.status(500).json({ success: false, message: "Error creating poll", error: err.message });
   }
 };
 
-// Get all polls - UPDATED TO POPULATE CREATOR
+// Get all polls
 export const getPolls = async (req, res) => {
   try {
     const polls = await Poll.find()
@@ -32,27 +33,26 @@ export const getPolls = async (req, res) => {
       .sort({ createdAt: -1 });
     res.json({ success: true, polls });
   } catch (err) {
+    console.error("Get polls error:", err);
     res.status(500).json({ success: false, message: "Error fetching polls", error: err.message });
   }
 };
 
-// Get poll by ID - UPDATED TO POPULATE CREATOR
+// Get poll by ID
 export const getPollById = async (req, res) => {
   try {
     const poll = await Poll.findById(req.params.id).populate('creator', 'name email');
     if (!poll) return res.status(404).json({ success: false, message: "Poll not found" });
     res.json({ success: true, poll });
   } catch (err) {
+    console.error("Get poll by ID error:", err);
     res.status(500).json({ success: false, message: "Error fetching poll", error: err.message });
   }
 };
 
-// Vote on a poll - UPDATED TO SUPPORT TOGGLE
+// Vote on a poll
 export const votePoll = async (req, res) => {
   try {
-    console.log("Vote request body:", req.body);
-    console.log("User ID:", req.user?.id);
-    
     const poll = await Poll.findById(req.params.id);
     if (!poll) return res.status(404).json({ success: false, message: "Poll not found" });
 
@@ -61,9 +61,6 @@ export const votePoll = async (req, res) => {
     }
 
     const { option } = req.body;
-    
-    console.log("Option received:", option, "Type:", typeof option);
-    console.log("Poll options length:", poll.options.length);
     
     if (typeof option !== "number" || option < 0 || option >= poll.options.length) {
       return res.status(400).json({ 
@@ -86,16 +83,12 @@ export const votePoll = async (req, res) => {
       v => v.user.toString() === req.user.id && v.option === option
     );
 
-    console.log("Existing vote index:", existingVoteIndex);
-
     if (existingVoteIndex !== -1) {
-      // User already voted for this option - UNVOTE (remove vote)
+      // User already voted for this option - remove vote
       poll.votes.splice(existingVoteIndex, 1);
-      console.log("Removed vote");
     } else {
-      // User hasn't voted for this option - ADD VOTE
+      // User hasn't voted for this option - add vote
       poll.votes.push({ user: req.user.id, option });
-      console.log("Added vote");
     }
 
     await poll.save();
@@ -105,7 +98,7 @@ export const votePoll = async (req, res) => {
     
     res.json({ success: true, poll });
   } catch (err) {
-    console.error("Vote error:", err);
+    console.error("Vote poll error:", err);
     res.status(500).json({ success: false, message: "Error voting", error: err.message });
   }
 };
@@ -121,18 +114,24 @@ export const deletePoll = async (req, res) => {
     await poll.deleteOne();
     res.json({ success: true, message: "Poll deleted" });
   } catch (err) {
+    console.error("Delete poll error:", err);
     res.status(500).json({ success: false, message: "Error deleting poll", error: err.message });
   }
 };
+
+// Get voted polls
 export const getVotedPolls = async (req, res) => {
   try {
     const userId = req.params.userId;
     const polls = await Poll.find({ "votes.user": userId });
     res.json({ polls });
   } catch (err) {
+    console.error("Get voted polls error:", err);
     res.status(500).json({ message: "Error fetching voted polls", error: err.message });
   }
 };
+
+// Edit a poll
 export const editPoll = async (req, res) => {
   try {
     const pollId = req.params.pollId;
@@ -152,6 +151,7 @@ export const editPoll = async (req, res) => {
 
     res.json({ success: true, poll });
   } catch (err) {
+    console.error("Edit poll error:", err);
     res.status(500).json({ message: "Error editing poll", error: err.message });
   }
 };

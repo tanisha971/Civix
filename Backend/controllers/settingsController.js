@@ -45,8 +45,6 @@ export const updateProfile = async (req, res) => {
   try {
     const { name, email, location } = req.body;
 
-    console.log('Profile update request:', { name, email, location });
-
     // Validate required fields
     if (!name || !email) {
       return res.status(400).json({
@@ -84,8 +82,6 @@ export const updateProfile = async (req, res) => {
 
     await user.save();
 
-    console.log('Profile updated successfully for user:', user._id);
-
     const userData = {
       id: user._id,
       name: user.name,
@@ -114,12 +110,10 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-// Change password - FIXED: Manual hashing to prevent double-hashing
+// Change password
 export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword, confirmPassword } = req.body;
-
-    console.log("Password change request for user:", req.user.id);
 
     // Validate required fields
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -154,22 +148,17 @@ export const changePassword = async (req, res) => {
       });
     }
 
-    console.log("Verifying current password for user:", req.user.id);
-
     // Verify current password
     const isPasswordMatch = await bcrypt.compare(currentPassword, user.password);
 
     if (!isPasswordMatch) {
-      console.log("Current password incorrect for user:", req.user.id);
       return res.status(401).json({
         success: false,
         message: "Current password is incorrect",
       });
     }
 
-    console.log("Current password verified, hashing new password");
-
-    // FIXED: Hash password manually and update using findByIdAndUpdate to bypass pre-save hook
+    // Hash password manually and update using findByIdAndUpdate to bypass pre-save hook
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
@@ -178,8 +167,6 @@ export const changePassword = async (req, res) => {
       { $set: { password: hashedPassword } },
       { new: true }
     );
-
-    console.log("Password changed successfully for user:", req.user.id);
 
     res.json({
       success: true,
@@ -200,8 +187,6 @@ export const uploadAvatar = async (req, res) => {
   try {
     const { avatar } = req.body;
 
-    console.log("Avatar upload request for user:", req.user.id);
-
     if (!avatar) {
       return res.status(400).json({
         success: false,
@@ -221,8 +206,6 @@ export const uploadAvatar = async (req, res) => {
     user.profilePicture = avatar;
     await user.save();
 
-    console.log("Avatar uploaded successfully for user:", user._id);
-
     res.json({
       success: true,
       message: "Avatar uploaded successfully",
@@ -241,8 +224,6 @@ export const uploadAvatar = async (req, res) => {
 // Delete avatar
 export const deleteAvatar = async (req, res) => {
   try {
-    console.log("Avatar delete request for user:", req.user.id);
-
     const user = await User.findById(req.user.id);
 
     if (!user) {
@@ -254,8 +235,6 @@ export const deleteAvatar = async (req, res) => {
 
     user.profilePicture = "";
     await user.save();
-
-    console.log("Avatar deleted successfully for user:", user._id);
 
     res.json({
       success: true,

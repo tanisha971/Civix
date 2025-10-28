@@ -7,7 +7,6 @@ export const submitFeedback = async (req, res) => {
   try {
     const { subject, message, category } = req.body;
 
-    // Validation
     if (!subject || !message) {
       return res.status(400).json({
         success: false,
@@ -22,13 +21,11 @@ export const submitFeedback = async (req, res) => {
       });
     }
 
-    // Extract metadata from request
     const metadata = {
       userAgent: req.headers["user-agent"] || "",
       ipAddress: req.ip || req.connection.remoteAddress,
     };
 
-    // Create feedback
     const feedback = await Feedback.create({
       user: req.user.id,
       subject,
@@ -37,7 +34,6 @@ export const submitFeedback = async (req, res) => {
       metadata,
     });
 
-    // Populate user details
     await feedback.populate("user", "name email");
 
     res.status(201).json({
@@ -96,7 +92,6 @@ export const getFeedbackById = async (req, res) => {
       });
     }
 
-    // Check if user owns this feedback or is admin
     if (
       feedback.user._id.toString() !== req.user.id &&
       req.user.role !== "admin"
@@ -135,7 +130,6 @@ export const deleteFeedback = async (req, res) => {
       });
     }
 
-    // Check if user owns this feedback
     if (feedback.user.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
@@ -143,7 +137,6 @@ export const deleteFeedback = async (req, res) => {
       });
     }
 
-    // Don't allow deletion if feedback is resolved or has a response
     if (feedback.response && feedback.response.message) {
       return res.status(400).json({
         success: false,
@@ -184,17 +177,14 @@ export const getAllFeedback = async (req, res) => {
       order = "desc",
     } = req.query;
 
-    // Build filter
     const filter = {};
     if (status) filter.status = status;
     if (category) filter.category = category;
     if (priority) filter.priority = priority;
 
-    // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const sortOrder = order === "desc" ? -1 : 1;
 
-    // Get feedbacks with pagination
     const feedbacks = await Feedback.find(filter)
       .sort({ [sortBy]: sortOrder })
       .skip(skip)

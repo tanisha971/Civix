@@ -8,16 +8,12 @@ class NotificationService {
   // Get recent actions for dashboard (last 3)
   async getRecentActions(limit = 3) {
     try {
-      console.log('Service: Getting recent actions, limit:', limit);
-      
       const logs = await AdminLog.find()
         .populate('user_id', 'name email role')
         .populate('relatedPetition', 'title status creator')
         .populate('relatedPoll', 'title status creator')
         .sort({ createdAt: -1 })
         .limit(limit);
-
-      console.log('Service: Found', logs.length, 'recent actions');
 
       return {
         success: true,
@@ -115,7 +111,7 @@ class NotificationService {
     };
   }
 
-  // Get user-specific notifications - ENHANCED DEBUGGING
+  // Get user-specific notifications
   async getUserNotifications(userId, page = 1, limit = 20) {
     try {
       if (!userId) {
@@ -135,11 +131,6 @@ class NotificationService {
         .lean();
       
       const petitionIds = userPetitions.map(p => p._id);
-      
-      
-      if (petitionIds.length > 0) {
-        console.log('Petition IDs:', petitionIds.map(id => id.toString()));
-      }
 
       // STEP 2: Find all polls created by this user
       const userPolls = await Poll.find({ creator: userObjectId })
@@ -147,10 +138,6 @@ class NotificationService {
         .lean();
       
       const pollIds = userPolls.map(p => p._id);
-      
-      if (pollIds.length > 0) {
-        console.log('Poll IDs:', pollIds.map(id => id.toString()));
-      }
 
       // STEP 3: Build query
       const query = {
@@ -249,19 +236,14 @@ class NotificationService {
       title = 'Petition Rejected';
       body = `Your petition was rejected by ${officialTitle}`;
     } else if (actionLower.includes('verified petition') && !actionLower.includes('unverified')) {
-      // ENHANCED: Specific handling for verification
       title = '✓ Petition Verified';
       body = `Your petition "${log.metadata?.petitionTitle || 'petition'}" has been verified by ${officialTitle}`;
-      
-      // Add verification note if available
       if (log.metadata?.verificationNote) {
         body += `\nNote: ${log.metadata.verificationNote}`;
       }
     } else if (actionLower.includes('unverified')) {
       title = 'Petition Unverified';
       body = `Your petition was marked as invalid by ${officialTitle}`;
-      
-      // Add verification note if available
       if (log.metadata?.verificationNote) {
         body += `\nReason: ${log.metadata.verificationNote}`;
       }
@@ -297,7 +279,7 @@ class NotificationService {
       officialPosition: officialPosition,
       officialDepartment: officialDepartment,
       officialDetails: officialTitle,
-      verificationNote: log.metadata?.verificationNote, // NEW: Add verification note
+      verificationNote: log.metadata?.verificationNote,
       metadata: log.metadata
     };
   }
