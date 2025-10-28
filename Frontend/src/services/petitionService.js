@@ -248,6 +248,22 @@ const petitionService = {
       throw error;
     }
   },
+
+  // Search petitions
+  searchPetitions: async (query, filters = {}) => {
+    try {
+      const params = new URLSearchParams({
+        query,
+        ...filters
+      });
+      
+      const response = await api.get(`/petitions/search?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error searching petitions:', error);
+      throw error;
+    }
+  },
 };
 
 export default petitionService;

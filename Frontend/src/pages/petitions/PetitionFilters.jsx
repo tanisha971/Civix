@@ -11,7 +11,7 @@ const PetitionFilters = ({ activeFilter, onFilterChange }) => {
   const [loadingLocations, setLoadingLocations] = useState(true);
   const [locationCounts, setLocationCounts] = useState({});
 
-  const petitionTypes = ['Active Petitions', 'Petitions I Signed', 'My Petitions', 'Closed Petitions'];
+  const petitionTypes = ['Active Petitions', 'Petitions I Signed', 'My Petitions', 'All Petitions'];
   const statuses = ['All Status', 'Active', 'Closed', 'Under Review'];
 
   // Fetch real-time locations from petitions
@@ -72,8 +72,16 @@ const PetitionFilters = ({ activeFilter, onFilterChange }) => {
   };
 
   const handleSelect = (type, value) => {
+    console.log('=== FILTER SELECT DEBUG ===');
+    console.log('Type:', type);
+    console.log('Value:', value);
+    console.log('Current activeFilter:', activeFilter);
+    
     onFilterChange(type, value);
     setDropdowns(prev => ({ ...prev, [type]: false }));
+    
+    console.log('Filter change triggered');
+    console.log('========================');
   };
 
   const clearFilters = () => {
@@ -96,6 +104,13 @@ const PetitionFilters = ({ activeFilter, onFilterChange }) => {
 
   // Calculate total petitions count
   const totalPetitions = Object.values(locationCounts).reduce((sum, count) => sum + count, 0);
+
+  // DEBUG: Log activeFilter changes
+  useEffect(() => {
+    console.log('=== ACTIVE FILTER CHANGED ===');
+    console.log('Current filters:', activeFilter);
+    console.log('============================');
+  }, [activeFilter]);
 
   return (
     <div className="mb-6">

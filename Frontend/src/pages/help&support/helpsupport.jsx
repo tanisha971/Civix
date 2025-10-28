@@ -10,7 +10,8 @@ import {
   AlertCircle,
   Trash2,
   Eye,
-  Shield
+  Shield,
+  RefreshCw
 } from "lucide-react";
 import {
   BugReport as BugReportIcon,
@@ -126,6 +127,8 @@ const HelpSupport = () => {
   const [selectedFeedback, setSelectedFeedback] = useState(null);
   const [responseMessage, setResponseMessage] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState(Date.now());
   // Make useAuth safe - use try/catch or optional
   let user = null;
   let isAdmin = false;
@@ -149,20 +152,13 @@ const HelpSupport = () => {
   };
 
   // Load feedback history
-  useEffect(() => {
-    if (activeTab === 'history') {
-      loadFeedbackHistory();
-    } else if (activeTab === 'all' && isAdmin) {
-      loadAllFeedbacks();
-    }
-  }, [activeTab, statusFilter]);
-
   const loadFeedbackHistory = async () => {
     try {
       setLoadingHistory(true);
       const response = await feedbackService.getUserFeedback();
       if (response.success) {
         setFeedbackHistory(response.feedbacks);
+        setLastRefresh(Date.now());
       }
     } catch (err) {
       console.error('Load feedback history error:', err);
@@ -178,6 +174,7 @@ const HelpSupport = () => {
       const response = await feedbackService.getAllFeedback(params);
       if (response.success) {
         setAllFeedbacks(response.feedbacks);
+        setLastRefresh(Date.now());
       }
     } catch (err) {
       console.error('Load all feedbacks error:', err);
@@ -185,6 +182,39 @@ const HelpSupport = () => {
       setLoadingAll(false);
     }
   };
+
+  // Manual refresh function
+  const handleManualRefresh = () => {
+    if (activeTab === 'history') {
+      loadFeedbackHistory();
+    } else if (activeTab === 'all' && isAdmin) {
+      loadAllFeedbacks();
+    }
+  };
+
+  // Auto-refresh effect - runs every 30 seconds
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const intervalId = setInterval(() => {
+      if (activeTab === 'history') {
+        loadFeedbackHistory(); // For normal users
+      } else if (activeTab === 'all' && isAdmin) {
+        loadAllFeedbacks(); // For admin users
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, [activeTab, autoRefresh, isAdmin, statusFilter]);
+
+  // Initial load on tab change
+  useEffect(() => {
+    if (activeTab === 'history') {
+      loadFeedbackHistory();
+    } else if (activeTab === 'all' && isAdmin) {
+      loadAllFeedbacks();
+    }
+  }, [activeTab, statusFilter]);
 
   const handleInputChange = (e) => {
     setFormData({
@@ -223,10 +253,6 @@ const HelpSupport = () => {
   };
 
   const handleDeleteFeedback = async (feedbackId) => {
-    if (!window.confirm('Are you sure you want to delete this feedback?')) {
-      return;
-    }
-
     try {
       const response = await feedbackService.deleteFeedback(feedbackId);
       if (response.success) {
@@ -234,7 +260,8 @@ const HelpSupport = () => {
         setSelectedFeedback(null);
       }
     } catch (err) {
-      alert('Failed to delete feedback');
+      console.error('Failed to delete feedback:', err);
+      setError('Failed to delete feedback. Please try again.');
     }
   };
 
@@ -300,12 +327,19 @@ const HelpSupport = () => {
     return <IconComponent className={category.color} sx={{ fontSize: 16 }} />;
   };
 
+  const getTimeSinceRefresh = () => {
+    const seconds = Math.floor((Date.now() - lastRefresh) / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes}m ago`;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <div className="max-w-6xl mx-auto lg:ml-8 lg:mr-4 px-4 sm:px-6 lg:px-8 pt-6 pb-8">
         
         {/* Header Section */}
-        <div className="mb-8">
+        <div className="mb-8 text-center sm:text-left mt-[70px] sm:mt-0">
           <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl mb-2">Help & Support</h1>
           <p className="text-gray-600 text-base sm:text-lg">
             Got a question, suggestion, or issue? We're here to help!
@@ -529,7 +563,37 @@ const HelpSupport = () => {
         {activeTab === 'history' && (
           <div className="bg-white rounded-xl shadow-md border border-gray-200">
             <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Feedback History</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Your Feedback History</h2>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={autoRefresh}
+                        onChange={(e) => setAutoRefresh(e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      Auto-refresh
+                    </label>
+                    <span className="text-xs text-gray-400">
+                      {getTimeSinceRefresh()}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleManualRefresh}
+                    disabled={loadingHistory}
+                    className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:bg-gray-100 disabled:text-gray-400 transition-colors flex items-center gap-2"
+                    title="Refresh"
+                  >
+                    <RefreshCw 
+                      size={16} 
+                      className={loadingHistory ? 'animate-spin' : ''} 
+                    />
+                    Refresh
+                  </button>
+                </div>
+              </div>
 
               {loadingHistory ? (
                 <div className="flex justify-center items-center py-12">
@@ -619,23 +683,53 @@ const HelpSupport = () => {
         {activeTab === 'all' && isAdmin && (
           <div className="bg-white rounded-xl shadow-md border border-gray-200">
             <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                All User Feedback (Admin Panel)
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  All User Feedback (Admin Panel)
+                </h2>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={autoRefresh}
+                        onChange={(e) => setAutoRefresh(e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      Auto-refresh
+                    </label>
+                    <span className="text-xs text-gray-400">
+                      {getTimeSinceRefresh()}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleManualRefresh}
+                    disabled={loadingAll}
+                    className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:bg-gray-100 disabled:text-gray-400 transition-colors flex items-center gap-2"
+                    title="Refresh"
+                  >
+                    <RefreshCw 
+                      size={16} 
+                      className={loadingAll ? 'animate-spin' : ''} 
+                    />
+                    Refresh
+                  </button>
+                </div>
+              </div>
 
               {/* Status Filter */}
-              <div className="flex gap-2 mb-6 flex-wrap">
+              <div className="flex gap-2 mb-4 flex-wrap">
                 {['all', 'pending', 'reviewing', 'resolved', 'closed'].map((status) => (
                   <button
                     key={status}
                     onClick={() => setStatusFilter(status)}
-                    className={`px-4 py-2 rounded-lg font-medium capitalize transition-colors ${
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                       statusFilter === status
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    {status}
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
                   </button>
                 ))}
               </div>

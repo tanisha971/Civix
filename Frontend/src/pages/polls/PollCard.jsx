@@ -6,6 +6,7 @@ import EventIcon from '@mui/icons-material/Event';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PersonIcon from '@mui/icons-material/Person';
 
 const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) => {
   const [votedOptions, setVotedOptions] = useState([]);
@@ -146,7 +147,7 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
     
     {/* Header */}
     <div className={`flex justify-between items-start ${isGridView ? 'mb-3' : 'mb-4'} flex-shrink-0`}>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 flex-wrap">
         <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(poll.status)}`}>
           {poll.status}
         </span>
@@ -350,29 +351,49 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
     {/* Footer */}
     <div className={`${isGridView ? 'mt-auto flex-shrink-0' : ''}`}>
       {isGridView ? (
-        <div className="space-y-2">
-          <div className="text-xs mb-3 flex justify-between items-center w-full">
-            <div className="flex items-center min-w-0">
-              <LocationOnIcon className="text-blue-600 mr-1 flex-shrink-0" style={{ fontSize: '14px' }} />
-              <span className="text-blue-900 truncate">{poll.location || 'N/A'}</span>
+        // ✅ NEW: Grid View Footer - Optimized for mobile (matching PetitionCard)
+        <div className="space-y-3">
+          {/* Mobile Grid: Stacked layout for better readability */}
+          <div className="space-y-2">
+            {/* Category and Creator */}
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-500 flex items-center gap-1">
+                <PersonIcon sx={{ fontSize: 12 }} />
+                {poll.creator?.name || 'Anonymous'}
+              </span>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <LocationOnIcon className="text-blue-600" style={{ fontSize: '14px' }} />
+                <span className="text-xs text-blue-900 truncate">
+                  {poll.location || 'Not specified'}
+                </span>
+              </div>
             </div>
             
-            <div className="flex items-center min-w-0">
-              <EventIcon className="text-orange-600 mr-1 flex-shrink-0" style={{ fontSize: '14px' }} />
-              <span className="text-orange-900 truncate">
-                Closing: {poll.expiresAt ? formatDate(poll.expiresAt) : 'No end'}
-              </span>
+            {/* Location and Closing Date */}
+            <div className="flex items-center justify-between gap-2">
+              {/* Location */
+              /* Closing Date */}
+              
+              
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <EventIcon className="text-orange-600" style={{ fontSize: '14px' }} />
+                <span className="text-xs text-orange-900 font-semibold">
+                  Closes on: {poll.expiresAt ? formatDate(poll.expiresAt) : 'No end'}
+                </span>
+              </div>
+              <div className="flex items-center justify-center gap-1 py-1">
+                <HowToVoteIcon className="text-green-600" style={{ fontSize: '14px' }} />
+                <span className="text-xs text-green-900 font-semibold">
+                  Total Votes: {totalVotes.toLocaleString()}
+                </span>
+              </div>
             </div>
 
-            {!isMobile && (
-              <div className="flex items-center min-w-0">
-                <HowToVoteIcon className="text-green-600 mr-1 flex-shrink-0" style={{ fontSize: '14px' }} />
-                <span className="text-green-900">Votes: {totalVotes}</span>
-              </div>
-            )}
+            {/* Total Votes */}
+            
           </div>
 
-          {/* Vote Status Indicator */}
+          {/* Voted Options Indicator */}
           {votedOptions.length > 0 && (
             <div className="text-xs text-white font-medium text-center bg-green-600 py-1.5 px-3 rounded-md">
               ✓ You voted for {votedOptions.length} option{votedOptions.length > 1 ? 's' : ''}
@@ -382,11 +403,9 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
       ) : (
         <div className="flex justify-between items-center w-full">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">
-              {poll.category}
-            </span>
-            <span className="text-xs text-gray-500">
-              by {poll.creator?.name || poll.creator}
+            <span className="text-xs text-gray-500 flex items-center gap-1">
+              <PersonIcon sx={{ fontSize: 12 }} />
+              {poll.creator?.name || 'Anonymous'}
             </span>
           </div>
           
@@ -409,15 +428,12 @@ const PollCard = ({ poll, onVoted, onEdit, onDelete, viewMode = "List View" }) =
           </div>
 
           <div className="flex items-center gap-3">
-            <HowToVoteIcon className="text-green-600" style={{ fontSize: '18px' }} />
-            <div className="ml-2">
+            <HowToVoteIcon className="text-green-600" style={{ fontSize: '18px' }} />            
               <p className="text-xs font-semibold text-green-900">
                 Total Votes: {totalVotes.toLocaleString()}
-              </p>
-            </div>
+              </p>            
           </div>
           <div className="flex items-center gap-3">
-            {/* Vote Status Indicator */}
             {votedOptions.length > 0 && (
               <div className="text-xs text-white font-medium bg-green-600 py-1.5 px-3 rounded-md whitespace-nowrap">
                 ✓ You voted for {votedOptions.length} option{votedOptions.length > 1 ? 's' : ''}

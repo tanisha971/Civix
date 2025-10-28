@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -9,18 +9,16 @@ import {
   TextField,
   Button,
   Avatar,
-  IconButton,
   Typography,
   Divider,
   Alert,
   CircularProgress,
   InputAdornment,
+  IconButton,
 } from '@mui/material';
 import {
   Person as PersonIcon,
   Lock as LockIcon,
-  PhotoCamera as PhotoCameraIcon,
-  Delete as DeleteIcon,
   Save as SaveIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
@@ -28,7 +26,6 @@ import {
   LocationOn as LocationOnIcon,
 } from '@mui/icons-material';
 import settingsService from '../../services/settingsService';
-import { formatUserAddress, getUserAvatar } from '../../utils/formatters';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -38,18 +35,37 @@ function TabPanel({ children, value, index }) {
   );
 }
 
+function getInitials(name) {
+  if (!name) return 'U';
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+function stringToColor(string) {
+  if (!string) return '#1976d2';
+  let hash = 0;
+  for (let i = 0; i < string.length; i++) {
+    hash = string.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  let color = '#';
+  for (let i = 0; i < 3; i++) {
+    const value = (hash >> (i * 8)) & 0xff;
+    color += ('00' + value.toString(16)).substr(-2);
+  }
+  return color;
+}
+
 export default function Settings() {
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
     location: '',
-    avatar: null,
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -64,10 +80,8 @@ export default function Settings() {
     confirm: false,
   });
 
-  const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
-  // Load user settings on mount
   useEffect(() => {
     loadUserSettings();
   }, []);
@@ -83,7 +97,6 @@ export default function Settings() {
           name: user.name || '',
           email: user.email || '',
           location: user.location || '',
-          avatar: user.avatar || null,
         });
       }
     } catch (error) {
@@ -134,7 +147,6 @@ export default function Settings() {
           text: 'Profile updated successfully!'
         });
         
-        // Update local storage
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
         const updatedUser = {
           ...currentUser,
@@ -142,7 +154,6 @@ export default function Settings() {
         };
         localStorage.setItem('user', JSON.stringify(updatedUser));
 
-        // Dispatch custom event to notify other components
         window.dispatchEvent(new CustomEvent('profileUpdated', { 
           detail: updatedUser 
         }));
@@ -163,7 +174,6 @@ export default function Settings() {
     setUpdating(true);
     setMessage({ type: '', text: '' });
 
-    // Validation
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setMessage({
         type: 'error',
@@ -191,7 +201,6 @@ export default function Settings() {
           text: 'Password changed successfully!'
         });
         
-        // Clear password fields
         setPasswordData({
           currentPassword: '',
           newPassword: '',
@@ -206,118 +215,6 @@ export default function Settings() {
       });
     } finally {
       setUpdating(false);
-    }
-  };
-
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!['image/jpeg', 'image/jpg', 'image/png', 'image/gif'].includes(file.type)) {
-      setMessage({
-        type: 'error',
-        text: 'Please select a valid image file (JPEG, PNG, or GIF)'
-      });
-      return;
-    }
-
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage({
-        type: 'error',
-        text: 'File size must be less than 5MB'
-      });
-      return;
-    }
-
-    setUploading(true);
-    setMessage({ type: '', text: '' });
-
-    try {
-      const response = await settingsService.uploadAvatar(file);
-
-      if (response.success) {
-        setProfileData({
-          ...profileData,
-          avatar: response.avatar, // This is now base64 string
-        });
-        setMessage({
-          type: 'success',
-          text: 'Profile picture updated successfully!'
-        });
-
-        // Update local storage with base64 image
-        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-        const updatedUser = {
-          ...currentUser,
-          avatar: response.avatar
-        };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-
-        // Dispatch custom event to notify other components
-        window.dispatchEvent(new CustomEvent('profileUpdated', { 
-          detail: updatedUser 
-        }));
-      }
-    } catch (error) {
-      console.error('Upload avatar error:', error);
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Failed to upload profile picture'
-      });
-    } finally {
-      setUploading(false);
-      e.target.value = ''; // Reset file input
-    }
-  };
-
-  const handleDeleteAvatar = async () => {
-    if (!window.confirm('Are you sure you want to delete your profile picture?')) {
-      return;
-    }
-
-    setUploading(true);
-    setMessage({ type: '', text: '' });
-
-    try {
-      const response = await settingsService.deleteAvatar();
-
-      if (response.success) {
-        setProfileData({
-          ...profileData,
-          avatar: null,
-        });
-        setMessage({
-          type: 'success',
-          text: 'Profile picture deleted successfully!'
-        });
-
-        // Update local storage
-        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-        const updatedUser = {
-          ...currentUser,
-          avatar: null
-        };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-
-        // Dispatch custom event to notify other components
-        window.dispatchEvent(new CustomEvent('profileUpdated', { 
-          detail: updatedUser 
-        }));
-      }
-    } catch (error) {
-      console.error('Delete avatar error:', error);
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Failed to delete profile picture'
-      });
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -339,7 +236,6 @@ export default function Settings() {
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
       <Paper elevation={3} sx={{ overflow: 'hidden' }}>
-        {/* Header */}
         <Box sx={{ bgcolor: 'primary.main', color: 'white', p: 3 }}>
           <Typography variant="h4" fontWeight="bold">
             Settings
@@ -349,7 +245,6 @@ export default function Settings() {
           </Typography>
         </Box>
 
-        {/* Tabs */}
         <Tabs
           value={tabValue}
           onChange={handleTabChange}
@@ -359,7 +254,6 @@ export default function Settings() {
           <Tab icon={<LockIcon />} label="Security" />
         </Tabs>
 
-        {/* Messages */}
         {message.text && (
           <Box sx={{ p: 2 }}>
             <Alert severity={message.type} onClose={() => setMessage({ type: '', text: '' })}>
@@ -368,66 +262,31 @@ export default function Settings() {
           </Box>
         )}
 
-        {/* Profile Tab */}
         <TabPanel value={tabValue} index={0}>
           <Box sx={{ px: 3 }}>
-            {/* Avatar Section */}
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4 }}>
-              <Box sx={{ position: 'relative' }}>
-                <Avatar
-                  src={profileData.avatar || undefined} // Use base64 string directly
-                  sx={{ width: 120, height: 120, mb: 2, cursor: 'pointer' }}
-                  onClick={handleAvatarClick}
-                >
-                  {!profileData.avatar && profileData.name?.charAt(0).toUpperCase()}
-                </Avatar>
-                {uploading && (
-                  <CircularProgress
-                    size={120}
-                    sx={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                    }}
-                  />
-                )}
-              </Box>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={handleFileChange}
-              />
-
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<PhotoCameraIcon />}
-                  onClick={handleAvatarClick}
-                  disabled={uploading}
-                >
-                  Change Photo
-                </Button>
-                {profileData.avatar && (
-                  <IconButton
-                    color="error"
-                    onClick={handleDeleteAvatar}
-                    disabled={uploading}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                )}
-              </Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-                Max file size: 5MB (JPEG, PNG, GIF)
+              <Avatar
+                sx={{ 
+                  width: 120, 
+                  height: 120, 
+                  mb: 2,
+                  bgcolor: stringToColor(profileData.name),
+                  fontSize: '3rem',
+                  fontWeight: 600
+                }}
+              >
+                {getInitials(profileData.name)}
+              </Avatar>
+              <Typography variant="h6" fontWeight={600}>
+                {profileData.name}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {profileData.email}
               </Typography>
             </Box>
 
             <Divider sx={{ mb: 3 }} />
 
-            {/* Profile Form */}
             <form onSubmit={handleUpdateProfile}>
               <TextField
                 fullWidth
@@ -496,7 +355,6 @@ export default function Settings() {
           </Box>
         </TabPanel>
 
-        {/* Security Tab */}
         <TabPanel value={tabValue} index={1}>
           <Box sx={{ px: 3 }}>
             <Typography variant="h6" gutterBottom>
@@ -539,7 +397,7 @@ export default function Settings() {
                 onChange={handlePasswordChange}
                 required
                 sx={{ mb: 3 }}
-                helperText="Password must be at least 6 characters and contain no spaces"
+                helperText="Password must be at least 6 characters"
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">

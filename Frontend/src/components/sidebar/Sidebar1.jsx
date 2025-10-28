@@ -5,12 +5,32 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import EmailIcon from '@mui/icons-material/Email';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
-import EditIcon from '@mui/icons-material/Edit';
 import LogoutIcon from '@mui/icons-material/Logout';
 import CloseIcon from '@mui/icons-material/Close';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { IconButton, Tooltip, Button, Divider } from '@mui/material';
 import { logout } from '../../services/authService';
+
+function getInitials(name) {
+  if (!name) return 'U';
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+function stringToColor(string) {
+  if (!string) return '#1976d2';
+  let hash = 0;
+  for (let i = 0; i < string.length; i++) {
+    hash = string.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  let color = '#';
+  for (let i = 0; i < 3; i++) {
+    const value = (hash >> (i * 8)) & 0xff;
+    color += ('00' + value.toString(16)).substr(-2);
+  }
+  return color;
+}
 
 export default function Sidebar1({ user: initialUser, isMobile, onClose }) {
   const navigate = useNavigate();
@@ -27,7 +47,6 @@ export default function Sidebar1({ user: initialUser, isMobile, onClose }) {
     const handleProfileUpdate = (event) => {
       const updatedUser = event.detail;
       setUser(updatedUser);
-      console.log('Sidebar: Profile updated', updatedUser);
     };
 
     window.addEventListener('profileUpdated', handleProfileUpdate);
@@ -39,7 +58,7 @@ export default function Sidebar1({ user: initialUser, isMobile, onClose }) {
 
   const handleProfileEdit = () => {
     navigate('/dashboard/settings');
-    if (onClose) onClose(); // Close mobile sidebar after navigation
+    if (onClose) onClose();
   };
 
   const handleLogout = async () => {
@@ -54,16 +73,26 @@ export default function Sidebar1({ user: initialUser, isMobile, onClose }) {
     }
   };
 
-  // Get avatar URL
-  const avatarSrc = user?.avatar || user?.profilePicture || "https://randomuser.me/api/portraits/men/75.jpg";
-
-  // Format location display
   const getLocationDisplay = () => {
+    // Priority 1: locationString (from registration form)
+    if (user?.locationString) {
+      return user.locationString;
+    }
+    
+    // Priority 2: Simple location field (legacy)
+    if (user?.location && typeof user.location === 'string') {
+      return user.location;
+    }
+    
+    // Priority 3: address object
     if (user?.address) {
       const { city, state, country } = user.address;
       const parts = [city, state, country].filter(Boolean);
-      return parts.length > 0 ? parts.join(', ') : 'No location set';
+      if (parts.length > 0) {
+        return parts.join(', ');
+      }
     }
+    
     return 'No location set';
   };
 
@@ -93,12 +122,14 @@ export default function Sidebar1({ user: initialUser, isMobile, onClose }) {
       <div style={{ position: 'relative', display: 'inline-block', marginBottom: 16 }}>
         <Tooltip title="Click to edit profile">
           <Avatar
-            src={avatarSrc}
             sx={{ 
               width: isMobile ? 80 : 72, 
               height: isMobile ? 80 : 72, 
               margin: "0 auto",
               cursor: 'pointer',
+              bgcolor: stringToColor(user?.name),
+              fontSize: isMobile ? '2rem' : '1.75rem',
+              fontWeight: 600,
               '&:hover': {
                 opacity: 0.8,
                 transform: 'scale(1.05)'
@@ -107,11 +138,11 @@ export default function Sidebar1({ user: initialUser, isMobile, onClose }) {
             }}
             onClick={handleProfileEdit}
           >
-            {!user?.avatar && user?.name?.charAt(0).toUpperCase()}
+            {getInitials(user?.name)}
           </Avatar>
         </Tooltip>
         
-        {/* Edit icon overlay */}
+        {/* Settings icon overlay */}
         <IconButton
           onClick={handleProfileEdit}
           size="small"
@@ -168,11 +199,26 @@ export default function Sidebar1({ user: initialUser, isMobile, onClose }) {
         color: '#555', 
         fontSize: isMobile ? 15 : 14 
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
+        {/* Location Display */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          gap: 6, 
+          marginBottom: 8 
+        }}>
           <LocationOnIcon fontSize="small" /> 
           <span>{getLocationDisplay()}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 16 }}>
+        
+        {/* Email Display */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          gap: 6, 
+          marginBottom: 16 
+        }}>
           <EmailIcon fontSize="small" /> 
           <span style={{ fontSize: isMobile ? 14 : 13 }}>{user?.email || "Email"}</span>
         </div>
@@ -250,16 +296,22 @@ export default function Sidebar1({ user: initialUser, isMobile, onClose }) {
             <div style={{ color: '#6b7280', lineHeight: '1.5' }}>
               Member since {new Date(user?.createdAt || Date.now()).getFullYear()}
             </div>
-            {user?.address && user.address.city && (
+            
+            {/* Show location in quick info if available */}
+            {getLocationDisplay() !== 'No location set' && (
               <div style={{ color: '#6b7280', lineHeight: '1.5' }}>
                 Location: {getLocationDisplay()}
               </div>
             )}
+            
+            {/* Show department if public official */}
             {user?.department && (
               <div style={{ color: '#6b7280', lineHeight: '1.5' }}>
                 Department: {user.department}
               </div>
             )}
+            
+            {/* Show position if public official */}
             {user?.position && (
               <div style={{ color: '#6b7280', lineHeight: '1.5' }}>
                 Position: {user.position}

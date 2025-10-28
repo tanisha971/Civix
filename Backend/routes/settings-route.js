@@ -1,22 +1,29 @@
-import express from 'express';
-import { auth } from '../middleware/auth.js';
-import * as settingsController from '../controllers/settingsController.js';
+import express from "express";
+import { authenticate } from "../middleware/auth.js";
+import {
+  getUserSettings,
+  updateProfile,
+  changePassword,
+  uploadAvatar,
+  deleteAvatar,
+} from "../controllers/settingsController.js";
 
 const router = express.Router();
 
+// All routes require authentication
+router.use(authenticate);
+
 // Get user settings
-router.get('/', auth, settingsController.getUserSettings);
+router.get("/", getUserSettings);
 
 // Update profile
-router.put('/profile', auth, settingsController.updateProfile);
+router.put("/profile", updateProfile);
 
 // Change password
-router.put('/password', auth, settingsController.changePassword);
+router.put("/password", changePassword);
 
-// Upload profile picture
-router.post('/avatar', auth, settingsController.upload.single('avatar'), settingsController.uploadProfilePicture);
-
-// Delete profile picture
-router.delete('/avatar', auth, settingsController.deleteProfilePicture);
+// Avatar management
+router.post("/avatar", uploadAvatar);
+router.delete("/avatar", deleteAvatar);
 
 export default router;

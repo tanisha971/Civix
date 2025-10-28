@@ -8,8 +8,6 @@ export const getComments = async (req, res) => {
     const { petitionId } = req.params;
     const userId = req.user?.id;
 
-    console.log('Fetching comments for petition:', petitionId);
-
     if (!mongoose.Types.ObjectId.isValid(petitionId)) {
       return res.status(400).json({
         success: false,
@@ -49,8 +47,6 @@ export const getComments = async (req, res) => {
       return commentObj;
     });
 
-    console.log(`Found ${comments.length} comments for petition ${petitionId}`);
-
     res.json({
       success: true,
       comments: commentsWithUserData,
@@ -73,8 +69,6 @@ export const addComment = async (req, res) => {
     const { petitionId } = req.params;
     const { text } = req.body;
     const userId = req.user?.id;
-
-    console.log('Adding comment:', { petitionId, userId, textLength: text?.length });
 
     if (!userId) {
       return res.status(401).json({
@@ -125,8 +119,6 @@ export const addComment = async (req, res) => {
     await comment.populate('user', 'name email profilePicture');
 
     const commentsCount = await Comment.countDocuments({ petition: petitionId });
-
-    console.log('Comment added successfully:', comment._id);
 
     res.status(201).json({
       success: true,
@@ -573,8 +565,6 @@ export const updateComment = async (req, res) => {
     const { text } = req.body;
     const userId = req.user?.id;
 
-    console.log('Updating comment:', { petitionId, commentId, userId });
-
     if (!userId) {
       return res.status(401).json({
         success: false,
@@ -622,8 +612,6 @@ export const updateComment = async (req, res) => {
     await comment.save();
     await comment.populate('user', 'name email profilePicture');
 
-    console.log('Comment updated successfully:', commentId);
-
     res.json({
       success: true,
       message: 'Comment updated successfully',
@@ -645,8 +633,6 @@ export const deleteComment = async (req, res) => {
   try {
     const { petitionId, commentId } = req.params;
     const userId = req.user?.id;
-
-    console.log('Deleting comment:', { petitionId, commentId, userId });
 
     if (!userId) {
       return res.status(401).json({
@@ -681,8 +667,6 @@ export const deleteComment = async (req, res) => {
     await comment.deleteOne();
 
     const commentsCount = await Comment.countDocuments({ petition: petitionId });
-
-    console.log('Comment deleted successfully:', commentId);
 
     res.json({
       success: true,
