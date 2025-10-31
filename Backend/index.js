@@ -28,7 +28,7 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors({
   origin: [
-    "https://civix-h1n4unprm-tanisha-alis-projects.vercel.app",
+    "https://civix-i3d9rt75e-tanisha-alis-projects.vercel.app/",
     "http://localhost:5173"
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
