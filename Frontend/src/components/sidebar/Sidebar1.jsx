@@ -222,6 +222,7 @@ export default function Sidebar1({ user: initialUser, isMobile, onClose }) {
           <EmailIcon fontSize="small" /> 
           <span style={{ fontSize: isMobile ? 14 : 13 }}>{user?.email || "Email"}</span>
         </div>
+        <Divider sx={{ margin: '16px 0' }} />
       </div>
 
       {/* Mobile-specific content */}
