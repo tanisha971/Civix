@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "./api";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -7,7 +7,7 @@ export const getSignedPetitions = async (userId) => {
   if (!userId) throw new Error("User ID is required");
   
   try {
-    const res = await axios.get(`${API_URL}/signatures/user/${userId}`, {
+    const res = await api.get(`/signatures/user/${userId}`, {
       withCredentials: true
     });
     
@@ -25,7 +25,7 @@ export const getPetitionSignatureCount = async (petitionId) => {
   if (!petitionId) throw new Error("Petition ID is required");
   
   try {
-    const res = await axios.get(`${API_URL}/petitions/${petitionId}`, {
+    const res = await api.get(`/petitions/${petitionId}`, {
       withCredentials: true
     });
     

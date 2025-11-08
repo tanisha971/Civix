@@ -171,7 +171,7 @@ const CreatePoll = () => {
       <div className="max-w-4xl ml-8 mr-4 px-4 sm:px-6 lg:px-8 pt-4">
         
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-8 text-center sm:text-left mt-[70px] sm:mt-0">
           <h1 className="text-2xl font-bold text-gray-900">{isEditMode ? 'Edit Poll' : 'Create a New Poll'}</h1>
           <p className="text-gray-600 mt-1">{isEditMode ? 'Update your poll details.' : 'Create a poll to gather community feedback on local issues.'}</p>
         </div>

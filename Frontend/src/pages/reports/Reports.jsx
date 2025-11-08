@@ -537,29 +537,34 @@ export default function Reports({ allPolls = [] }) {
           <Card 
             className="chart-card" 
             title={
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="poll-distribution-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <PieChartOutlined />
                   Poll Result Distribution
                   {pollsLoading && <Spin size="small" />}
                 </span>
-                <Select
-                  style={{ width: 200 }}
-                  placeholder="Select a poll"
-                  value={selectedPollId}
-                  onChange={setSelectedPollId}
-                  showSearch
-                  optionFilterProp="children"
-                  loading={pollsLoading}
-                >
-                  {pollsData
-                    .filter(poll => poll.totalVotes > 0)
-                    .map(poll => (
-                      <Option key={poll._id || poll.id} value={poll._id || poll.id}>
-                        {poll.question || poll.title || 'Untitled Poll'} ({poll.totalVotes || 0} votes)
-                      </Option>
-                    ))}
-                </Select>
+
+                {/* Select moved into its own wrapper so CSS can push it to the next line on small screens */}
+                <div className="poll-select-wrapper" style={{ minWidth: 200 }}>
+                  <Select
+                    className="poll-select"
+                    style={{ width: 200 }}
+                    placeholder="Select a poll"
+                    value={selectedPollId}
+                    onChange={setSelectedPollId}
+                    showSearch
+                    optionFilterProp="children"
+                    loading={pollsLoading}
+                  >
+                    {pollsData
+                      .filter(poll => poll.totalVotes > 0)
+                      .map(poll => (
+                        <Option key={poll._id || poll.id} value={poll._id || poll.id}>
+                          {poll.question || poll.title || 'Untitled Poll'} ({poll.totalVotes || 0} votes)
+                        </Option>
+                      ))}
+                  </Select>
+                </div>
               </div>
             }
           >
@@ -580,32 +585,37 @@ export default function Reports({ allPolls = [] }) {
           <Card 
             className="chart-card" 
             title={
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="poll-distribution-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <PieChartOutlined />
                   Petition Progress
                   {petitionsLoading && <Spin size="small" />}
                 </span>
-                <Select
-                  style={{ width: 200 }}
-                  placeholder="Select a petition"
-                  value={selectedPetitionId}
-                  onChange={setSelectedPetitionId}
-                  showSearch
-                  optionFilterProp="children"
-                  loading={petitionsLoading}
-                >
-                  <Option key="overall" value="overall">
-                    Overall Petition Review
-                  </Option>
-                  {allPetitions
-                    .filter(petition => petition.signaturesCount > 0)
-                    .map(petition => (
-                      <Option key={petition._id || petition.id} value={petition._id || petition.id}>
-                        {petition.title} ({petition.signaturesCount || 0} signatures)
-                      </Option>
-                    ))}
-                </Select>
+
+                {/* Select moved into wrapper so it breaks to next line on small screens (same behavior as Poll select) */}
+                <div className="poll-select-wrapper" style={{ minWidth: 200 }}>
+                  <Select
+                    className="poll-select"
+                    style={{ width: 200 }}
+                    placeholder="Select a petition"
+                    value={selectedPetitionId}
+                    onChange={setSelectedPetitionId}
+                    showSearch
+                    optionFilterProp="children"
+                    loading={petitionsLoading}
+                  >
+                    <Option key="overall" value="overall">
+                      Overall Petition Review
+                    </Option>
+                    {allPetitions
+                      .filter(petition => petition.signaturesCount > 0)
+                      .map(petition => (
+                        <Option key={petition._id || petition.id} value={petition._id || petition.id}>
+                          {petition.title} ({petition.signaturesCount || 0} signatures)
+                        </Option>
+                      ))}
+                  </Select>
+                </div>
               </div>
             }
           >

@@ -145,7 +145,7 @@ const CreatePetition = () => {
       <div className="max-w-4xl ml-8 mr-4 px-4 sm:px-6 lg:px-8 pt-4">
         
         {/* Header - Dynamic based on mode */}
-        <div className="mb-6">
+        <div className="mb-8 text-center sm:text-left mt-[70px] sm:mt-0">
           <h1 className="text-2xl font-bold text-gray-900">
             {isEditMode ? 'Edit Petition' : 'Create a New Petition'}
           </h1>
