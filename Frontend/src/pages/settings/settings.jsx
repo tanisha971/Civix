@@ -25,6 +25,7 @@ import {
   Email as EmailIcon,
   LocationOn as LocationOnIcon,
 } from '@mui/icons-material';
+import { useAuth } from '../../hooks/useAuth';
 import settingsService from '../../services/settingsService';
 
 function TabPanel({ children, value, index }) {
@@ -57,6 +58,7 @@ function stringToColor(string) {
 }
 
 export default function Settings() {
+  const auth = useAuth();
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -142,6 +144,8 @@ export default function Settings() {
       });
 
       if (response.success) {
+        auth.updateUser(response.user); // <-- important
+
         setMessage({
           type: 'success',
           text: 'Profile updated successfully!'

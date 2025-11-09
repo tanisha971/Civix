@@ -4,10 +4,18 @@ import petitionService from "../../services/petitionService";
 import { getCurrentUserId, isAuthenticated } from "../../utils/auth";
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CommentIcon from '@mui/icons-material/Comment';
+import VerifiedIcon from '@mui/icons-material/Verified';
 import CommentsModal from './CommentsModal';
+import OfficialResponseModal from './OfficialResponseModal';
+import AnnouncementIcon from '@mui/icons-material/Announcement';
+import officialService from '../../services/officialService';
 
 const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
   const navigate = useNavigate();
+  const [officialResponses, setOfficialResponses] = useState([]);
+  const [officialCount, setOfficialCount] = useState(0);
+  const [latestOfficial, setLatestOfficial] = useState(null);
+  const [showOfficialModal, setShowOfficialModal] = useState(false);
   const [signed, setSigned] = useState(false);
   const [signaturesCount, setSignaturesCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -76,6 +84,70 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
 
     checkUserSignature();
   }, [petition._id, petition.userHasSigned, petition.signedByCurrentUser, petition.signaturesCount, currentUserId, userIsAuthenticated]);
+
+  // Fetch official responses for this petition and keep updated via window events
+  useEffect(() => {
+    const pid = petition._id || petition.id;
+    if (!pid) return;
+
+    const fetchResponses = async () => {
+      try {
+        const res = await officialService.getOfficialResponses(pid, true);
+        if (!res || !res.success) {
+          setOfficialResponses([]);
+          setOfficialCount(0);
+          setLatestOfficial(null);
+          return;
+        }
+
+        const resp = res.responses || {};
+        // Build entries list (main officialResponse + timeline)
+        const entries = [];
+        if (resp.officialResponse) {
+          entries.push({
+            message: resp.officialResponse,
+            date: resp.reviewedAt || resp.verifiedAt || Date.now(),
+            official: resp.reviewedBy || resp.verifiedBy || null
+          });
+        }
+        if (Array.isArray(resp.timeline)) {
+          resp.timeline.forEach(t => {
+            entries.push({ message: t.note || '', date: t.date || t.createdAt, official: t.official || null });
+          });
+        }
+
+        const count = entries.length;
+        setOfficialResponses(entries);
+        setOfficialCount(count);
+
+        if (entries.length > 0) {
+          // pick most recent by date
+          const latest = entries.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+          setLatestOfficial(latest);
+        } else {
+          setLatestOfficial(null);
+        }
+      } catch (err) {
+        console.error('Error fetching official responses:', err);
+      }
+    };
+
+    fetchResponses();
+
+    const handleUpdate = (ev) => {
+      // ev.detail can include petitionId to avoid unnecessary fetches
+      const changedId = ev?.detail?.petitionId;
+      if (!changedId || changedId === pid) fetchResponses();
+    };
+
+    window.addEventListener('officialResponseAdded', handleUpdate);
+    window.addEventListener('officialActionsUpdated', handleUpdate);
+
+    return () => {
+      window.removeEventListener('officialResponseAdded', handleUpdate);
+      window.removeEventListener('officialActionsUpdated', handleUpdate);
+    };
+  }, [petition._id, petition.id]);
 
   const handleSign = async () => {
     if (!userIsAuthenticated || !currentUserId) {
@@ -149,6 +221,19 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
     setShowCommentsModal(true);
   };
 
+  const handleViewOfficialResponses = (e) => {
+    e.stopPropagation();
+    setShowOfficialModal(true);
+  };
+  
+  const handleOfficialAdded = (newResp) => {
+    // allow OfficialResponseModal to notify; also dispatch global event so list updates elsewhere
+    try {
+      window.dispatchEvent(new CustomEvent('officialResponseAdded', { detail: { petitionId: petition._id || petition.id } }));
+    } catch {}
+    setShowOfficialModal(false);
+  };
+  
   const handleCommentAdded = (newCount) => {
     setLocalCommentCount(newCount);
     // Update parent if needed
@@ -207,9 +292,9 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
       <div className={`bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow ${
         isGridView ? 'p-4 h-full flex flex-col' : 'p-6 mb-4'
       }`}>
-      
-      {/* Header */}
-      <div className={`flex justify-between items-start ${isGridView ? 'mb-3' : 'mb-3'}`}>
+       
+       {/* Header */}
+       <div className={`flex justify-between items-start ${isGridView ? 'mb-3' : 'mb-3'}`}>
         <div className="flex items-center gap-2 flex-wrap">
           <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(petition.status)}`}>
             {petition.status === 'active' ? 'Active' : petition.status}
@@ -246,60 +331,104 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
         </span>
       </div>
 
-      {/* Title */}
-      <h3 className={`font-semibold text-gray-900 ${
-        isGridView ? 'text-base mb-2' : 'text-lg mb-2'
-      }`} style={isGridView ? {
-        overflow: 'hidden',
-        display: '-webkit-box',
-        WebkitBoxOrient: 'vertical',
-        WebkitLineClamp: 2,
-        lineHeight: '1.4em',
-        maxHeight: '2.8em'
-      } : {}}>
-        {petition.title}
-      </h3>
+      {/* Content area - make scrollable in grid view like PollCard */}
+      {isGridView ? (
+        <div className="flex-1 overflow-y-auto pr-2 mb-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400" style={{ maxHeight: '250px' }}>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-gray-900 text-base leading-tight mr-2">
+              {petition.title}
+            </h3>
+            {petition.verified && (
+              <span title="Verified" className="flex items-center justify-center w-6 h-6 bg-green-100 text-green-800 rounded-full">
+                <VerifiedIcon sx={{ fontSize: 14 }} />
+              </span>
+            )}
+          </div>
 
-      {/* Description */}
-      <p className={`text-gray-600 text-sm leading-relaxed ${
-        isGridView ? 'mb-3' : 'mb-4'
-      }`} style={isGridView ? {
-        overflow: 'hidden',
-        display: '-webkit-box',
-        WebkitBoxOrient: 'vertical',
-        WebkitLineClamp: 3,
-        lineHeight: '1.4em',
-        maxHeight: '4.2em'
-      } : {}}>
-        {petition.description}
-      </p>
+          <p className="text-gray-600 text-sm leading-relaxed mb-3">
+            {petition.description}
+          </p>
 
-      {/* Progress Section */}
-      <div className={`${isGridView ? 'mb-4 flex-1' : 'mb-4'}`}>
-        <div className={`flex justify-between text-sm text-gray-600 ${isGridView ? 'mb-1' : 'mb-1'}`}>
-          <span><strong>{signaturesCount}</strong> Signatures</span>
-          <span>Goal: <strong>{signatureGoal}</strong></span>
+          {/* Progress Section */}
+          <div className="mb-4">
+            <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <span><strong>{signaturesCount}</strong> Signatures</span>
+              <span>Goal: <strong>{signatureGoal}</strong></span>
+            </div>
+
+            <div className="w-full bg-gray-200 rounded-full overflow-hidden h-2">
+              <div
+                className={`rounded-full transition-all duration-700 ease-in-out ${
+                  progressPercentage >= 100 ? 'bg-green-500' :
+                  progressPercentage >= 80 ? 'bg-blue-500' :
+                  progressPercentage >= 50 ? 'bg-yellow-500' : 'bg-gray-400'
+                } h-2`}
+                style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+              />
+            </div>
+
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>{Math.round(progressPercentage)}% complete</span>
+              <span>{Math.max(0, signatureGoal - signaturesCount)} signatures needed</span>
+            </div>
+          </div>
         </div>
-        
-        {/* Progress Bar */}
-        <div className={`w-full bg-gray-200 rounded-full overflow-hidden ${
-          isGridView ? 'h-2' : 'h-3'
-        }`}>
-          <div
-            className={`rounded-full transition-all duration-700 ease-in-out ${
-              progressPercentage >= 100 ? 'bg-green-500' :
-              progressPercentage >= 80 ? 'bg-blue-500' :
-              progressPercentage >= 50 ? 'bg-yellow-500' : 'bg-gray-400'
-            } ${isGridView ? 'h-2' : 'h-3'}`}
-            style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-          />
-        </div>
-        
-        <div className={`flex justify-between text-xs text-gray-500 ${isGridView ? 'mt-1' : 'mt-1'}`}>
-          <span>{Math.round(progressPercentage)}% complete</span>
-          <span>{Math.max(0, signatureGoal - signaturesCount)} signatures needed</span>
-        </div>
-      </div>
+      ) : (
+        <>
+          {/* Title */}
+          <div className="flex items-center justify-between mb-2">
+            <h3 className={`font-semibold text-gray-900 text-lg`} style={{
+              overflow: 'hidden',
+              display: '-webkit-box',
+              WebkitBoxOrient: 'vertical',
+              WebkitLineClamp: 2,
+              lineHeight: '1.4em',
+              maxHeight: '2.8em'
+            }}>
+              {petition.title}
+            </h3>
+            {petition.verified && (
+              <span title="Verified" className="flex items-center justify-center w-6 h-6 bg-green-100 text-green-800 rounded-full">
+                <VerifiedIcon sx={{ fontSize: 14 }} />
+              </span>
+            )}
+          </div>
+
+          {/* Description */}
+          <p className="text-gray-600 text-sm leading-relaxed mb-4" style={{
+            overflow: 'hidden',
+            display: '-webkit-box',
+            WebkitBoxOrient: 'vertical',
+            WebkitLineClamp: 3,
+            lineHeight: '1.4em',
+            maxHeight: '4.2em'
+          }}>
+            {petition.description}
+          </p>
+
+          {/* Progress Section */}
+          <div className="mb-4">
+            <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <span><strong>{signaturesCount}</strong> Signatures</span>
+              <span>Goal: <strong>{signatureGoal}</strong></span>
+            </div>
+            <div className={`w-full bg-gray-200 rounded-full overflow-hidden h-3`}>
+              <div
+                className={`rounded-full transition-all duration-700 ease-in-out ${
+                  progressPercentage >= 100 ? 'bg-green-500' :
+                  progressPercentage >= 80 ? 'bg-blue-500' :
+                  progressPercentage >= 50 ? 'bg-yellow-500' : 'bg-gray-400'
+                } h-3`}
+                style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>{Math.round(progressPercentage)}% complete</span>
+              <span>{Math.max(0, signatureGoal - signaturesCount)} signatures needed</span>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Footer */}
       <div className={isGridView ? 'mt-auto' : ''}>
@@ -328,17 +457,31 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
                   </span>
                 </div>
                 
-                {/* Comments Button */}
-                <button
-                  onClick={handleViewComments}
-                  className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-gray-100 transition-colors flex-shrink-0"
-                  title="View comments"
-                >
-                  <CommentIcon className="text-gray-600" style={{ fontSize: '14px' }} />
-                  <span className="text-xs font-medium text-gray-700">
-                    {localCommentCount}
-                  </span>
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Official Responses (grid view) - icon + count only */}
+                  <button
+                    onClick={handleViewOfficialResponses}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-gray-100 transition-colors"
+                    title="View official responses"
+                  >
+                    <AnnouncementIcon className="text-gray-600" style={{ fontSize: '14px' }} />
+                    <span className="text-xs font-medium text-gray-700">
+                      {officialCount}
+                    </span>
+                  </button>
+
+                  {/* Comments Button */}
+                  <button
+                    onClick={handleViewComments}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-gray-100 transition-colors"
+                    title="View comments"
+                  >
+                    <CommentIcon className="text-gray-600" style={{ fontSize: '14px' }} />
+                    <span className="text-xs font-medium text-gray-700">
+                      {localCommentCount}
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -404,6 +547,24 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
 
               {/* Comments Button - Desktop */}
               <button
+                onClick={handleViewOfficialResponses}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors"
+                title="View official responses"
+              >
+                <AnnouncementIcon className="text-gray-600" style={{ fontSize: '18px' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span className="text-sm font-medium text-gray-700">
+                    Official Response{officialCount > 0 && ` (${officialCount})`}
+                  </span>
+                  {latestOfficial?.message && (
+                    <span className="text-xs text-gray-500 max-w-[240px] truncate" style={{ marginTop: 2 }}>
+                      {latestOfficial.message.length > 120 ? `${latestOfficial.message.slice(0, 120)}…` : latestOfficial.message}
+                    </span>
+                  )}
+                </div>
+              </button>
+
+              <button
                 onClick={handleViewComments}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors"
                 title="View comments"
@@ -463,7 +624,16 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
       onClose={() => setShowCommentsModal(false)}
       onCommentAdded={handleCommentAdded}
     />
+
+    {/* Official Response Modal (opens like comments) */}
+    <OfficialResponseModal
+      petitionId={petition._id || petition.id}
+      isOpen={showOfficialModal}
+      onClose={() => setShowOfficialModal(false)}
+      onAdded={handleOfficialAdded}
+    />
     </>
+
   );
 };
 

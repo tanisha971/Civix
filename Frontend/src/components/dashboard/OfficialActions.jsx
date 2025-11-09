@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import notificationService from '../../services/notificationService';
 import {
@@ -19,20 +19,45 @@ const OfficialActions = ({ limit = 10 }) => {
   const [actions, setActions] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
+    // fetch initially
     fetchRecentActions();
+
+    // listener for explicit updates from elsewhere in the app
+    const handleUpdate = (ev) => {
+      // optional: you can inspect ev.detail
+      fetchRecentActions();
+    };
+    window.addEventListener('officialActionsUpdated', handleUpdate);
+
+    // periodic fallback refresh (every 60s)
+    const interval = setInterval(() => {
+      fetchRecentActions();
+    }, 60000);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('officialActionsUpdated', handleUpdate);
+    };
   }, [limit]);
 
   const fetchRecentActions = async () => {
     try {
       setLoading(true);
       const response = await notificationService.getRecentOfficialActions(limit);
+      if (!mountedRef.current) return;
       setActions(response.actions || []);
     } catch (error) {
       console.error('Error fetching recent actions:', error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
@@ -104,9 +129,9 @@ const OfficialActions = ({ limit = 10 }) => {
 
       <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         {/* FIXED: Scrollable container with inline styles */}
-        <div 
+        <div
           className="divide-y divide-gray-100"
-          style={{ 
+          style={{
             maxHeight: '240px',
             overflowY: 'auto',
             overflowX: 'hidden'
@@ -114,7 +139,7 @@ const OfficialActions = ({ limit = 10 }) => {
         >
           {actions.map((action, index) => {
             const status = extractStatus(action.action);
-            
+
             return (
               <div
                 key={action.id || index}
@@ -140,7 +165,7 @@ const OfficialActions = ({ limit = 10 }) => {
                     <div className="flex items-center gap-1.5 flex-wrap text-sm">
                       {/* Action prefix */}
                       <span className="text-gray-700 font-medium">
-                        {action.action.includes('Updated') ? 'Updated petition' : 
+                        {action.action.includes('Updated') ? 'Updated petition' :
                          action.action.includes('Verified') ? 'Verified petition' :
                          action.action.includes('Marked') ? 'Marked petition' :
                          action.action.includes('Added') ? 'Added response to' :

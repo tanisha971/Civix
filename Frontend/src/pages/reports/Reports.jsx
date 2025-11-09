@@ -632,7 +632,48 @@ export default function Reports({ allPolls = [] }) {
           </Card>
         </Col>
       </Row>
-
+          {/* SELECTED ITEM DETAILS */}
+      {(selectedPoll || (selectedPetition && selectedPetitionId !== 'overall')) && (
+        <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+          {selectedPoll && pollResultData && (
+            <Col xs={24} lg={12}>
+              <Card className="chart-card" title="Selected Poll Details">
+                <div style={{ padding: '16px 0' }}>
+                  <h4 style={{ marginBottom: 16, color: '#1890ff' }}>
+                    {selectedPoll.question || selectedPoll.title}
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
+                    <p><strong>Status:</strong> <span style={{ color: selectedPoll.status === 'active' ? '#52c41a' : '#666', textTransform: 'capitalize' }}>{selectedPoll.status}</span></p>
+                    <p><strong>Total Votes:</strong> {selectedPoll.totalVotes}</p>
+                    <p><strong>Engagement:</strong> {selectedPoll.engagementRate} votes/hr</p>
+                    <p><strong>Created:</strong> {new Date(selectedPoll.createdAt || Date.now()).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+          )}
+          
+          {selectedPetition && selectedPetitionId !== 'overall' && petitionResultData && (
+            <Col xs={24} lg={12}>
+              <Card className="chart-card" title="Selected Petition Details">
+                <div style={{ padding: '16px 0' }}>
+                  <h4 style={{ marginBottom: 16, color: '#52c41a' }}>
+                    {selectedPetition.title}
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
+                    <p><strong>Status:</strong> <span style={{ color: selectedPetition.status === 'active' ? '#52c41a' : '#666', textTransform: 'capitalize' }}>{selectedPetition.status}</span></p>
+                    <p><strong>Signatures:</strong> {selectedPetition.signaturesCount} / {selectedPetition.signatureGoal}</p>
+                    <p><strong>Progress:</strong> <span style={{ color: selectedPetition.completionRate >= 100 ? '#52c41a' : '#faad14' }}>{selectedPetition.completionRate}%</span></p>
+                    <p><strong>Engagement:</strong> {selectedPetition.engagementRate} signs/hr</p>
+                    <p><strong>Location:</strong> {selectedPetition.location || 'N/A'}</p>
+                    <p><strong>Created:</strong> {new Date(selectedPetition.createdAt || Date.now()).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+          )}
+        </Row>
+      )}    
       {/* MONTHLY CREATION CHARTS */}
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} lg={12}>
@@ -761,48 +802,7 @@ export default function Reports({ allPolls = [] }) {
         </Col>
       </Row>
 
-      {/* SELECTED ITEM DETAILS */}
-      {(selectedPoll || (selectedPetition && selectedPetitionId !== 'overall')) && (
-        <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-          {selectedPoll && pollResultData && (
-            <Col xs={24} lg={12}>
-              <Card className="chart-card" title="Selected Poll Details">
-                <div style={{ padding: '16px 0' }}>
-                  <h4 style={{ marginBottom: 16, color: '#1890ff' }}>
-                    {selectedPoll.question || selectedPoll.title}
-                  </h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
-                    <p><strong>Status:</strong> <span style={{ color: selectedPoll.status === 'active' ? '#52c41a' : '#666', textTransform: 'capitalize' }}>{selectedPoll.status}</span></p>
-                    <p><strong>Total Votes:</strong> {selectedPoll.totalVotes}</p>
-                    <p><strong>Engagement:</strong> {selectedPoll.engagementRate} votes/hr</p>
-                    <p><strong>Created:</strong> {new Date(selectedPoll.createdAt || Date.now()).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              </Card>
-            </Col>
-          )}
-          
-          {selectedPetition && selectedPetitionId !== 'overall' && petitionResultData && (
-            <Col xs={24} lg={12}>
-              <Card className="chart-card" title="Selected Petition Details">
-                <div style={{ padding: '16px 0' }}>
-                  <h4 style={{ marginBottom: 16, color: '#52c41a' }}>
-                    {selectedPetition.title}
-                  </h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
-                    <p><strong>Status:</strong> <span style={{ color: selectedPetition.status === 'active' ? '#52c41a' : '#666', textTransform: 'capitalize' }}>{selectedPetition.status}</span></p>
-                    <p><strong>Signatures:</strong> {selectedPetition.signaturesCount} / {selectedPetition.signatureGoal}</p>
-                    <p><strong>Progress:</strong> <span style={{ color: selectedPetition.completionRate >= 100 ? '#52c41a' : '#faad14' }}>{selectedPetition.completionRate}%</span></p>
-                    <p><strong>Engagement:</strong> {selectedPetition.engagementRate} signs/hr</p>
-                    <p><strong>Location:</strong> {selectedPetition.location || 'N/A'}</p>
-                    <p><strong>Created:</strong> {new Date(selectedPetition.createdAt || Date.now()).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              </Card>
-            </Col>
-          )}
-        </Row>
-      )}
+      
 
       {/* OVERALL PETITION REVIEW DETAILS */}
       {selectedPetitionId === 'overall' && (
