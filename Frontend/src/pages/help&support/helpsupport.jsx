@@ -651,7 +651,7 @@ const HelpSupport = () => {
                       </div>
 
                       {/* Response Section */}
-                      {selectedFeedback === feedback._id && feedback.response && (
+                      {feedback.response ? (
                         <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                           <div className="flex items-start gap-3">
                             <CheckCircle className="text-blue-600 flex-shrink-0 mt-1" size={20} />
@@ -659,12 +659,51 @@ const HelpSupport = () => {
                               <p className="font-medium text-blue-900 mb-1">Admin Response</p>
                               <p className="text-sm text-blue-800">{feedback.response.message}</p>
                               <p className="text-xs text-blue-600 mt-2">
-                                Responded on {new Date(feedback.response.respondedAt).toLocaleDateString()}
+                                Responded by {feedback.response.respondedBy?.name || 'Admin'} on{' '}
+                                {new Date(feedback.response.respondedAt).toLocaleDateString()}{' '}
+                                at {new Date(feedback.response.respondedAt).toLocaleTimeString()}
                               </p>
                             </div>
                           </div>
                         </div>
-                      )}
+                      ) : selectedFeedback === feedback._id ? (
+                        <div className="border-t pt-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Admin Response
+                            </label>
+                            <textarea
+                              value={responseMessage}
+                              onChange={(e) => setResponseMessage(e.target.value)}
+                              className="w-full border border-gray-300 rounded-lg p-3 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              rows="4"
+                              placeholder="Type your response (min 10 characters)..."
+                            />
+                            <p className="text-xs text-gray-500 mb-3">
+                              {responseMessage.length}/10 characters minimum
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleRespond(feedback._id)}
+                                disabled={responseMessage.trim().length < 10}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors flex items-center gap-2"
+                              >
+                                <Send size={16} />
+                                Send Response
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedFeedback(null);
+                                  setResponseMessage('');
+                                }}
+                                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
 
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200">
                         <p className="text-xs text-gray-500">
@@ -803,37 +842,39 @@ const HelpSupport = () => {
                       {/* Response Section */}
                       {selectedFeedback === feedback._id ? (
                         <div className="border-t pt-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Admin Response
-                          </label>
-                          <textarea
-                            value={responseMessage}
-                            onChange={(e) => setResponseMessage(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg p-3 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            rows="4"
-                            placeholder="Type your response (min 10 characters)..."
-                          />
-                          <p className="text-xs text-gray-500 mb-3">
-                            {responseMessage.length}/10 characters minimum
-                          </p>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleRespond(feedback._id)}
-                              disabled={responseMessage.trim().length < 10}
-                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors flex items-center gap-2"
-                            >
-                              <Send size={16} />
-                              Send Response
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedFeedback(null);
-                                setResponseMessage('');
-                              }}
-                              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors"
-                            >
-                              Cancel
-                            </button>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Admin Response
+                            </label>
+                            <textarea
+                              value={responseMessage}
+                              onChange={(e) => setResponseMessage(e.target.value)}
+                              className="w-full border border-gray-300 rounded-lg p-3 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              rows="4"
+                              placeholder="Type your response (min 10 characters)..."
+                            />
+                            <p className="text-xs text-gray-500 mb-3">
+                              {responseMessage.length}/10 characters minimum
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleRespond(feedback._id)}
+                                disabled={responseMessage.trim().length < 10}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors flex items-center gap-2"
+                              >
+                                <Send size={16} />
+                                Send Response
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedFeedback(null);
+                                  setResponseMessage('');
+                                }}
+                                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ) : feedback.response ? (
