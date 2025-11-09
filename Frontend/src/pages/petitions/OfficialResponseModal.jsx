@@ -11,6 +11,10 @@ import ChatBubbleIcon from '@mui/icons-material/ChatBubble';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import CancelIcon from '@mui/icons-material/Cancel';
 import BusinessIcon from '@mui/icons-material/Business';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
+import Checkbox from '@mui/material/Checkbox';
+import Button from '@mui/material/Button';
 
 export default function OfficialResponseModal({ petitionId, isOpen, onClose, onAdded }) {
   const { user } = useAuth() || {};
@@ -19,6 +23,10 @@ export default function OfficialResponseModal({ petitionId, isOpen, onClose, onA
   const [loading, setLoading] = useState(false);
   const [responses, setResponses] = useState([]); // now holds grouped/combined entries
   const [error, setError] = useState(null);
+
+  // simple form state & submit handlers to avoid ReferenceError
+  const [form, setForm] = useState({ message: '', type: 'general_response', isPublic: true });
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isOpen || !petitionId) return;
@@ -114,6 +122,33 @@ export default function OfficialResponseModal({ petitionId, isOpen, onClose, onA
     }
   };
 
+  const handleSubmit = async (e) => {
+    e?.preventDefault?.();
+    if (!isOfficial) return setError('Only officials can post responses');
+    if (!form.message.trim()) return setError('Message required');
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await officialService.addOfficialResponse(petitionId, {
+        message: form.message.trim(),
+        type: form.type,
+        isPublic: !!form.isPublic
+      });
+      if (res?.success) {
+        await fetchResponses();
+        onAdded?.(res.response);
+        setForm({ message: '', type: 'general_response', isPublic: true });
+      } else {
+        setError(res?.message || 'Failed to send response');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Failed to send response');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const formatStatusLabel = (status) => {
     if (!status) return null;
     if (status === 'under_review' || status === 'Under Review') return 'Under Review';
@@ -160,7 +195,13 @@ export default function OfficialResponseModal({ petitionId, isOpen, onClose, onA
               // determine if group contains a verification as highest-priority display
               const hasVerification = group.items.some(it => it.type === 'verification');
               const verificationItem = group.items.find(it => it.type === 'verification');
-              const statusFromGroup = verificationItem?.status || group.items.find(it => it.status)?.status || null;
+              // Ignore 'unverified' timeline/status entries for header label unless there's a real verification item.
+              const statusFromGroup = (() => {
+                if (verificationItem?.status) return verificationItem.status;
+                // pick first non-'unverified' status from items (eg. under_review, closed, verified)
+                const s = group.items.find(it => it.status && it.status !== 'unverified');
+                return s?.status || null;
+              })();
               const statusLabel = statusFromGroup ? formatStatusLabel(statusFromGroup) : null;
 
               // header info: use newest item in group
