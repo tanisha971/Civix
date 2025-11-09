@@ -4,10 +4,6 @@ import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
-import Button from '@mui/material/Button';
-import TextField from '@mui/material/TextField';
-import MenuItem from '@mui/material/MenuItem';
-import Checkbox from '@mui/material/Checkbox';
 import CircularProgress from '@mui/material/CircularProgress';
 import officialService from '../../services/officialService';
 import { useAuth } from '../../hooks/useAuth';
@@ -22,8 +18,6 @@ export default function OfficialResponseModal({ petitionId, isOpen, onClose, onA
 
   const [loading, setLoading] = useState(false);
   const [responses, setResponses] = useState([]); // now holds grouped/combined entries
-  const [form, setForm] = useState({ message: '', type: 'general_response', isPublic: true });
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -52,17 +46,18 @@ export default function OfficialResponseModal({ petitionId, isOpen, onClose, onA
           });
         }
 
-        // verification event
-        if (resp.verificationNote || resp.verified !== undefined) {
+        // verification event — only include when it's a real verification (verified === true)
+        // or when there is an explicit verification note (non-empty). Skip false/"marked invalid" noise.
+        if (resp.verified === true || (resp.verificationNote && resp.verificationNote.trim())) {
           const msg = (resp.verificationNote && resp.verificationNote.trim())
             ? resp.verificationNote
-            : (resp.verified ? 'Petition verified' : 'Marked as invalid');
+            : 'Petition verified';
           raw.push({
             message: msg,
             date: resp.verifiedAt || resp.reviewedAt || new Date().toISOString(),
             official: resp.verifiedBy || resp.reviewedBy || null,
             type: 'verification',
-            status: resp.verified === true ? 'verified' : (resp.verified === false ? 'unverified' : null)
+            status: resp.verified === true ? 'verified' : null
           });
         }
 
@@ -128,38 +123,6 @@ export default function OfficialResponseModal({ petitionId, isOpen, onClose, onA
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!isOfficial) return setError('Only public officials can add responses');
-    if (!form.message.trim()) return setError('Message required');
-
-    setSubmitting(true);
-    setError(null);
-    try {
-      const res = await officialService.addOfficialResponse(petitionId, {
-        message: form.message.trim(),
-        type: form.type,
-        isPublic: !!form.isPublic
-      });
-      if (res && res.success) {
-        await fetchResponses();
-        try {
-          window.dispatchEvent(new CustomEvent('officialResponseAdded', { detail: { petitionId } }));
-          window.dispatchEvent(new CustomEvent('officialActionsUpdated', { detail: { petitionId } }));
-        } catch (evErr) {}
-        setForm({ message: '', type: 'general_response', isPublic: true });
-        onAdded?.(res.response);
-      } else {
-        setError(res?.message || 'Failed to add response');
-      }
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || 'Failed to add response');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -191,7 +154,7 @@ export default function OfficialResponseModal({ petitionId, isOpen, onClose, onA
           ) : error ? (
             <Typography color="error" variant="body2" sx={{ mb: 2 }}>{error}</Typography>
           ) : responses.length === 0 ? (
-            <Typography color="text.secondary">No official responses yet.</Typography>
+            <Typography color="text.secondary">No official response</Typography>
           ) : (
             responses.map((group, i) => {
               // determine if group contains a verification as highest-priority display

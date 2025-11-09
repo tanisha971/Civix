@@ -458,16 +458,18 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
                 </div>
                 
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {/* Official Responses (grid view) - icon + count only */}
+                  {/* Official Responses (grid view) - icon + count / no-response label */}
                   <button
                     onClick={handleViewOfficialResponses}
                     className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-gray-100 transition-colors"
                     title="View official responses"
                   >
                     <AnnouncementIcon className="text-gray-600" style={{ fontSize: '14px' }} />
-                    <span className="text-xs font-medium text-gray-700">
-                      {officialCount}
-                    </span>
+                    {officialCount > 0 ? (
+                      <span className="text-xs font-medium text-gray-700">{officialCount}</span>
+                    ) : (
+                      <span className="text-xs text-gray-500">No official response</span>
+                    )}
                   </button>
 
                   {/* Comments Button */}
@@ -553,27 +555,33 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
               >
                 <AnnouncementIcon className="text-gray-600" style={{ fontSize: '18px' }} />
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <span className="text-sm font-medium text-gray-700">
-                    Official Response{officialCount > 0 && ` (${officialCount})`}
-                  </span>
-                  {latestOfficial?.message && (
-                    <span className="text-xs text-gray-500 max-w-[240px] truncate" style={{ marginTop: 2 }}>
-                      {latestOfficial.message.length > 120 ? `${latestOfficial.message.slice(0, 120)}…` : latestOfficial.message}
-                    </span>
+                  {officialCount > 0 ? (
+                    <>
+                      <span className="text-sm font-medium text-gray-700">
+                        Official Response{officialCount > 0 && ` (${officialCount})`}
+                      </span>
+                      {latestOfficial?.message && (
+                        <span className="text-xs text-gray-500 max-w-[240px] truncate" style={{ marginTop: 2 }}>
+                          {latestOfficial.message.length > 120 ? `${latestOfficial.message.slice(0, 120)}…` : latestOfficial.message}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-sm text-gray-500">No official response</span>
                   )}
                 </div>
-              </button>
+               </button>
 
-              <button
-                onClick={handleViewComments}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors"
-                title="View comments"
-              >
-                <CommentIcon className="text-gray-600" style={{ fontSize: '18px' }} />
-                <span className="text-sm font-medium text-gray-700">
-                  {localCommentCount} {localCommentCount === 1 ? 'Comment' : 'Comments'}
-                </span>
-              </button>
+               <button
+                 onClick={handleViewComments}
+                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors"
+                 title="View comments"
+               >
+                 <CommentIcon className="text-gray-600" style={{ fontSize: '18px' }} />
+                 <span className="text-sm font-medium text-gray-700">
+                   {localCommentCount} {localCommentCount === 1 ? 'Comment' : 'Comments'}
+                 </span>
+               </button>
             </div>
 
             {/* Sign button - ✅ UPDATED */}
