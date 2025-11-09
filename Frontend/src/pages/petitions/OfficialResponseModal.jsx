@@ -315,57 +315,6 @@ export default function OfficialResponseModal({ petitionId, isOpen, onClose, onA
         </Box>
 
         <Divider />
-
-        {/* Optional: keep form visible only to officials */}
-        {isOfficial && (
-          <Box component="form" onSubmit={handleSubmit} sx={{ p: 2, display: 'flex', gap: 2, flexDirection: 'column' }}>
-            <Typography variant="subtitle2">Add Official Response</Typography>
-            <TextField
-              label="Message"
-              value={form.message}
-              onChange={(e) => setForm(f => ({ ...f, message: e.target.value }))}
-              multiline
-              minRows={3}
-              fullWidth
-            />
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <TextField
-                select
-                label="Type"
-                value={form.type}
-                onChange={(e) => setForm(f => ({ ...f, type: e.target.value }))}
-                size="small"
-                sx={{ width: 220 }}
-              >
-                <MenuItem value="general_response">General Response</MenuItem>
-                <MenuItem value="status_update">Status Update</MenuItem>
-                <MenuItem value="progress_update">Progress Update</MenuItem>
-                <MenuItem value="final_decision">Final Decision</MenuItem>
-                <MenuItem value="information_request">Information Request</MenuItem>
-              </TextField>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto' }}>
-                <Checkbox
-                  checked={form.isPublic}
-                  onChange={(e) => setForm(f => ({ ...f, isPublic: e.target.checked }))}
-                  size="small"
-                />
-                <Typography variant="caption">Public</Typography>
-              </Box>
-            </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-              <Button variant="text" onClick={onClose}>Cancel</Button>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={!isOfficial || submitting}
-              >
-                {submitting ? 'Sending...' : 'Send Response'}
-              </Button>
-            </Box>
-          </Box>
-        )}
       </Box>
     </>
   );
