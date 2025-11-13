@@ -10,6 +10,7 @@ const PetitionFilters = ({ activeFilter, onFilterChange }) => {
   const [locations, setLocations] = useState(['All Locations']);
   const [loadingLocations, setLoadingLocations] = useState(true);
   const [locationCounts, setLocationCounts] = useState({});
+  const [statusCounts, setStatusCounts] = useState({});
 
   const petitionTypes = ['Active Petitions', 'Petitions I Signed', 'My Petitions', 'All Petitions'];
   const statuses = ['All Status', 'Active', 'Closed', 'Under Review'];
@@ -35,6 +36,28 @@ const PetitionFilters = ({ activeFilter, onFilterChange }) => {
         
         setLocations(['All Locations', ...uniqueLocations]);
         setLocationCounts(locationMap);
+
+        // --- NEW: build status counts, treat "Closed" to include goal-reached petitions ---
+        const closedStatusSet = new Set(['closed','Closed','successful','Successful','rejected','Rejected','expired','Expired']);
+        const sCounts = { active: 0, closed: 0, under_review: 0, other: 0 };
+        petitions.forEach(p => {
+          const sigGoal = p.signatureGoal || 0;
+          const sigCount = p.signaturesCount ?? p.signatures?.length ?? 0;
+          const goalReached = sigGoal > 0 && sigCount >= sigGoal;
+          const isClosed = closedStatusSet.has(p.status) || goalReached;
+
+          if (isClosed) {
+            sCounts.closed += 1;
+          } else if (p.status && String(p.status).toLowerCase() === 'active') {
+            sCounts.active += 1;
+          } else if (p.status && String(p.status).toLowerCase().includes('review')) {
+            sCounts.under_review += 1;
+          } else {
+            sCounts.other += 1;
+          }
+        });
+        setStatusCounts(sCounts);
+        // --- end status counts ---
       } catch (error) {
         console.error('Error fetching locations:', error);
         setLocations(['All Locations']);
@@ -275,19 +298,33 @@ const PetitionFilters = ({ activeFilter, onFilterChange }) => {
               </button>
               {dropdowns.status && (
                 <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
-                  {statuses.map(item => (
-                    <button 
-                      key={item} 
-                      onClick={() => handleSelect('status', item)} 
-                      className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                        activeFilter.status === item
-                          ? 'bg-blue-50 text-blue-700 font-medium'
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      {item}
-                    </button>
-                  ))}
+                  {statuses.map(item => {
+                    // map display label to count key
+                    let count = 0;
+                    if (item === 'All Status') count = Object.values(locationCounts).reduce((s,c)=>s+c,0);
+                    else if (item === 'Active') count = statusCounts.active || 0;
+                    else if (item === 'Closed') count = statusCounts.closed || 0;
+                    else if (item === 'Under Review') count = statusCounts.under_review || 0;
+
+                    return (
+                      <button 
+                        key={item} 
+                        onClick={() => handleSelect('status', item)} 
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                          activeFilter.status === item
+                            ? 'bg-blue-50 text-blue-700 font-medium'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <span className="flex items-center justify-between">
+                          <span>{item}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${activeFilter.status === item ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                            {count}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>

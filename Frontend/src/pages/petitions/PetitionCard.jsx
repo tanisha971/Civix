@@ -28,9 +28,22 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
   const userIsAuthenticated = isAuthenticated();
   const isCreator = petition.creator?._id === currentUserId;
   
-  // ✅ NEW: Check if petition is closed
-  const isClosed = ['closed', 'Closed', 'successful', 'Successful', 'rejected', 'Rejected', 'expired', 'Expired'].includes(petition.status);
+  // signature goal (use petition prop by default)
+  const signatureGoal = petition.signatureGoal || 100;
 
+  // determine if goal reached using latest known signaturesCount (fallback to petition prop)
+  const currentSignatures = typeof signaturesCount === 'number' && signaturesCount >= 0
+    ? signaturesCount
+    : (petition.signaturesCount || 0);
+  const goalReached = signatureGoal > 0 && currentSignatures >= signatureGoal;
+
+  // ✅ NEW: Check if petition is closed (either by status OR because goal reached)
+  const isClosedStatus = ['closed', 'Closed', 'successful', 'Successful', 'rejected', 'Rejected', 'expired', 'Expired'].includes(petition.status);
+  const isClosed = isClosedStatus || goalReached;
+
+  // If petition is verified, show 'Verified' as the display status
+  const displayStatus = petition.verified ? 'Verified' : (petition.status === 'active' ? 'Active' : petition.status);
+  
   // Initialize comment count
   useEffect(() => {
     setLocalCommentCount(petition.commentsCount || petition.comments?.length || 0);
@@ -248,15 +261,21 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Active": return "bg-green-100 text-green-800";
-      case "active": return "bg-green-100 text-green-800";
-      case "Under Review": return "bg-blue-100 text-blue-800";
-      case "under_review": return "bg-blue-100 text-blue-800";
-      case "Closed": return "bg-purple-100 text-purple-800";
-      case "closed": return "bg-purple-100 text-purple-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  };
+      case "Verified":
+      case "verified":
+        return "bg-green-100 text-green-800";
+      case "Active":
+      case "active":
+        return "bg-green-100 text-green-800";
+      case "Under Review":
+      case "under_review":
+        return "bg-blue-100 text-blue-800";
+      case "Closed":
+      case "closed":
+        return "bg-purple-100 text-purple-800";
+       default: return "bg-gray-100 text-gray-800";
+     }
+   };
 
   const getTimeColor = (time) => {
     if (!time) return "text-gray-600";
@@ -267,8 +286,7 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
   };
 
   // Calculate progress percentage
-  const signatureGoal = petition.signatureGoal || 100;
-  const progressPercentage = Math.min((signaturesCount / signatureGoal) * 100, 100);
+  const progressPercentage = Math.min((currentSignatures / signatureGoal) * 100, 100);
 
   if (checkingSignature) {
     return (
@@ -296,8 +314,13 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
        {/* Header */}
        <div className={`flex justify-between items-start ${isGridView ? 'mb-3' : 'mb-3'}`}>
         <div className="flex items-center gap-2 flex-wrap">
-          <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(petition.status)}`}>
-            {petition.status === 'active' ? 'Active' : petition.status}
+          <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getStatusColor(displayStatus)}`}>
+            <span className="inline-flex items-center gap-2">
+              <span>{displayStatus}</span>
+              {petition.verified && (
+                <VerifiedIcon sx={{ fontSize: 14, color: '#065f46' }} />
+              )}
+            </span>
           </span>
           
           {/* ✅ NEW: Show "Closed" badge for closed petitions */
@@ -338,11 +361,6 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
             <h3 className="font-semibold text-gray-900 text-base leading-tight mr-2">
               {petition.title}
             </h3>
-            {petition.verified && (
-              <span title="Verified" className="flex items-center justify-center w-6 h-6 bg-green-100 text-green-800 rounded-full">
-                <VerifiedIcon sx={{ fontSize: 14 }} />
-              </span>
-            )}
           </div>
 
           <p className="text-gray-600 text-sm leading-relaxed mb-3">
@@ -387,11 +405,6 @@ const PetitionCard = ({ petition, onSigned, viewMode = "List View" }) => {
             }}>
               {petition.title}
             </h3>
-            {petition.verified && (
-              <span title="Verified" className="flex items-center justify-center w-6 h-6 bg-green-100 text-green-800 rounded-full">
-                <VerifiedIcon sx={{ fontSize: 14 }} />
-              </span>
-            )}
           </div>
 
           {/* Description */}
